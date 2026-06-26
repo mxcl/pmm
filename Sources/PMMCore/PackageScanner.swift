@@ -4,15 +4,18 @@ public struct PackageScanner {
     private let runner: CommandRunning
     private let fileManager: FileManager
     private let homeDirectory: URL
+    private let toolPaths: [String: String]
 
     public init(
         runner: CommandRunning = SystemCommandRunner(),
         fileManager: FileManager = .default,
-        homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser
+        homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser,
+        toolPaths: [String: String] = [:]
     ) {
         self.runner = runner
         self.fileManager = fileManager
         self.homeDirectory = homeDirectory
+        self.toolPaths = toolPaths
     }
 
     public func inventory(database: PackageDatabase) async -> PackageInventory {
@@ -33,7 +36,7 @@ public struct PackageScanner {
     }
 
     public func scanHomebrew(database: PackageDatabase) throws -> [ManagedPackage] {
-        guard let brew = firstExecutable(named: "brew", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin"]) else { return [] }
+        guard let brew = executable(named: "brew", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin"]) else { return [] }
         let outdated = try homebrewOutdated(brew)
         let formulae = try homebrewList(brew, kindFlag: "--formula", outdated: outdated.formulae, database: database)
         let casks = try homebrewList(brew, kindFlag: "--cask", outdated: outdated.casks, database: database)
@@ -41,7 +44,7 @@ public struct PackageScanner {
     }
 
     public func scanNPM(database: PackageDatabase) throws -> [ManagedPackage] {
-        guard let npm = firstExecutable(named: "npm", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"]) else { return [] }
+        guard let npm = executable(named: "npm", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"]) else { return [] }
         let root = successfulLine(npm, ["root", "-g"])
         let prefix = successfulLine(npm, ["prefix", "-g"])
         let bin = prefix.map { "\($0)/bin" }
@@ -63,7 +66,7 @@ public struct PackageScanner {
                 category: metadata?.category,
                 homepage: metadata?.homepage,
                 installLocation: root.map { "\($0)/\(name)" },
-                binaryPath: npmBinaryPath(packageName: name, bin: bin)
+                binaryPath: npmBinaryPath(packageName: name, root: root, bin: bin)
             )
         }
     }
@@ -74,7 +77,7 @@ public struct PackageScanner {
             return []
         }
 
-        return cacheEntries.flatMap { entry -> [ManagedPackage] in
+        let packages = cacheEntries.flatMap { entry -> [ManagedPackage] in
             let modules = entry.appendingPathComponent("node_modules", isDirectory: true)
             guard let names = try? fileManager.contentsOfDirectory(atPath: modules.path) else { return [] }
             return names.flatMap { packageNames(in: modules, name: $0) }.compactMap { packageURL in
@@ -94,6 +97,7 @@ public struct PackageScanner {
                 )
             }
         }
+        return uniqued(packages)
     }
 
     private func homebrewList(
@@ -148,10 +152,31 @@ public struct PackageScanner {
         return value.isEmpty ? nil : value
     }
 
-    private func npmBinaryPath(packageName: String, bin: String?) -> String? {
-        guard let bin else { return nil }
-        let path = "\(bin)/\(packageName)"
-        return fileManager.fileExists(atPath: path) ? path : nil
+    private func executable(named name: String, extraPaths: [String]) -> String? {
+        toolPaths[name] ?? firstExecutable(named: name, extraPaths: extraPaths)
+    }
+
+    private func npmBinaryPath(packageName: String, root: String?, bin: String?) -> String? {
+        guard let root, let bin else { return nil }
+        let packageURL = URL(fileURLWithPath: root).appendingPathComponent(packageName, isDirectory: true)
+        let packageJSON = packageURL.appendingPathComponent("package.json")
+        let binNames = npmBinNames(from: packageJSON, fallback: packageName)
+        return binNames
+            .map { "\(bin)/\($0)" }
+            .first { fileManager.fileExists(atPath: $0) }
+    }
+
+    private func npmBinNames(from packageJSON: URL, fallback: String) -> [String] {
+        guard let data = try? Data(contentsOf: packageJSON),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let bin = json["bin"] else { return [fallback] }
+        if bin is String {
+            return [fallback]
+        }
+        if let bins = bin as? [String: Any] {
+            return bins.keys.sorted()
+        }
+        return [fallback]
     }
 
     private func packageNames(in modules: URL, name: String) -> [URL] {
@@ -166,6 +191,13 @@ public struct PackageScanner {
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let name = json["name"] as? String else { return nil }
         return (name, json["version"] as? String)
+    }
+
+    private func uniqued(_ packages: [ManagedPackage]) -> [ManagedPackage] {
+        var seen = Set<String>()
+        return packages.filter {
+            seen.insert("\($0.manager.rawValue):\($0.name):\($0.installedVersion ?? "")").inserted
+        }
     }
 }
 
