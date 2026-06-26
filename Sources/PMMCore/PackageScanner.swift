@@ -38,7 +38,8 @@ public struct PackageScanner {
     public func scanHomebrew(database: PackageDatabase) throws -> [ManagedPackage] {
         guard let brew = executable(named: "brew", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin"]) else { return [] }
         let outdated = try homebrewOutdated(brew)
-        let formulae = try homebrewList(brew, kindFlag: "--formula", outdated: outdated.formulae, database: database)
+        let requestedFormulae = homebrewRequestedFormulae(brew)
+        let formulae = try homebrewList(brew, kindFlag: "--formula", names: requestedFormulae, outdated: outdated.formulae, database: database)
         let casks = try homebrewList(brew, kindFlag: "--cask", outdated: outdated.casks, database: database)
         return formulae + casks
     }
@@ -79,7 +80,8 @@ public struct PackageScanner {
 
         let packages = cacheEntries.flatMap { entry -> [ManagedPackage] in
             let modules = entry.appendingPathComponent("node_modules", isDirectory: true)
-            guard let names = try? fileManager.contentsOfDirectory(atPath: modules.path) else { return [] }
+            guard let allNames = try? fileManager.contentsOfDirectory(atPath: modules.path) else { return [] }
+            let names = npxRequestedPackageNames(in: entry) ?? allNames
             return names.flatMap { packageNames(in: modules, name: $0) }.compactMap { packageURL in
                 guard let package = readPackageJSON(packageURL.appendingPathComponent("package.json")) else { return nil }
                 let name = package.name
@@ -103,6 +105,7 @@ public struct PackageScanner {
     private func homebrewList(
         _ brew: String,
         kindFlag: String,
+        names: Set<String>? = nil,
         outdated: [String: String],
         database: PackageDatabase
     ) throws -> [ManagedPackage] {
@@ -111,6 +114,7 @@ public struct PackageScanner {
         return result.stdout.split(separator: "\n").compactMap { line in
             let parts = line.split(separator: " ", omittingEmptySubsequences: true).map(String.init)
             guard let name = parts.first else { return nil }
+            if let names, !names.contains(name) { return nil }
             let version = parts.dropFirst().last
             let metadata = database.metadata(for: .homebrew, name: name)
             return ManagedPackage(
@@ -125,6 +129,13 @@ public struct PackageScanner {
                 binaryPath: nil
             )
         }
+    }
+
+    private func homebrewRequestedFormulae(_ brew: String) -> Set<String>? {
+        if let lines = successfulLines(brew, ["leaves", "--installed-on-request"]) {
+            return Set(lines)
+        }
+        return successfulLines(brew, ["leaves"]).map(Set.init)
     }
 
     private func homebrewOutdated(_ brew: String) throws -> (formulae: [String: String], casks: [String: String]) {
@@ -150,6 +161,11 @@ public struct PackageScanner {
         guard let result = try? runner.run(executable, arguments), result.status == 0 else { return nil }
         let value = result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
         return value.isEmpty ? nil : value
+    }
+
+    private func successfulLines(_ executable: String, _ arguments: [String]) -> [String]? {
+        guard let result = try? runner.run(executable, arguments), result.status == 0 else { return nil }
+        return result.stdout.split(whereSeparator: \.isNewline).map(String.init)
     }
 
     private func executable(named name: String, extraPaths: [String]) -> String? {
@@ -191,6 +207,31 @@ public struct PackageScanner {
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let name = json["name"] as? String else { return nil }
         return (name, json["version"] as? String)
+    }
+
+    private func npxRequestedPackageNames(in entry: URL) -> [String]? {
+        packageLockRootDependencyNames(entry.appendingPathComponent("package-lock.json"))
+            ?? packageJSONDependencyNames(entry.appendingPathComponent("package.json"))
+    }
+
+    private func packageLockRootDependencyNames(_ url: URL) -> [String]? {
+        guard let data = try? Data(contentsOf: url),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+        if let packages = json["packages"] as? [String: Any],
+           let root = packages[""] as? [String: Any],
+           let dependencies = root["dependencies"] as? [String: Any] {
+            return dependencies.keys.sorted()
+        }
+        return nil
+    }
+
+    private func packageJSONDependencyNames(_ url: URL) -> [String]? {
+        guard let data = try? Data(contentsOf: url),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+        if let dependencies = json["dependencies"] as? [String: Any] {
+            return dependencies.keys.sorted()
+        }
+        return nil
     }
 
     private func uniqued(_ packages: [ManagedPackage]) -> [ManagedPackage] {

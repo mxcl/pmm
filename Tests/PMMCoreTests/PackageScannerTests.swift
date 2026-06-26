@@ -49,15 +49,35 @@ private struct FakeRunner: CommandRunning {
     ])
 }
 
+@Test func homebrewScannerKeepsOnlyRequestedFormulaeAndCasks() throws {
+    let runner = FakeRunner(responses: [
+        "/fake/brew leaves --installed-on-request": CommandResult(stdout: "git\n", stderr: "", status: 0),
+        "/fake/brew outdated --json=v2": CommandResult(stdout: #"{"formulae":[],"casks":[]}"#, stderr: "", status: 0),
+        "/fake/brew list --versions --formula": CommandResult(stdout: "git 2.50.0\nopenssl@3 3.5.0\n", stderr: "", status: 0),
+        "/fake/brew list --versions --cask": CommandResult(stdout: "visual-studio-code 1.101.2\n", stderr: "", status: 0),
+    ])
+    let scanner = PackageScanner(runner: runner, toolPaths: ["brew": "/fake/brew"])
+
+    let packages = try scanner.scanHomebrew(database: PackageDatabase())
+
+    #expect(packages.map(\.name) == ["git", "visual-studio-code"])
+}
+
 @Test func npxScannerDeduplicatesCacheCopiesByPackageAndVersion() throws {
     let home = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
     defer { try? FileManager.default.removeItem(at: home) }
 
     for cacheID in ["a", "b"] {
         let package = home.appendingPathComponent(".npm/_npx/\(cacheID)/node_modules/acorn", isDirectory: true)
+        let transitive = home.appendingPathComponent(".npm/_npx/\(cacheID)/node_modules/commander", isDirectory: true)
         try FileManager.default.createDirectory(at: package, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: transitive, withIntermediateDirectories: true)
+        try #"{"packages":{"":{"dependencies":{"acorn":"8.16.0"}}}}"#
+            .write(to: home.appendingPathComponent(".npm/_npx/\(cacheID)/package-lock.json"), atomically: true, encoding: .utf8)
         try #"{"name":"acorn","version":"8.16.0"}"#
             .write(to: package.appendingPathComponent("package.json"), atomically: true, encoding: .utf8)
+        try #"{"name":"commander","version":"14.0.0"}"#
+            .write(to: transitive.appendingPathComponent("package.json"), atomically: true, encoding: .utf8)
     }
 
     let scanner = PackageScanner(runner: FakeRunner(responses: [:]), homeDirectory: home)
@@ -67,4 +87,5 @@ private struct FakeRunner: CommandRunning {
 
     #expect(packages.count == 1)
     #expect(packages.first?.isOutdated == true)
+    #expect(packages.first?.name == "acorn")
 }
