@@ -130,6 +130,14 @@ final class MainWindowModel: ObservableObject {
 
     var activeSidebarSection: MainWindowSection? { selectedSection }
 
+    var visibleManagerSections: [MainWindowSection] {
+        MainWindowSection.managerSections.filter { (count(for: $0) ?? 0) > 0 }
+    }
+
+    var visibleCategorySections: [MainWindowSection] {
+        MainWindowSection.categorySections.filter { (count(for: $0) ?? 0) > 0 }
+    }
+
     var dashboardSummary: DashboardSummary {
         DashboardSummary(
             totalPackages: packages.count,

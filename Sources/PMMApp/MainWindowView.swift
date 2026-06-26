@@ -48,10 +48,14 @@ struct MainWindowView: View {
         VStack(alignment: .leading, spacing: 0) {
             sidebarHeader("PACKAGE MANAGERS").padding(.top, 26)
             ForEach(MainWindowSection.librarySections) { sidebarRow($0) }
-            sidebarHeader("MANAGERS").padding(.top, 22)
-            ForEach(MainWindowSection.managerSections) { sidebarRow($0) }
-            sidebarHeader("CATEGORIES").padding(.top, 22)
-            ForEach(MainWindowSection.categorySections) { sidebarRow($0) }
+            if !model.visibleManagerSections.isEmpty {
+                sidebarHeader("MANAGERS").padding(.top, 22)
+                ForEach(model.visibleManagerSections) { sidebarRow($0) }
+            }
+            if !model.visibleCategorySections.isEmpty {
+                sidebarHeader("CATEGORIES").padding(.top, 22)
+                ForEach(model.visibleCategorySections) { sidebarRow($0) }
+            }
             Spacer(minLength: 24)
             ForEach(MainWindowSection.utilitySections) { sidebarRow($0) }
         }
@@ -86,7 +90,7 @@ struct MainWindowView: View {
             }
             .foregroundStyle(model.activeSidebarSection == section ? AVGlassPalette.primaryText : AVGlassPalette.secondaryText)
             .padding(.horizontal, 7)
-            .frame(height: 32)
+            .frame(maxWidth: .infinity, minHeight: 32, alignment: .leading)
             .background {
                 if model.activeSidebarSection == section {
                     RoundedRectangle(cornerRadius: 8, style: .continuous).fill(AVGlassPalette.sidebarSelectedFill)
@@ -94,6 +98,7 @@ struct MainWindowView: View {
             }
         }
         .buttonStyle(.plain)
+        .frame(maxWidth: .infinity)
     }
 
     private var dashboardPanel: some View {
