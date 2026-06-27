@@ -51,6 +51,8 @@ struct MainWindowView: View {
             if !model.visibleCategorySections.isEmpty {
                 sidebarHeader("CATEGORIES").padding(.top, 22)
                 ForEach(model.visibleCategorySections) { sidebarRow($0) }
+                sidebarDivider
+                ForEach(MainWindowSection.categoryShortcutSections) { sidebarRow($0) }
             }
             Spacer(minLength: 24)
             ForEach(MainWindowSection.utilitySections) { sidebarRow($0) }
@@ -67,6 +69,14 @@ struct MainWindowView: View {
             .padding(.bottom, 6)
     }
 
+    private var sidebarDivider: some View {
+        Rectangle()
+            .fill(AVGlassPalette.hairline)
+            .frame(height: 1)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 6)
+    }
+
     private func sidebarRow(_ section: MainWindowSection) -> some View {
         Button { model.selectSection(section) } label: {
             HStack(spacing: 12) {
@@ -78,10 +88,13 @@ struct MainWindowView: View {
                     .lineLimit(1)
                 Spacer(minLength: 6)
                 if let count = model.count(for: section), count > 0 {
-                    Text(count.formatted())
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(AVGlassPalette.quietText)
-                        .monospacedDigit()
+                    if section == .newUpdated {
+                        CountPill(count: count)
+                            .fixedSize()
+                    } else {
+                        SidebarCountText(count: count)
+                            .fixedSize()
+                    }
                 }
             }
             .foregroundStyle(model.activeSidebarSection == section ? AVGlassPalette.primaryText : AVGlassPalette.secondaryText)
@@ -246,6 +259,39 @@ private struct PackageRow: View {
             .padding(.vertical, 2)
         }
         .buttonStyle(.plain)
+    }
+}
+
+private enum SidebarCountMetrics {
+    static let columnWidth: CGFloat = 18
+    static let pillHorizontalPadding: CGFloat = 8
+}
+
+private struct SidebarCountText: View {
+    let count: Int
+
+    var body: some View {
+        Text(count.formatted())
+            .font(.system(size: 11, weight: .medium))
+            .foregroundStyle(AVGlassPalette.quietText)
+            .monospacedDigit()
+            .lineLimit(1)
+            .frame(minWidth: SidebarCountMetrics.columnWidth, alignment: .trailing)
+    }
+}
+
+private struct CountPill: View {
+    let count: Int
+
+    var body: some View {
+        Text(count.formatted())
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(AVGlassPalette.secondaryText)
+            .monospacedDigit()
+            .padding(.horizontal, SidebarCountMetrics.pillHorizontalPadding)
+            .frame(height: 20)
+            .background(AVGlassPalette.controlFill, in: Capsule())
+            .padding(.trailing, -SidebarCountMetrics.pillHorizontalPadding)
     }
 }
 

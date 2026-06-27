@@ -66,6 +66,8 @@ public struct PackageScanner {
                 summary: metadata?.summary,
                 category: metadata?.category,
                 homepage: metadata?.homepage,
+                lastUpdatedAt: metadata?.lastUpdatedAt,
+                pulseKind: metadata?.pulseKind,
                 installLocation: root.map { "\($0)/\(name)" },
                 binaryPath: npmBinaryPath(packageName: name, root: root, bin: bin)
             )
@@ -94,6 +96,8 @@ public struct PackageScanner {
                     summary: metadata?.summary,
                     category: metadata?.category,
                     homepage: metadata?.homepage,
+                    lastUpdatedAt: metadata?.lastUpdatedAt,
+                    pulseKind: metadata?.pulseKind,
                     installLocation: packageURL.path,
                     binaryPath: nil
                 )
@@ -125,6 +129,8 @@ public struct PackageScanner {
                 summary: metadata?.summary,
                 category: metadata?.category,
                 homepage: metadata?.homepage,
+                lastUpdatedAt: metadata?.lastUpdatedAt,
+                pulseKind: metadata?.pulseKind,
                 installLocation: nil,
                 binaryPath: nil
             )

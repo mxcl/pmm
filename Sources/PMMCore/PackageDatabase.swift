@@ -63,7 +63,9 @@ public struct PackageDatabase: Sendable {
                 summary: raw["summary"] as? String,
                 category: raw["category"] as? String,
                 homepage: raw["homepage"] as? String,
-                version: raw["version"] as? String
+                version: raw["version"] as? String,
+                lastUpdatedAt: raw["last_updated_at"] as? String,
+                pulseKind: raw["pulse_kind"] as? String
             )
         }
     }
@@ -77,7 +79,9 @@ public struct PackageDatabase: Sendable {
                 latestVersion: metadata.version,
                 summary: metadata.summary,
                 category: metadata.category,
-                homepage: metadata.homepage
+                homepage: metadata.homepage,
+                lastUpdatedAt: metadata.lastUpdatedAt,
+                pulseKind: metadata.pulseKind
             )
         }
     }

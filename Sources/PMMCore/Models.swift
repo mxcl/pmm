@@ -24,6 +24,8 @@ public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
     public let summary: String?
     public let category: String?
     public let homepage: String?
+    public let lastUpdatedAt: String?
+    public let pulseKind: String?
     public let installLocation: String?
     public let binaryPath: String?
 
@@ -35,6 +37,8 @@ public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
         summary: String? = nil,
         category: String? = nil,
         homepage: String? = nil,
+        lastUpdatedAt: String? = nil,
+        pulseKind: String? = nil,
         installLocation: String? = nil,
         binaryPath: String? = nil
     ) {
@@ -45,6 +49,8 @@ public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
         self.summary = summary
         self.category = category
         self.homepage = homepage
+        self.lastUpdatedAt = lastUpdatedAt
+        self.pulseKind = pulseKind
         self.installLocation = installLocation
         self.binaryPath = binaryPath
     }
@@ -85,4 +91,15 @@ public struct PackageMetadata: Equatable, Sendable {
     public let category: String?
     public let homepage: String?
     public let version: String?
+    public let lastUpdatedAt: String?
+    public let pulseKind: String?
+
+    public init(summary: String?, category: String?, homepage: String?, version: String?, lastUpdatedAt: String? = nil, pulseKind: String? = nil) {
+        self.summary = summary
+        self.category = category
+        self.homepage = homepage
+        self.version = version
+        self.lastUpdatedAt = lastUpdatedAt
+        self.pulseKind = pulseKind
+    }
 }
