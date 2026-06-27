@@ -2,7 +2,7 @@ import AppKit
 import Foundation
 import PMMCore
 
-enum MainWindowSection: String, CaseIterable, Identifiable {
+enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
     case installed
     case outdated
     case newUpdated
@@ -123,17 +123,13 @@ final class MainWindowModel: ObservableObject {
     nonisolated private static let newUpdatedLastClickedAtDefaultsKey = "MainWindowModel.newUpdatedLastClickedAt"
 
     private var inventory = PackageInventory(packages: [])
-    private var catalogPackages: [ManagedPackage] = []
+    private var packageIndex = PackageIndex.empty
     private var newUpdatedLastClickedAt: Date?
     private var newUpdatedSelectionDisplayCount: Int?
-    private let iso8601Formatter = ISO8601DateFormatter()
-    private let fractionalISO8601Formatter = ISO8601DateFormatter()
     private let userDefaults: UserDefaults
 
     init(userDefaults: UserDefaults = .standard) {
         self.userDefaults = userDefaults
-        iso8601Formatter.formatOptions = [.withInternetDateTime]
-        fractionalISO8601Formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         newUpdatedLastClickedAt = userDefaults.object(forKey: Self.newUpdatedLastClickedAtDefaultsKey) as? Date
     }
 
@@ -148,24 +144,7 @@ final class MainWindowModel: ObservableObject {
     }
 
     var displayedPackages: [ManagedPackage] {
-        let base: [ManagedPackage] = switch selectedSection {
-        case .installed:
-            packages
-        case .outdated:
-            packages.filter(\.isOutdated)
-        case .newUpdated:
-            newUpdatedPackages
-        case .homebrew:
-            packages.filter { $0.manager == .homebrew }
-        case .npm:
-            packages.filter { $0.manager == .npm }
-        case .npx:
-            packages.filter { $0.manager == .npx }
-        case .about:
-            []
-        default:
-            catalogPackages.filter { $0.category == selectedSection.categoryIdentifier }
-        }
+        let base = packageIndex.packagesBySection[selectedSection] ?? []
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return base }
         return base.filter { $0.name.localizedCaseInsensitiveContains(query) || ($0.summary?.localizedCaseInsensitiveContains(query) == true) }
@@ -174,13 +153,13 @@ final class MainWindowModel: ObservableObject {
     func reload() {
         isReloading = true
         Task {
-            let (db, next) = await Task.detached {
+            let (next, index) = await Task.detached { [newUpdatedLastClickedAt] in
                 let db = await PackageDatabase.load()
                 let next = await PackageScanner().inventory(database: db)
-                return (db, next)
+                return (next, PackageIndex(packages: next.packages, catalogPackages: db.catalogPackages, newUpdatedLastClickedAt: newUpdatedLastClickedAt))
             }.value
             inventory = next
-            catalogPackages = db.catalogPackages
+            packageIndex = index
             packages = next.packages
             errors = next.errors
             selectedPackage = selectedPackage.flatMap { selected in displayedPackages.first { $0.id == selected.id } } ?? displayedPackages.first
@@ -206,14 +185,8 @@ final class MainWindowModel: ObservableObject {
     func count(for section: MainWindowSection) -> Int? {
         switch section {
         case .about: nil
-        case .installed: packages.count
-        case .outdated: packages.filter(\.isOutdated).count
         case .newUpdated: newUpdatedSelectionDisplayCount ?? newUpdatedUnreadCount
-        case .homebrew: packages.filter { $0.manager == .homebrew }.count
-        case .npm: packages.filter { $0.manager == .npm }.count
-        case .npx: packages.filter { $0.manager == .npx }.count
-        default:
-            catalogPackages.filter { $0.category == section.categoryIdentifier }.count
+        default: packageIndex.countsBySection[section]
         }
     }
 
@@ -222,34 +195,60 @@ final class MainWindowModel: ObservableObject {
         NSWorkspace.shared.open(url)
     }
 
-    private var newUpdatedPackages: [ManagedPackage] {
-        catalogPackages
-            .filter { $0.pulseKind != nil }
-            .sorted { updatedAt($0) > updatedAt($1) }
-    }
-
     private var newUpdatedUnreadCount: Int? {
-        let count = newUpdatedPackages.filter(isUnreadNewUpdatedPackage).count
-        return count > 0 ? count : nil
-    }
-
-    private func isUnreadNewUpdatedPackage(_ package: ManagedPackage) -> Bool {
-        guard let newUpdatedLastClickedAt else {
-            return package.pulseKind == "new"
-        }
-        return updatedAt(package) > newUpdatedLastClickedAt
-    }
-
-    private func updatedAt(_ package: ManagedPackage) -> Date {
-        guard let lastUpdatedAt = package.lastUpdatedAt else { return .distantPast }
-        return iso8601Formatter.date(from: lastUpdatedAt)
-            ?? fractionalISO8601Formatter.date(from: lastUpdatedAt)
-            ?? .distantPast
+        packageIndex.newUpdatedUnreadCount
     }
 
     private func recordNewUpdatedSidebarClick() {
         let clickedAt = Date()
         newUpdatedLastClickedAt = clickedAt
         userDefaults.set(clickedAt, forKey: Self.newUpdatedLastClickedAtDefaultsKey)
+    }
+}
+
+private struct PackageIndex: Sendable {
+    static let empty = PackageIndex(packages: [], catalogPackages: [], newUpdatedLastClickedAt: nil)
+
+    let packagesBySection: [MainWindowSection: [ManagedPackage]]
+    let countsBySection: [MainWindowSection: Int]
+    let newUpdatedUnreadCount: Int?
+
+    init(packages: [ManagedPackage], catalogPackages: [ManagedPackage], newUpdatedLastClickedAt: Date?) {
+        let newUpdated = catalogPackages
+            .filter { $0.pulseKind != nil }
+            .sorted { Self.updatedAt($0) > Self.updatedAt($1) }
+
+        var bySection: [MainWindowSection: [ManagedPackage]] = [
+            .installed: packages,
+            .outdated: packages.filter(\.isOutdated),
+            .newUpdated: newUpdated,
+            .homebrew: packages.filter { $0.manager == .homebrew },
+            .npm: packages.filter { $0.manager == .npm },
+            .npx: packages.filter { $0.manager == .npx },
+        ]
+
+        for section in MainWindowSection.categorySections {
+            bySection[section] = catalogPackages.filter { $0.category == section.categoryIdentifier }
+        }
+
+        packagesBySection = bySection
+        countsBySection = bySection.mapValues(\.count)
+
+        let unread = newUpdated.filter {
+            guard let newUpdatedLastClickedAt else { return $0.pulseKind == "new" }
+            return Self.updatedAt($0) > newUpdatedLastClickedAt
+        }.count
+        newUpdatedUnreadCount = unread > 0 ? unread : nil
+    }
+
+    private static func updatedAt(_ package: ManagedPackage) -> Date {
+        guard let lastUpdatedAt = package.lastUpdatedAt else { return .distantPast }
+        let iso8601Formatter = ISO8601DateFormatter()
+        iso8601Formatter.formatOptions = [.withInternetDateTime]
+        let fractionalISO8601Formatter = ISO8601DateFormatter()
+        fractionalISO8601Formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return iso8601Formatter.date(from: lastUpdatedAt)
+            ?? fractionalISO8601Formatter.date(from: lastUpdatedAt)
+            ?? .distantPast
     }
 }

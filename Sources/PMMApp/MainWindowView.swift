@@ -125,13 +125,14 @@ struct MainWindowView: View {
             .frame(height: 42)
             hairline
             ScrollView {
-                if model.isReloading && model.displayedPackages.isEmpty {
+                let displayedPackages = model.displayedPackages
+                if model.isReloading && displayedPackages.isEmpty {
                     ProgressView()
                         .controlSize(.small)
                         .frame(maxWidth: .infinity, minHeight: 180)
                 } else {
                     LazyVStack(spacing: 0) {
-                        ForEach(model.displayedPackages) { package in
+                        ForEach(displayedPackages) { package in
                             PackageRow(
                                 package: package,
                                 selected: model.selectedPackage?.id == package.id,
