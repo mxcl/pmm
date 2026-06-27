@@ -174,8 +174,11 @@ final class MainWindowModel: ObservableObject {
     func reload() {
         isReloading = true
         Task {
-            let db = await PackageDatabase.load()
-            let next = await PackageScanner().inventory(database: db)
+            let (db, next) = await Task.detached {
+                let db = await PackageDatabase.load()
+                let next = await PackageScanner().inventory(database: db)
+                return (db, next)
+            }.value
             inventory = next
             catalogPackages = db.catalogPackages
             packages = next.packages

@@ -1,0 +1,3 @@
+- Commit regularly.
+- Never do package scans, network loads, shell commands, or file crawls on the main thread.
+- If data is not loaded yet, keep the UI responsive and show a spinner where the missing data would appear.
