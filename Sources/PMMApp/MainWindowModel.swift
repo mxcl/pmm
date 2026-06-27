@@ -31,7 +31,7 @@ enum MainWindowSection: String, CaseIterable, Identifiable {
         .developerTools, .cloudInfrastructure, .networking, .system, .security,
         .data, .languageRuntime, .media, .productivity, .science, .games, .toys, .other
     ].sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
-    static let utilitySections: [MainWindowSection] = [.about]
+    static let utilitySections: [MainWindowSection] = []
 
     var title: String {
         switch self {
