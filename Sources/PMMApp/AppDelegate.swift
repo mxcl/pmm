@@ -47,10 +47,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let superview = close.superview
         else { return }
 
-        let y = max(superview.bounds.height - close.frame.height - 20, 0)
-        close.setFrameOrigin(NSPoint(x: 22, y: y))
-        miniaturize.setFrameOrigin(NSPoint(x: 42, y: y))
-        zoom.setFrameOrigin(NSPoint(x: 62, y: y))
+        let y = max(superview.bounds.height - close.frame.height - 30, 0)
+        close.setFrameOrigin(NSPoint(x: 30, y: y))
+        miniaturize.setFrameOrigin(NSPoint(x: 50, y: y))
+        zoom.setFrameOrigin(NSPoint(x: 70, y: y))
     }
 
     private func makeMainMenu() -> NSMenu {

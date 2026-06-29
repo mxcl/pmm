@@ -62,15 +62,15 @@ struct MainWindowView: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 16)
         .background {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
                 .fill(.ultraThinMaterial)
                 .overlay {
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    RoundedRectangle(cornerRadius: 28, style: .continuous)
                         .fill(AVGlassPalette.sidebarTint)
                 }
         }
         .overlay {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
                 .stroke(AVGlassPalette.sidebarBorder)
         }
         .padding(.leading, 10)
