@@ -154,20 +154,17 @@ final class MainWindowModel: ObservableObject {
         isReloading = true
         Task {
             let clickedAt = newUpdatedLastClickedAt
+            let remoteDatabase = Task.detached(priority: .background, operation: { () -> PackageDatabase? in
+                guard let db = try? await PackageDatabase.fetch() else { return nil }
+                return db
+            })
+
             if let cached = await Task.detached(operation: { PackageDatabase.cached() }).value {
-                let (next, index) = await Task.detached {
-                    let next = await PackageScanner().inventory(database: cached)
-                    return (next, PackageIndex(packages: next.packages, catalogPackages: cached.catalogPackages, newUpdatedLastClickedAt: clickedAt))
-                }.value
-                apply(inventory: next, index: index)
+                await scanAndApply(database: cached, newUpdatedLastClickedAt: clickedAt)
             }
 
-            if let (next, index) = await Task.detached(priority: .background, operation: { () -> (PackageInventory, PackageIndex)? in
-                guard let db = try? await PackageDatabase.fetch() else { return nil }
-                let next = await PackageScanner().inventory(database: db)
-                return (next, PackageIndex(packages: next.packages, catalogPackages: db.catalogPackages, newUpdatedLastClickedAt: clickedAt))
-            }).value {
-                apply(inventory: next, index: index)
+            if let db = await remoteDatabase.value {
+                await scanAndApply(database: db, newUpdatedLastClickedAt: clickedAt)
             }
             isReloading = false
         }
@@ -218,6 +215,58 @@ final class MainWindowModel: ObservableObject {
         errors = next.errors
         selectedPackage = selectedPackage.flatMap { selected in displayedPackages.first { $0.id == selected.id } } ?? displayedPackages.first
     }
+
+    private func scanAndApply(database: PackageDatabase, newUpdatedLastClickedAt: Date?) async {
+        let catalogPackages = database.catalogPackages
+        let previousPackages = packages
+        var scannedPackages: [ManagedPackage] = []
+        var scannedErrors: [String] = []
+        var scannedManagers = Set<PackageManagerKind>()
+
+        apply(packages: previousPackages, errors: errors, catalogPackages: catalogPackages, newUpdatedLastClickedAt: newUpdatedLastClickedAt)
+
+        await withTaskGroup(of: PackageScanBatch.self) { group in
+            group.addTask {
+                let scanner = PackageScanner()
+                do { return PackageScanBatch(managers: [.homebrew], packages: try scanner.scanHomebrew(database: database)) }
+                catch { return PackageScanBatch(managers: [.homebrew], errors: [error.localizedDescription]) }
+            }
+            group.addTask {
+                let scanner = PackageScanner()
+                do { return PackageScanBatch(managers: [.npm], packages: try scanner.scanNPM(database: database)) }
+                catch { return PackageScanBatch(managers: [.npm], errors: [error.localizedDescription]) }
+            }
+            group.addTask {
+                let scanner = PackageScanner()
+                do { return PackageScanBatch(managers: [.npx], packages: try scanner.scanNPX(database: database)) }
+                catch { return PackageScanBatch(managers: [.npx], errors: [error.localizedDescription]) }
+            }
+
+            for await batch in group {
+                scannedManagers.formUnion(batch.managers)
+                scannedPackages.removeAll { batch.managers.contains($0.manager) }
+                scannedPackages += batch.packages
+                scannedErrors += batch.errors
+                let visiblePackages = previousPackages.filter { !scannedManagers.contains($0.manager) } + scannedPackages
+                apply(packages: visiblePackages, errors: scannedErrors, catalogPackages: catalogPackages, newUpdatedLastClickedAt: newUpdatedLastClickedAt)
+            }
+        }
+    }
+
+    private func apply(packages nextPackages: [ManagedPackage], errors nextErrors: [String], catalogPackages: [ManagedPackage], newUpdatedLastClickedAt: Date?) {
+        let sortedPackages = nextPackages.sorted {
+            if $0.manager != $1.manager { return $0.manager.rawValue < $1.manager.rawValue }
+            return $0.name.localizedStandardCompare($1.name) == .orderedAscending
+        }
+        let next = PackageInventory(packages: sortedPackages, errors: nextErrors)
+        apply(inventory: next, index: PackageIndex(packages: sortedPackages, catalogPackages: catalogPackages, newUpdatedLastClickedAt: newUpdatedLastClickedAt))
+    }
+}
+
+private struct PackageScanBatch: Sendable {
+    let managers: Set<PackageManagerKind>
+    var packages: [ManagedPackage] = []
+    var errors: [String] = []
 }
 
 private struct PackageIndex: Sendable {
