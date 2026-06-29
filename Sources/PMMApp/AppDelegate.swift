@@ -23,8 +23,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let controller = MainWindowController()
         let window = NSWindow(contentViewController: controller)
         window.title = "Package Manager Manager"
+        window.styleMask.insert(.fullSizeContentView)
         window.titlebarAppearsTransparent = true
+        window.titleVisibility = .hidden
+        window.titlebarSeparatorStyle = .none
         window.toolbarStyle = .unified
+        window.isMovableByWindowBackground = true
         window.setContentSize(NSSize(width: 1380, height: 760))
         window.minSize = NSSize(width: 1060, height: 680)
         window.center()
