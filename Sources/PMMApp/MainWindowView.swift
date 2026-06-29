@@ -42,7 +42,9 @@ struct MainWindowView: View {
 
     private var sidebar: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Spacer().frame(height: 26)
+            Spacer().frame(height: 20)
+            searchField
+                .padding(.bottom, 18)
             ForEach(MainWindowSection.librarySections) { sidebarRow($0) }
             if !model.visibleManagerSections.isEmpty {
                 sidebarHeader("MANAGERS").padding(.top, 22)
@@ -66,6 +68,7 @@ struct MainWindowView: View {
             .font(.system(size: 11, weight: .semibold))
             .foregroundStyle(AVGlassPalette.quietText)
             .tracking(0.5)
+            .padding(.horizontal, 8)
             .padding(.bottom, 6)
     }
 
@@ -106,7 +109,7 @@ struct MainWindowView: View {
             .frame(maxWidth: .infinity, minHeight: 32, alignment: .leading)
             .background {
                 if model.activeSidebarSection == section {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous).fill(AVGlassPalette.sidebarSelectedFill)
+                    Capsule(style: .continuous).fill(AVGlassPalette.sidebarSelectedFill)
                 }
             }
             .contentShape(Rectangle())
@@ -148,7 +151,6 @@ struct MainWindowView: View {
                     }
                 }
             }
-            searchField
         }
     }
 
@@ -161,8 +163,11 @@ struct MainWindowView: View {
         .font(.system(size: 13))
         .foregroundStyle(AVGlassPalette.secondaryText)
         .padding(.horizontal, 12)
-        .frame(height: 40)
-        .background(AVGlassPalette.controlFill.opacity(0.58))
+        .frame(height: 32)
+        .background(AVGlassPalette.controlFill, in: Capsule(style: .continuous))
+        .overlay {
+            Capsule(style: .continuous).stroke(AVGlassPalette.controlBorder)
+        }
     }
 
     private var dossierPanel: some View {
