@@ -87,7 +87,11 @@ struct MainWindowView: View {
                     .font(.system(size: 14))
                     .lineLimit(1)
                 Spacer(minLength: 6)
-                if let count = model.count(for: section), count > 0 {
+                if model.isLoadingCount(for: section) {
+                    ProgressView()
+                        .controlSize(.small)
+                        .fixedSize()
+                } else if let count = model.count(for: section), count > 0 {
                     if section == .newUpdated {
                         CountPill(count: count)
                             .fixedSize()

@@ -117,6 +117,7 @@ final class MainWindowModel: ObservableObject {
     @Published private(set) var packages: [ManagedPackage] = []
     @Published private(set) var selectedPackage: ManagedPackage?
     @Published private(set) var isReloading = false
+    @Published private(set) var loadingManagerSections = Set(MainWindowSection.managerSections)
     @Published private(set) var errors: [String] = []
     @Published var searchText = ""
 
@@ -136,7 +137,7 @@ final class MainWindowModel: ObservableObject {
     var activeSidebarSection: MainWindowSection? { selectedSection }
 
     var visibleManagerSections: [MainWindowSection] {
-        MainWindowSection.managerSections.filter { (count(for: $0) ?? 0) > 0 }
+        MainWindowSection.managerSections.filter { loadingManagerSections.contains($0) || (count(for: $0) ?? 0) > 0 }
     }
 
     var visibleCategorySections: [MainWindowSection] {
@@ -152,6 +153,7 @@ final class MainWindowModel: ObservableObject {
 
     func reload() {
         isReloading = true
+        loadingManagerSections = Set(MainWindowSection.managerSections)
         Task {
             let clickedAt = newUpdatedLastClickedAt
             let remoteDatabase = Task.detached(priority: .background, operation: { () -> PackageDatabase? in
@@ -166,6 +168,7 @@ final class MainWindowModel: ObservableObject {
             if let db = await remoteDatabase.value {
                 await scanAndApply(database: db, newUpdatedLastClickedAt: clickedAt)
             }
+            loadingManagerSections.removeAll()
             isReloading = false
         }
     }
@@ -191,6 +194,10 @@ final class MainWindowModel: ObservableObject {
         case .newUpdated: newUpdatedSelectionDisplayCount ?? newUpdatedUnreadCount
         default: packageIndex.countsBySection[section]
         }
+    }
+
+    func isLoadingCount(for section: MainWindowSection) -> Bool {
+        loadingManagerSections.contains(section)
     }
 
     func open(url: URL?) {
@@ -244,6 +251,7 @@ final class MainWindowModel: ObservableObject {
 
             for await batch in group {
                 scannedManagers.formUnion(batch.managers)
+                loadingManagerSections.subtract(batch.sections)
                 scannedPackages.removeAll { batch.managers.contains($0.manager) }
                 scannedPackages += batch.packages
                 scannedErrors += batch.errors
@@ -271,6 +279,16 @@ private struct PackageScanBatch: Sendable {
     let managers: Set<PackageManagerKind>
     var packages: [ManagedPackage] = []
     var errors: [String] = []
+
+    var sections: Set<MainWindowSection> {
+        Set(managers.map {
+            switch $0 {
+            case .homebrew: .homebrew
+            case .npm: .npm
+            case .npx: .npx
+            }
+        })
+    }
 }
 
 private struct PackageIndex: Sendable {
