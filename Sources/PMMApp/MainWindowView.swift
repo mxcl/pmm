@@ -37,6 +37,7 @@ struct MainWindowView: View {
                 linksPanel.frame(width: max(width - sidebarWidth - packageWidth - dossierWidth - 2, 300))
             }
         }
+        .ignoresSafeArea(.container, edges: .top)
     }
 
     private var sidebar: some View {
