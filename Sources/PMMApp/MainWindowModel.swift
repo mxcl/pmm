@@ -153,16 +153,22 @@ final class MainWindowModel: ObservableObject {
     func reload() {
         isReloading = true
         Task {
-            let (next, index) = await Task.detached { [newUpdatedLastClickedAt] in
-                let db = await PackageDatabase.load()
+            let clickedAt = newUpdatedLastClickedAt
+            if let cached = await Task.detached(operation: { PackageDatabase.cached() }).value {
+                let (next, index) = await Task.detached {
+                    let next = await PackageScanner().inventory(database: cached)
+                    return (next, PackageIndex(packages: next.packages, catalogPackages: cached.catalogPackages, newUpdatedLastClickedAt: clickedAt))
+                }.value
+                apply(inventory: next, index: index)
+            }
+
+            if let (next, index) = await Task.detached(priority: .background, operation: { () -> (PackageInventory, PackageIndex)? in
+                guard let db = try? await PackageDatabase.fetch() else { return nil }
                 let next = await PackageScanner().inventory(database: db)
-                return (next, PackageIndex(packages: next.packages, catalogPackages: db.catalogPackages, newUpdatedLastClickedAt: newUpdatedLastClickedAt))
-            }.value
-            inventory = next
-            packageIndex = index
-            packages = next.packages
-            errors = next.errors
-            selectedPackage = selectedPackage.flatMap { selected in displayedPackages.first { $0.id == selected.id } } ?? displayedPackages.first
+                return (next, PackageIndex(packages: next.packages, catalogPackages: db.catalogPackages, newUpdatedLastClickedAt: clickedAt))
+            }).value {
+                apply(inventory: next, index: index)
+            }
             isReloading = false
         }
     }
@@ -203,6 +209,14 @@ final class MainWindowModel: ObservableObject {
         let clickedAt = Date()
         newUpdatedLastClickedAt = clickedAt
         userDefaults.set(clickedAt, forKey: Self.newUpdatedLastClickedAtDefaultsKey)
+    }
+
+    private func apply(inventory next: PackageInventory, index: PackageIndex) {
+        inventory = next
+        packageIndex = index
+        packages = next.packages
+        errors = next.errors
+        selectedPackage = selectedPackage.flatMap { selected in displayedPackages.first { $0.id == selected.id } } ?? displayedPackages.first
     }
 }
 

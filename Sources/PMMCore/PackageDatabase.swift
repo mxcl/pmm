@@ -14,12 +14,18 @@ public struct PackageDatabase: Sendable {
     }
 
     public static func load(from url: URL = Self.url) async -> PackageDatabase {
-        do {
-            let (data, _) = try await URLSession.shared.data(from: url)
-            return try decode(data)
-        } catch {
-            return PackageDatabase()
-        }
+        (try? await fetch(from: url)) ?? PackageDatabase()
+    }
+
+    public static func fetch(from url: URL = Self.url) async throws -> PackageDatabase {
+        let (data, _) = try await URLSession.shared.data(from: url)
+        return try decode(data)
+    }
+
+    public static func cached(from url: URL = Self.url, cache: URLCache = .shared) -> PackageDatabase? {
+        let request = URLRequest(url: url)
+        guard let data = cache.cachedResponse(for: request)?.data else { return nil }
+        return try? decode(data)
     }
 
     public static func decode(_ data: Data) throws -> PackageDatabase {

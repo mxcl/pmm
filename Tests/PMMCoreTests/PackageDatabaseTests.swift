@@ -49,3 +49,24 @@ import Testing
     #expect(db.catalogPackages.map(\.installedVersion) == [nil, nil])
     #expect(Set(db.catalogPackages.compactMap(\.category)) == ["developer-tools", "language-runtime"])
 }
+
+@Test func loadsCachedDatabaseResponse() throws {
+    let url = URL(string: "https://example.com/db.json")!
+    let data = """
+    {
+      "sources": {
+        "db": {
+          "formulas": {
+            "git": { "summary": "Distributed revision control system" }
+          }
+        }
+      }
+    }
+    """.data(using: .utf8)!
+    let cache = URLCache(memoryCapacity: 1_000_000, diskCapacity: 0, diskPath: nil)
+    let response = URLResponse(url: url, mimeType: "application/json", expectedContentLength: data.count, textEncodingName: nil)
+    cache.storeCachedResponse(CachedURLResponse(response: response, data: data), for: URLRequest(url: url))
+
+    let db = try #require(PackageDatabase.cached(from: url, cache: cache))
+    #expect(db.metadata(for: .homebrew, name: "git")?.summary == "Distributed revision control system")
+}
