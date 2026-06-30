@@ -4,12 +4,16 @@ public enum PackageManagerKind: String, Codable, CaseIterable, Sendable {
     case homebrew
     case npm
     case npx
+    case uv
+    case uvx
 
     public var title: String {
         switch self {
         case .homebrew: "Homebrew"
         case .npm: "npm"
         case .npx: "npx"
+        case .uv: "uv"
+        case .uvx: "uvx"
         }
     }
 }

@@ -25,6 +25,8 @@ public struct PackageScanner {
         do { packages += try scanHomebrew(database: database) } catch { errors.append(error.localizedDescription) }
         do { packages += try scanNPM(database: database) } catch { errors.append(error.localizedDescription) }
         do { packages += try scanNPX(database: database) } catch { errors.append(error.localizedDescription) }
+        do { packages += try scanUV(database: database) } catch { errors.append(error.localizedDescription) }
+        do { packages += try scanUVX(database: database) } catch { errors.append(error.localizedDescription) }
 
         return PackageInventory(
             packages: packages.sorted {
@@ -106,6 +108,37 @@ public struct PackageScanner {
         return uniqued(packages)
     }
 
+    public func scanUV(database: PackageDatabase) throws -> [ManagedPackage] {
+        guard let uv = executable(named: "uv", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"]) else { return [] }
+        let toolDir = successfulLine(uv, ["tool", "dir", "--offline", "--color", "never"])
+        let pythonDir = successfulLine(uv, ["python", "dir", "--offline", "--color", "never"])
+        return try uvTools(uv, toolDir: toolDir, database: database) + uvPythons(uv, pythonDir: pythonDir)
+    }
+
+    public func scanUVX(database: PackageDatabase) throws -> [ManagedPackage] {
+        guard let uv = executable(named: "uv", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"]),
+              let cacheDir = successfulLine(uv, ["cache", "dir"]) else { return [] }
+        let environments = URL(fileURLWithPath: cacheDir).appendingPathComponent("environments-v2", isDirectory: true)
+        guard let entries = try? fileManager.contentsOfDirectory(at: environments, includingPropertiesForKeys: nil) else { return [] }
+
+        return entries.compactMap { entry in
+            let envName = entry.lastPathComponent
+            guard !envName.hasPrefix(".") else { return nil }
+            let name = uvxDisplayName(envName)
+            let dist = matchingDistInfo(in: entry, packageName: name)
+            return ManagedPackage(
+                manager: .uvx,
+                name: name,
+                installedVersion: dist?.version,
+                latestVersion: nil,
+                summary: "uvx cached tool environment",
+                category: "developer-tools",
+                installLocation: entry.path,
+                binaryPath: uvxBinaryPath(in: entry, preferredName: name)
+            )
+        }
+    }
+
     private func homebrewList(
         _ brew: String,
         kindFlag: String,
@@ -161,6 +194,91 @@ public struct PackageScanner {
                   let latest = body["latest"] as? String ?? body["wanted"] as? String else { return }
             result[pair.key] = latest
         }
+    }
+
+    private func uvTools(_ uv: String, toolDir: String?, database: PackageDatabase) throws -> [ManagedPackage] {
+        let result = try runner.run(uv, ["tool", "list", "--show-paths", "--show-version-specifiers", "--show-python", "--offline", "--color", "never"])
+        guard result.status == 0 else { return [] }
+        return parseUVToolList(result.stdout, toolDir: toolDir, database: database)
+    }
+
+    private func uvPythons(_ uv: String, pythonDir: String?) throws -> [ManagedPackage] {
+        guard let pythonDir else { return [] }
+        let result = try runner.run(uv, ["python", "list", "--only-installed", "--output-format", "json", "--offline", "--color", "never"])
+        guard result.status == 0,
+              let data = result.stdout.data(using: .utf8),
+              let rows = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else { return [] }
+        return rows.compactMap { row in
+            guard let path = row["path"] as? String,
+                  path == pythonDir || path.hasPrefix("\(pythonDir)/"),
+                  let key = row["key"] as? String,
+                  let version = row["version"] as? String else { return nil }
+            return ManagedPackage(
+                manager: .uv,
+                name: key,
+                installedVersion: version,
+                latestVersion: nil,
+                summary: "uv-managed Python",
+                category: "language-runtime",
+                installLocation: URL(fileURLWithPath: path).deletingLastPathComponent().path,
+                binaryPath: path
+            )
+        }
+    }
+
+    private func parseUVToolList(_ output: String, toolDir: String?, database: PackageDatabase) -> [ManagedPackage] {
+        var packages: [ManagedPackage] = []
+        var current: (name: String, version: String?, lines: [String])?
+
+        func flush() {
+            guard let tool = current else { return }
+            let paths = tool.lines.compactMap(absolutePath)
+            let installLocation = paths.first { path in
+                guard let toolDir else { return false }
+                return path == toolDir || path.hasPrefix("\(toolDir)/")
+            }
+            let binaryPath = paths.first { fileManager.fileExists(atPath: $0) && !fileManager.directoryExists(atPath: $0) }
+            let metadata = database.metadata(for: .uv, name: tool.name)
+            packages.append(ManagedPackage(
+                manager: .uv,
+                name: tool.name,
+                installedVersion: tool.version,
+                latestVersion: metadata?.version,
+                summary: metadata?.summary ?? "uv-installed tool",
+                category: metadata?.category ?? "developer-tools",
+                homepage: metadata?.homepage,
+                lastUpdatedAt: metadata?.lastUpdatedAt,
+                pulseKind: metadata?.pulseKind,
+                installLocation: installLocation,
+                binaryPath: binaryPath
+            ))
+        }
+
+        for line in output.split(whereSeparator: \.isNewline).map(String.init) {
+            if let header = uvToolHeader(line) {
+                flush()
+                current = (header.name, header.version, [])
+            } else {
+                current?.lines.append(line)
+            }
+        }
+        flush()
+        return packages
+    }
+
+    private func uvToolHeader(_ line: String) -> (name: String, version: String?)? {
+        let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.hasPrefix("/") else { return nil }
+        let parts = trimmed.split(separator: " ", omittingEmptySubsequences: true).map(String.init)
+        guard let name = parts.first, !name.hasPrefix("-"), name != "No" else { return nil }
+        let version = parts.dropFirst().first { $0.hasPrefix("v") }.map { String($0.dropFirst()) }
+        return (name, version)
+    }
+
+    private func absolutePath(_ line: String) -> String? {
+        let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let slash = trimmed.firstIndex(of: "/") else { return nil }
+        return String(trimmed[slash...])
     }
 
     private func successfulLine(_ executable: String, _ arguments: [String]) -> String? {
@@ -240,6 +358,59 @@ public struct PackageScanner {
         return nil
     }
 
+    private func uvxDisplayName(_ directoryName: String) -> String {
+        guard let dash = directoryName.lastIndex(of: "-") else { return directoryName }
+        let suffix = directoryName[directoryName.index(after: dash)...]
+        guard suffix.count == 16, suffix.allSatisfy(\.isHexDigit) else { return directoryName }
+        let prefix = directoryName[..<dash]
+        return prefix.isEmpty ? directoryName : String(prefix)
+    }
+
+    private func matchingDistInfo(in environment: URL, packageName: String) -> (name: String, version: String?)? {
+        let lib = environment.appendingPathComponent("lib", isDirectory: true)
+        guard let pythonDirs = try? fileManager.contentsOfDirectory(at: lib, includingPropertiesForKeys: nil) else { return nil }
+        let normalizedPackage = normalizedPythonPackageName(packageName)
+        for pythonDir in pythonDirs {
+            let sitePackages = pythonDir.appendingPathComponent("site-packages", isDirectory: true)
+            guard let entries = try? fileManager.contentsOfDirectory(at: sitePackages, includingPropertiesForKeys: nil) else { continue }
+            if let entry = entries.first(where: { entry in
+                guard entry.pathExtension == "dist-info",
+                      let distName = distInfoNameAndVersion(entry.deletingPathExtension().lastPathComponent)?.name else { return false }
+                return normalizedPythonPackageName(distName) == normalizedPackage
+            }) {
+                let stem = entry.deletingPathExtension().lastPathComponent
+                return distInfoNameAndVersion(stem)
+            }
+        }
+        return nil
+    }
+
+    private func distInfoNameAndVersion(_ stem: String) -> (name: String, version: String?)? {
+        guard let dash = stem.lastIndex(of: "-") else { return (stem, nil) }
+        return (String(stem[..<dash]), String(stem[stem.index(after: dash)...]))
+    }
+
+    private func normalizedPythonPackageName(_ name: String) -> String {
+        name.lowercased()
+            .replacingOccurrences(of: "_", with: "-")
+            .replacingOccurrences(of: ".", with: "-")
+    }
+
+    private func uvxBinaryPath(in environment: URL, preferredName: String) -> String? {
+        let bin = environment.appendingPathComponent("bin", isDirectory: true)
+        let preferred = bin.appendingPathComponent(preferredName)
+        if fileManager.fileExists(atPath: preferred.path) {
+            return preferred.path
+        }
+        guard let entries = try? fileManager.contentsOfDirectory(at: bin, includingPropertiesForKeys: nil) else { return nil }
+        let skipped = Set(["activate", "activate.bat", "activate.csh", "activate.fish", "activate.nu", "activate.ps1", "activate_this.py", "deactivate.bat", "python", "python3", "pydoc.bat"])
+        return entries
+            .filter { !skipped.contains($0.lastPathComponent) && fileManager.isExecutableFile(atPath: $0.path) }
+            .sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
+            .first?
+            .path
+    }
+
     private func uniqued(_ packages: [ManagedPackage]) -> [ManagedPackage] {
         var seen = Set<String>()
         return packages.filter {
@@ -262,5 +433,12 @@ private func outdatedMap(_ value: Any?) -> [String: String] {
         } else if let newest = item["current_version"] as? String {
             result[name] = newest
         }
+    }
+}
+
+private extension FileManager {
+    func directoryExists(atPath path: String) -> Bool {
+        var isDirectory: ObjCBool = false
+        return fileExists(atPath: path, isDirectory: &isDirectory) && isDirectory.boolValue
     }
 }

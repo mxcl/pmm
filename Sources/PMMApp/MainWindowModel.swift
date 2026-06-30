@@ -9,6 +9,8 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
     case homebrew
     case npm
     case npx
+    case uv
+    case uvx
     case developerTools
     case cloudInfrastructure
     case networking
@@ -27,7 +29,7 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
     var id: String { rawValue }
 
     static let librarySections: [MainWindowSection] = [.installed, .outdated]
-    static let managerSections: [MainWindowSection] = [.homebrew, .npm, .npx]
+    static let managerSections: [MainWindowSection] = [.homebrew, .npm, .npx, .uv, .uvx]
     static let categorySections: [MainWindowSection] = [
         .developerTools, .cloudInfrastructure, .networking, .system, .security,
         .data, .languageRuntime, .media, .productivity, .science, .games, .toys, .other
@@ -43,6 +45,8 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
         case .homebrew: "Homebrew"
         case .npm: "npm"
         case .npx: "npx"
+        case .uv: "uv"
+        case .uvx: "uvx"
         case .developerTools: "Developer Tools"
         case .cloudInfrastructure: "Cloud Infrastructure"
         case .networking: "Networking"
@@ -68,6 +72,8 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
         case .homebrew: "mug"
         case .npm: "shippingbox.circle"
         case .npx: "terminal"
+        case .uv: "bolt"
+        case .uvx: "terminal.fill"
         case .developerTools: "chevron.left.forwardslash.chevron.right"
         case .cloudInfrastructure: "cloud"
         case .networking: "network"
@@ -249,6 +255,16 @@ final class MainWindowModel: ObservableObject {
                 do { return PackageScanBatch(managers: [.npx], packages: try scanner.scanNPX(database: database)) }
                 catch { return PackageScanBatch(managers: [.npx], errors: [error.localizedDescription]) }
             }
+            group.addTask {
+                let scanner = PackageScanner()
+                do { return PackageScanBatch(managers: [.uv], packages: try scanner.scanUV(database: database)) }
+                catch { return PackageScanBatch(managers: [.uv], errors: [error.localizedDescription]) }
+            }
+            group.addTask {
+                let scanner = PackageScanner()
+                do { return PackageScanBatch(managers: [.uvx], packages: try scanner.scanUVX(database: database)) }
+                catch { return PackageScanBatch(managers: [.uvx], errors: [error.localizedDescription]) }
+            }
 
             for await batch in group {
                 scannedManagers.formUnion(batch.managers)
@@ -287,6 +303,8 @@ private struct PackageScanBatch: Sendable {
             case .homebrew: .homebrew
             case .npm: .npm
             case .npx: .npx
+            case .uv: .uv
+            case .uvx: .uvx
             }
         })
     }
@@ -311,6 +329,8 @@ private struct PackageIndex: Sendable {
             .homebrew: packages.filter { $0.manager == .homebrew },
             .npm: packages.filter { $0.manager == .npm },
             .npx: packages.filter { $0.manager == .npx },
+            .uv: packages.filter { $0.manager == .uv },
+            .uvx: packages.filter { $0.manager == .uvx },
         ]
 
         for section in MainWindowSection.categorySections {

@@ -89,3 +89,72 @@ private struct FakeRunner: CommandRunning {
     #expect(packages.first?.isOutdated == true)
     #expect(packages.first?.name == "acorn")
 }
+
+@Test func uvScannerIncludesToolsAndOnlyUvManagedPythons() throws {
+    let temp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    let tools = temp.appendingPathComponent("tools", isDirectory: true)
+    let bin = temp.appendingPathComponent("bin", isDirectory: true)
+    let pythonDir = temp.appendingPathComponent("python", isDirectory: true)
+    let pythonBin = pythonDir.appendingPathComponent("cpython-3.13-macos-aarch64-none/bin", isDirectory: true)
+    try FileManager.default.createDirectory(at: tools.appendingPathComponent("ruff", isDirectory: true), withIntermediateDirectories: true)
+    try FileManager.default.createDirectory(at: bin, withIntermediateDirectories: true)
+    try FileManager.default.createDirectory(at: pythonBin, withIntermediateDirectories: true)
+    FileManager.default.createFile(atPath: bin.appendingPathComponent("ruff").path, contents: Data())
+    FileManager.default.createFile(atPath: pythonBin.appendingPathComponent("python3.13").path, contents: Data())
+    defer { try? FileManager.default.removeItem(at: temp) }
+
+    let pythonJSON = """
+    [
+      {"key":"cpython-3.13.12-macos-aarch64-none","version":"3.13.12","path":"\(pythonBin.appendingPathComponent("python3.13").path)"},
+      {"key":"cpython-3.14.6-macos-aarch64-none","version":"3.14.6","path":"/opt/homebrew/bin/python3.14"}
+    ]
+    """
+    let runner = FakeRunner(responses: [
+        "/fake/uv tool dir --offline --color never": CommandResult(stdout: "\(tools.path)\n", stderr: "", status: 0),
+        "/fake/uv python dir --offline --color never": CommandResult(stdout: "\(pythonDir.path)\n", stderr: "", status: 0),
+        "/fake/uv tool list --show-paths --show-version-specifiers --show-python --offline --color never": CommandResult(stdout: """
+        ruff v0.6.9
+        - ruff
+          \(bin.appendingPathComponent("ruff").path)
+          \(tools.appendingPathComponent("ruff").path)
+        """, stderr: "", status: 0),
+        "/fake/uv python list --only-installed --output-format json --offline --color never": CommandResult(stdout: pythonJSON, stderr: "", status: 0),
+    ])
+    let scanner = PackageScanner(runner: runner, toolPaths: ["uv": "/fake/uv"])
+
+    let packages = try scanner.scanUV(database: PackageDatabase())
+
+    #expect(packages.map(\.name) == ["ruff", "cpython-3.13.12-macos-aarch64-none"])
+    #expect(packages.first?.installedVersion == "0.6.9")
+    #expect(packages.first?.installLocation == tools.appendingPathComponent("ruff").path)
+    #expect(packages.first?.binaryPath == bin.appendingPathComponent("ruff").path)
+    #expect(packages.last?.installedVersion == "3.13.12")
+}
+
+@Test func uvxScannerReadsCachedToolEnvironments() throws {
+    let temp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    let environment = temp.appendingPathComponent("environments-v2/ruff-0123456789abcdef", isDirectory: true)
+    let bin = environment.appendingPathComponent("bin", isDirectory: true)
+    let distInfo = environment.appendingPathComponent("lib/python3.13/site-packages/ruff-0.6.9.dist-info", isDirectory: true)
+    try FileManager.default.createDirectory(at: bin, withIntermediateDirectories: true)
+    try FileManager.default.createDirectory(at: distInfo, withIntermediateDirectories: true)
+    FileManager.default.createFile(atPath: bin.appendingPathComponent("ruff").path, contents: Data())
+    try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: bin.appendingPathComponent("ruff").path)
+    defer { try? FileManager.default.removeItem(at: temp) }
+
+    let runner = FakeRunner(responses: [
+        "/fake/uv cache dir": CommandResult(stdout: "\(temp.path)\n", stderr: "", status: 0),
+    ])
+    let scanner = PackageScanner(runner: runner, toolPaths: ["uv": "/fake/uv"])
+
+    let packages = try scanner.scanUVX(database: PackageDatabase())
+
+    #expect(packages.count == 1)
+    #expect(packages.first?.manager == .uvx)
+    #expect(packages.first?.name == "ruff")
+    #expect(packages.first?.installedVersion == "0.6.9")
+    #expect(packages.first?.summary == "uvx cached tool environment")
+    #expect(packages.first?.category == "developer-tools")
+    #expect(packages.first?.installLocation?.hasSuffix("/environments-v2/ruff-0123456789abcdef") == true)
+    #expect(packages.first?.binaryPath?.hasSuffix("/environments-v2/ruff-0123456789abcdef/bin/ruff") == true)
+}
