@@ -175,6 +175,7 @@ struct MainWindowView: View {
                             PackageRow(
                                 package: package,
                                 selected: model.selectedPackage?.id == package.id,
+                                showsManager: model.activeSidebarSection == .outdated,
                                 versionText: versionText(package)
                             ) {
                                 model.select(package)
@@ -259,7 +260,7 @@ struct MainWindowView: View {
 
     private func versionText(_ package: ManagedPackage) -> String {
         if package.isOutdated {
-            return "\(package.installedVersion ?? "?") -> \(package.latestVersion ?? "?")"
+            return "\(package.installedVersion ?? "?") → \(package.latestVersion ?? "?")"
         }
         return package.installedVersion ?? package.latestVersion ?? "available"
     }
@@ -271,6 +272,7 @@ struct MainWindowView: View {
 private struct PackageRow: View {
     let package: ManagedPackage
     let selected: Bool
+    let showsManager: Bool
     let versionText: String
     let action: () -> Void
 
@@ -282,7 +284,7 @@ private struct PackageRow: View {
                         Text(package.name).font(.system(size: 13, weight: .semibold)).foregroundStyle(AVGlassPalette.primaryText).lineLimit(1)
                         if package.isOutdated { PackageBadgePill(text: "Outdated", color: AVGlassPalette.orange) }
                     }
-                    Text(package.summary ?? package.manager.title)
+                    Text(subtitle)
                         .font(.system(size: 12))
                         .foregroundStyle(AVGlassPalette.quietText)
                         .lineLimit(1)
@@ -304,6 +306,13 @@ private struct PackageRow: View {
             .padding(.vertical, 2)
         }
         .buttonStyle(.plain)
+    }
+
+    private var subtitle: String {
+        if showsManager, let summary = package.summary {
+            return "\(package.manager.title) · \(summary)"
+        }
+        return package.summary ?? package.manager.title
     }
 }
 

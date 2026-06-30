@@ -22,7 +22,7 @@ if json {
 } else {
     for package in packages {
         let status = package.isOutdated
-            ? "\(package.installedVersion ?? "?") -> \(package.latestVersion ?? "?")"
+            ? "\(package.installedVersion ?? "?") → \(package.latestVersion ?? "?")"
             : (package.installedVersion ?? "installed")
         let category = package.category.map { " [\($0)]" } ?? ""
         print("\(package.manager.title)\t\(package.name)\t\(status)\(category)")
