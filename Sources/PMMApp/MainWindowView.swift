@@ -108,44 +108,39 @@ struct MainWindowPackageListView: View {
     @ObservedObject var model: MainWindowModel
 
     var body: some View {
-        ZStack(alignment: .top) {
-            ScrollView {
-                let displayedPackages = model.displayedPackages
-                if model.isReloading && displayedPackages.isEmpty {
-                    ProgressView()
-                        .controlSize(.small)
-                        .frame(maxWidth: .infinity, minHeight: 180)
-                } else {
-                    LazyVStack(spacing: 0) {
-                        ForEach(displayedPackages) { package in
-                            PackageRow(
-                                package: package,
-                                selected: model.selectedPackage?.id == package.id,
-                                showsManager: model.activeSidebarSection == .outdated || (model.activeSidebarSection?.packageManagers.count ?? 0) > 1,
-                                versionText: mainWindowVersionText(package, section: model.activeSidebarSection)
-                            ) {
-                                model.select(package)
-                            }
+        ScrollView {
+            let displayedPackages = model.displayedPackages
+            if model.isReloading && displayedPackages.isEmpty {
+                ProgressView()
+                    .controlSize(.small)
+                    .frame(maxWidth: .infinity, minHeight: 180)
+            } else {
+                LazyVStack(spacing: 0) {
+                    ForEach(displayedPackages) { package in
+                        PackageRow(
+                            package: package,
+                            selected: model.selectedPackage?.id == package.id,
+                            showsManager: model.activeSidebarSection == .outdated || (model.activeSidebarSection?.packageManagers.count ?? 0) > 1,
+                            versionText: mainWindowVersionText(package, section: model.activeSidebarSection)
+                        ) {
+                            model.select(package)
                         }
                     }
                 }
             }
-            .safeAreaInset(edge: .top, spacing: 0) {
-                Color.clear.frame(height: 42)
-            }
-            .scrollEdgeEffectStyle(.soft, for: .top)
-            VStack(spacing: 0) {
-                HStack {
-                    Text("Package Manager Manager")
-                    Spacer()
-                    if model.isReloading { ProgressView().controlSize(.small) }
-                }
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 12)
-                .frame(height: 42)
-            }
         }
+        .safeAreaBar(edge: .top, alignment: .leading, spacing: 0) {
+            HStack {
+                Text("Package Manager Manager")
+                Spacer()
+                if model.isReloading { ProgressView().controlSize(.small) }
+            }
+            .font(.system(size: 13, weight: .bold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 12)
+            .frame(maxWidth: .infinity, minHeight: 42)
+        }
+        .scrollEdgeEffectStyle(.soft, for: .top)
         .overlay(alignment: .trailing) {
             columnBorder
         }
