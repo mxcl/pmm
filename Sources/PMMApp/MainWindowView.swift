@@ -162,7 +162,7 @@ struct MainWindowView: View {
             }
             .font(.system(size: 13, weight: .bold))
             .foregroundStyle(AVGlassPalette.quietText)
-            .padding(.horizontal, 18)
+            .padding(.horizontal, 12)
             .frame(height: 42)
             hairline
             ScrollView {
@@ -300,7 +300,7 @@ private struct PackageRow: View {
                     Text(subtitle)
                         .font(.system(size: 12))
                         .foregroundStyle(AVGlassPalette.quietText)
-                        .lineLimit(1)
+                        .lineLimit(2)
                 }
                 Spacer(minLength: 8)
                 Text(versionText)
@@ -309,13 +309,13 @@ private struct PackageRow: View {
                     .lineLimit(1)
             }
             .padding(.horizontal, 13)
-            .frame(height: 58)
+            .frame(height: 72)
             .background {
                 if selected {
                     RoundedRectangle(cornerRadius: 8, style: .continuous).fill(AVGlassPalette.packageSelectedFill)
                 }
             }
-            .padding(.horizontal, 8)
+            .padding(.horizontal, 2)
             .padding(.vertical, 2)
         }
         .buttonStyle(.plain)
