@@ -220,6 +220,9 @@ struct MainWindowLinksView: View {
 }
 
 private func mainWindowVersionText(_ package: ManagedPackage, section: MainWindowSection? = nil) -> String {
+    if section == .newUpdated, let pulseKind = package.pulseKind {
+        return pulseKind
+    }
     if package.isOutdated {
         if section == nil || section == .outdated {
             return "\(package.installedVersion ?? "?") → \(package.latestVersion ?? "?")"
