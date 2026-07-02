@@ -88,7 +88,7 @@ struct MainWindowView: View {
 
     private func sidebarHeader(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 11, weight: .semibold))
+            .font(.system(size: 11, weight: .medium))
             .foregroundStyle(AVGlassPalette.quietText)
             .tracking(0.5)
             .padding(.horizontal, 8)
@@ -108,7 +108,7 @@ struct MainWindowView: View {
             HStack(spacing: 12) {
                 sidebarIcon(section)
                 Text(section.title)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.system(size: 14, weight: .regular))
                     .lineLimit(1)
                 Spacer(minLength: 6)
                 if model.isLoadingCount(for: section) {
@@ -358,7 +358,7 @@ private struct SidebarCountText: View {
 
     var body: some View {
         Text(count.formatted())
-            .font(.system(size: 11, weight: .medium))
+            .font(.system(size: 11, weight: .regular))
             .foregroundStyle(AVGlassPalette.quietText)
             .monospacedDigit()
             .lineLimit(1)
@@ -371,7 +371,7 @@ private struct CountPill: View {
 
     var body: some View {
         Text(count.formatted())
-            .font(.system(size: 11, weight: .semibold))
+            .font(.system(size: 11, weight: .medium))
             .foregroundStyle(AVGlassPalette.secondaryText)
             .monospacedDigit()
             .padding(.horizontal, SidebarCountMetrics.pillHorizontalPadding)
