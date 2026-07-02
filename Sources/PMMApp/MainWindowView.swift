@@ -26,16 +26,17 @@ struct MainWindowView: View {
     private var mainContent: some View {
         GeometryReader { proxy in
             let width = proxy.size.width
+            let height = proxy.size.height
             let sidebarWidth = min(290, max(270, width * 0.20))
             let packageWidth = min(273, max(231, width * 0.21))
             let dossierWidth = min(360, max(310, width * 0.25))
             HStack(alignment: .top, spacing: 0) {
-                sidebar.frame(width: sidebarWidth).frame(maxHeight: .infinity)
-                packageList.frame(width: packageWidth).frame(maxHeight: .infinity, alignment: .top)
-                verticalHairline.frame(maxHeight: .infinity)
-                dossierPanel.frame(width: dossierWidth).frame(maxHeight: .infinity, alignment: .top)
-                verticalHairline.frame(maxHeight: .infinity)
-                linksPanel.frame(width: max(width - sidebarWidth - packageWidth - dossierWidth - 2, 300)).frame(maxHeight: .infinity)
+                sidebar.frame(width: sidebarWidth, height: height)
+                packageList.frame(width: packageWidth, height: height, alignment: .top)
+                verticalHairline.frame(height: height)
+                dossierPanel.frame(width: dossierWidth, height: height, alignment: .top)
+                verticalHairline.frame(height: height)
+                linksPanel.frame(width: max(width - sidebarWidth - packageWidth - dossierWidth - 2, 300), height: height)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
