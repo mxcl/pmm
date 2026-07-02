@@ -159,7 +159,9 @@ struct MainWindowDossierView: View {
 
     var body: some View {
         ZStack(alignment: .trailing) {
-            columnBorder
+            if model.selectedPackage != nil {
+                columnBorder
+            }
             ScrollView {
                 if let package = model.selectedPackage {
                     VStack(alignment: .leading, spacing: 18) {
