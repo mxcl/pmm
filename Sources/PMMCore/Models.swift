@@ -65,6 +65,23 @@ public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
         guard let installedVersion, let latestVersion else { return false }
         return !installedVersion.isEmpty && !latestVersion.isEmpty && installedVersion != latestVersion
     }
+
+    public func applying(metadata: PackageMetadata?) -> ManagedPackage {
+        guard let metadata else { return self }
+        return ManagedPackage(
+            manager: manager,
+            name: name,
+            installedVersion: installedVersion,
+            latestVersion: metadata.version ?? latestVersion,
+            summary: metadata.summary ?? summary,
+            category: metadata.category ?? category,
+            homepage: metadata.homepage ?? homepage,
+            lastUpdatedAt: metadata.lastUpdatedAt ?? lastUpdatedAt,
+            pulseKind: metadata.pulseKind ?? pulseKind,
+            installLocation: installLocation,
+            binaryPath: binaryPath
+        )
+    }
 }
 
 public struct PackageInventory: Codable, Equatable, Sendable {

@@ -210,10 +210,15 @@ struct MainWindowView: View {
                         .font(.system(size: 24, weight: .semibold))
                         .foregroundStyle(AVGlassPalette.primaryText)
                         .lineLimit(3)
-                    Text(package.summary ?? "No package summary available.")
-                        .font(.system(size: 14))
-                        .foregroundStyle(AVGlassPalette.secondaryText)
-                        .fixedSize(horizontal: false, vertical: true)
+                    if model.isLoadingSelectedPackageMetadata && package.summary == nil {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Text(package.summary ?? "No package summary available.")
+                            .font(.system(size: 14))
+                            .foregroundStyle(AVGlassPalette.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                     if package.isOutdated {
                         PackageBadgeBanner(text: "Outdated \(versionText(package))", color: AVGlassPalette.orange)
                     }
@@ -247,6 +252,10 @@ struct MainWindowView: View {
             hairline
             if let url = selectedURL {
                 PackageWebView(url: url)
+            } else if model.isLoadingSelectedPackageMetadata {
+                ProgressView()
+                    .controlSize(.small)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 Text("No homepage")
                     .font(.system(size: 13, weight: .medium))

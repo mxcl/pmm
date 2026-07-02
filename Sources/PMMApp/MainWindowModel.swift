@@ -128,6 +128,7 @@ final class MainWindowModel: ObservableObject {
     @Published private(set) var isReloading = false
     @Published private(set) var loadingManagerSections = Set(MainWindowSection.managerSections)
     @Published private(set) var errors: [String] = []
+    @Published private(set) var isLoadingSelectedPackageMetadata = false
     @Published var searchText = ""
 
     nonisolated private static let newUpdatedLastClickedAtDefaultsKey = "MainWindowModel.newUpdatedLastClickedAt"
@@ -137,9 +138,13 @@ final class MainWindowModel: ObservableObject {
     private var newUpdatedLastClickedAt: Date?
     private var newUpdatedSelectionDisplayCount: Int?
     private let userDefaults: UserDefaults
+    private let cratesIOClient: CratesIOClient
+    private var crateMetadataCache: [String: PackageMetadata] = [:]
+    private var selectedMetadataTask: Task<Void, Never>?
 
-    init(userDefaults: UserDefaults = .standard) {
+    init(userDefaults: UserDefaults = .standard, cratesIOClient: CratesIOClient = CratesIOClient()) {
         self.userDefaults = userDefaults
+        self.cratesIOClient = cratesIOClient
         newUpdatedLastClickedAt = userDefaults.object(forKey: Self.newUpdatedLastClickedAtDefaultsKey) as? Date
     }
 
@@ -192,10 +197,12 @@ final class MainWindowModel: ObservableObject {
         }
         selectedSection = section
         selectedPackage = displayedPackages.first
+        loadSelectedPackageMetadata()
     }
 
     func select(_ package: ManagedPackage) {
-        selectedPackage = package
+        selectedPackage = package.applying(metadata: crateMetadataCache[package.name])
+        loadSelectedPackageMetadata()
     }
 
     func count(for section: MainWindowSection) -> Int? {
@@ -231,6 +238,38 @@ final class MainWindowModel: ObservableObject {
         packages = next.packages
         errors = next.errors
         selectedPackage = selectedPackage.flatMap { selected in displayedPackages.first { $0.id == selected.id } } ?? displayedPackages.first
+        if let selectedPackage {
+            self.selectedPackage = selectedPackage.applying(metadata: crateMetadataCache[selectedPackage.name])
+        }
+        loadSelectedPackageMetadata()
+    }
+
+    private func loadSelectedPackageMetadata() {
+        selectedMetadataTask?.cancel()
+        guard let package = selectedPackage, package.manager == .cargoInstall else {
+            isLoadingSelectedPackageMetadata = false
+            return
+        }
+        if let metadata = crateMetadataCache[package.name] {
+            selectedPackage = package.applying(metadata: metadata)
+            isLoadingSelectedPackageMetadata = false
+            return
+        }
+
+        isLoadingSelectedPackageMetadata = true
+        selectedMetadataTask = Task.detached { [cratesIOClient] in
+            let name = package.name
+            let metadata = try? await cratesIOClient.metadata(for: name)
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                guard self.selectedPackage?.id == package.id else { return }
+                if let metadata {
+                    self.crateMetadataCache[name] = metadata
+                    self.selectedPackage = self.selectedPackage?.applying(metadata: metadata)
+                }
+                self.isLoadingSelectedPackageMetadata = false
+            }
+        }
     }
 
     private func scanAndApply(database: PackageDatabase, newUpdatedLastClickedAt: Date?) async {
