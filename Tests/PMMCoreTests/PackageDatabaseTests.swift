@@ -12,8 +12,8 @@ import Testing
               "summary": "Distributed revision control system",
               "category": "developer-tools",
               "homepage": "https://git-scm.com/",
-              "docs": "https://git-scm.com/docs",
-              "repo": "https://github.com/git/git",
+              "docs": ["https://git-scm.com/docs", "https://git-scm.com/book"],
+              "repository": "https://github.com/git/git",
               "version": "2.50.0",
               "last_updated_at": "2026-06-26T22:01:54Z",
               "pulse_kind": "updated"
@@ -33,14 +33,15 @@ import Testing
 
     let db = try PackageDatabase.decode(data)
     #expect(db.metadata(for: .homebrew, name: "git")?.category == "developer-tools")
-    #expect(db.metadata(for: .homebrew, name: "git")?.summary == nil)
-    #expect(db.metadata(for: .homebrew, name: "git")?.homepage == nil)
-    #expect(db.metadata(for: .homebrew, name: "git")?.docs == nil)
-    #expect(db.metadata(for: .homebrew, name: "git")?.repo == nil)
-    #expect(db.metadata(for: .homebrew, name: "git")?.version == nil)
+    #expect(db.metadata(for: .homebrew, name: "git")?.summary == "Distributed revision control system")
+    #expect(db.metadata(for: .homebrew, name: "git")?.homepage == "https://git-scm.com/")
+    #expect(db.metadata(for: .homebrew, name: "git")?.docs == "https://git-scm.com/docs")
+    #expect(db.metadata(for: .homebrew, name: "git")?.repo == "https://github.com/git/git")
+    #expect(db.metadata(for: .homebrew, name: "git")?.version == "2.50.0")
     #expect(db.metadata(for: .homebrew, name: "git")?.lastUpdatedAt == "2026-06-26T22:01:54Z")
     #expect(db.metadata(for: .homebrew, name: "git")?.pulseKind == "updated")
-    #expect(db.metadata(for: .npm, name: "typescript")?.version == nil)
+    #expect(db.metadata(for: .npm, name: "typescript")?.summary == "TypeScript is a language for application scale JavaScript development")
+    #expect(db.metadata(for: .npm, name: "typescript")?.version == "5.9.2")
 }
 
 @Test func exposesCatalogPackagesFromDatabaseMetadata() {
@@ -59,6 +60,8 @@ import Testing
     #expect(db.catalogPackages.map(\.identifier) == ["brew:cask:git", "brew:git", "npm:typescript"])
     #expect(db.catalogPackages.map(\.displayName) == ["git", "git", "typescript"])
     #expect(db.catalogPackages.map(\.installedVersion) == [nil, nil, nil])
+    #expect(db.catalogPackages.map(\.latestVersion) == [nil, "2.50.0", "5.9.2"])
+    #expect(db.catalogPackages.map(\.summary) == [nil, "Distributed revision control", "Typed JavaScript"])
     #expect(Set(db.catalogPackages.compactMap(\.category)) == ["developer-tools", "language-runtime", "productivity"])
 }
 
@@ -80,5 +83,5 @@ import Testing
     cache.storeCachedResponse(CachedURLResponse(response: response, data: data), for: URLRequest(url: url))
 
     let db = try #require(PackageDatabase.cached(from: url, cache: cache))
-    #expect(db.metadata(for: .homebrew, name: "git")?.summary == nil)
+    #expect(db.metadata(for: .homebrew, name: "git")?.summary == "Distributed revision control system")
 }

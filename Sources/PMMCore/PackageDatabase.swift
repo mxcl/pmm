@@ -72,12 +72,12 @@ public struct PackageDatabase: Sendable {
         return map.reduce(into: [:]) { result, pair in
             guard let raw = pair.value as? [String: Any] else { return }
             result[pair.key] = PackageMetadata(
-                summary: nil,
+                summary: nonEmptyString(raw["summary"]),
                 category: raw["category"] as? String,
-                homepage: nil,
-                docs: nil,
-                repo: nil,
-                version: nil,
+                homepage: nonEmptyString(raw["homepage"]),
+                docs: docsURL(raw),
+                repo: nonEmptyString(raw["repository"]) ?? nonEmptyString(raw["repo"]),
+                version: nonEmptyString(raw["version"]),
                 lastUpdatedAt: raw["last_updated_at"] as? String,
                 pulseKind: raw["pulse_kind"] as? String
             )
@@ -91,15 +91,26 @@ public struct PackageDatabase: Sendable {
                 identifier: "\(identifierPrefix):\(name)",
                 displayName: name,
                 installedVersion: nil,
-                latestVersion: nil,
-                summary: nil,
+                latestVersion: metadata.version,
+                summary: metadata.summary,
                 category: metadata.category,
-                homepage: nil,
-                docs: nil,
-                repo: nil,
+                homepage: metadata.homepage,
+                docs: metadata.docs,
+                repo: metadata.repo,
                 lastUpdatedAt: metadata.lastUpdatedAt,
                 pulseKind: metadata.pulseKind
             )
         }
     }
+}
+
+private func nonEmptyString(_ value: Any?) -> String? {
+    guard let string = value as? String, !string.isEmpty else { return nil }
+    return string
+}
+
+private func docsURL(_ raw: [String: Any]) -> String? {
+    nonEmptyString(raw["docs"])
+        ?? nonEmptyString(raw["upstreamDocs"])
+        ?? (raw["docs"] as? [String])?.first(where: { !$0.isEmpty })
 }
