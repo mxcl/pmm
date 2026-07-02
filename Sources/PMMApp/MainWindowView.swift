@@ -98,7 +98,7 @@ struct MainWindowSidebarView: View {
 
         return switch section {
         case .outdated, .newUpdated: AVGlassPalette.orange
-        case .rust, .homebrew, .javascript, .python: Color(red: 0.00, green: 0.48, blue: 1.00)
+        case .rust, .homebrew, .casks, .javascript, .python: Color(red: 0.00, green: 0.48, blue: 1.00)
         default: Color(red: 0.46, green: 0.49, blue: 0.53)
         }
     }

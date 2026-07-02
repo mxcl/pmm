@@ -7,6 +7,7 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
     case newUpdated
     case rust
     case homebrew
+    case casks
     case javascript
     case python
     case developerTools
@@ -27,7 +28,7 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
     var id: String { rawValue }
 
     static let librarySections: [MainWindowSection] = [.installed, .outdated]
-    static let managerSections: [MainWindowSection] = [.rust, .homebrew, .javascript, .python]
+    static let managerSections: [MainWindowSection] = [.rust, .homebrew, .casks, .javascript, .python]
         .sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
     static let categorySections: [MainWindowSection] = [
         .developerTools, .cloudInfrastructure, .networking, .system, .security,
@@ -43,6 +44,7 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
         case .newUpdated: "New / Updated"
         case .rust: "Rust"
         case .homebrew: "Homebrew"
+        case .casks: "Casks"
         case .javascript: "JavaScript"
         case .python: "Python"
         case .developerTools: "Developer Tools"
@@ -69,6 +71,7 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
         case .newUpdated: "sparkles"
         case .rust: "hammer"
         case .homebrew: "mug"
+        case .casks: "macwindow"
         case .javascript: "shippingbox.circle"
         case .python: "curlybraces"
         case .developerTools: "chevron.left.forwardslash.chevron.right"
@@ -91,7 +94,7 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
     var packageManagers: Set<PackageManagerKind> {
         switch self {
         case .rust: [.cargoInstall]
-        case .homebrew: [.homebrew]
+        case .homebrew, .casks: [.homebrew]
         case .javascript: [.npm, .npx]
         case .python: [.uv, .uvx]
         default: []
@@ -523,6 +526,7 @@ struct PackageIndex: Sendable {
             .newUpdated: newUpdated,
             .rust: packages.filter { $0.manager == .cargoInstall }.sorted(by: Self.alphabetical),
             .homebrew: packages.filter { $0.manager == .homebrew }.sorted(by: Self.alphabetical),
+            .casks: packages.filter { $0.identifier.hasPrefix("brew:cask:") }.sorted(by: Self.alphabetical),
             .javascript: packages.filter { [.npm, .npx].contains($0.manager) }.sorted(by: Self.alphabetical),
             .python: packages.filter { [.uv, .uvx].contains($0.manager) }.sorted(by: Self.alphabetical),
         ]

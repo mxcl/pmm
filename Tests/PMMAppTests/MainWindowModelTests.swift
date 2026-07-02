@@ -109,14 +109,22 @@ import Testing
         package(.uv, "python"),
         package(.cargoInstall, "ripgrep"),
         package(.homebrew, "git"),
+        ManagedPackage(
+            manager: .homebrew,
+            identifier: "brew:cask:visual-studio-code",
+            displayName: "visual-studio-code",
+            installedVersion: "1.0.0",
+            latestVersion: "1.0.0"
+        ),
         package(.npm, "alpha"),
         package(.npm, "beta"),
     ]
     let index = PackageIndex(packages: packages, catalogPackages: [], newUpdatedLastClickedAt: nil)
 
-    #expect(MainWindowSection.managerSections.map(\.title) == ["Homebrew", "JavaScript", "Python", "Rust"])
+    #expect(MainWindowSection.managerSections.map(\.title) == ["Casks", "Homebrew", "JavaScript", "Python", "Rust"])
     #expect(index.packagesBySection[.rust]?.map(\.displayName) == ["ripgrep"])
-    #expect(index.packagesBySection[.homebrew]?.map(\.displayName) == ["git"])
+    #expect(index.packagesBySection[.homebrew]?.map(\.displayName) == ["git", "visual-studio-code"])
+    #expect(index.packagesBySection[.casks]?.map(\.displayName) == ["visual-studio-code"])
     #expect(index.packagesBySection[.javascript]?.map(\.displayName) == ["acorn", "alpha", "beta", "zeta"])
     #expect(index.packagesBySection[.python]?.map(\.displayName) == ["python", "ruff"])
 }
