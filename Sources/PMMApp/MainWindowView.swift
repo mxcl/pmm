@@ -646,7 +646,6 @@ private struct LiquidGlassSurface: View {
 
 private enum AVGlassPalette {
     static let windowTint = Color(red: 0.05, green: 0.06, blue: 0.07).opacity(0.50)
-    static let topBarTint = Color(red: 0.07, green: 0.08, blue: 0.09).opacity(0.36)
     static let sidebarTint = Color(red: 0.06, green: 0.07, blue: 0.07).opacity(0.72)
     static let primaryText = Color.white.opacity(0.92)
     static let secondaryText = Color.white.opacity(0.72)
