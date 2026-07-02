@@ -97,18 +97,18 @@ private struct FakeRunner: CommandRunning {
     #expect(packages.map(\.name) == ["git", "visual-studio-code"])
 }
 
-@Test func npxScannerDeduplicatesCacheCopiesByPackageAndVersion() throws {
+@Test func npxScannerShowsNewestPackageVersionAndKeepsOtherVersions() throws {
     let home = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
     defer { try? FileManager.default.removeItem(at: home) }
 
-    for cacheID in ["a", "b"] {
+    for (cacheID, version) in ["a": "8.15.0", "b": "8.16.0", "c": "8.16.0"] {
         let package = home.appendingPathComponent(".npm/_npx/\(cacheID)/node_modules/acorn", isDirectory: true)
         let transitive = home.appendingPathComponent(".npm/_npx/\(cacheID)/node_modules/commander", isDirectory: true)
         try FileManager.default.createDirectory(at: package, withIntermediateDirectories: true)
         try FileManager.default.createDirectory(at: transitive, withIntermediateDirectories: true)
-        try #"{"packages":{"":{"dependencies":{"acorn":"8.16.0"}}}}"#
+        try #"{"packages":{"":{"dependencies":{"acorn":"\#(version)"}}}}"#
             .write(to: home.appendingPathComponent(".npm/_npx/\(cacheID)/package-lock.json"), atomically: true, encoding: .utf8)
-        try #"{"name":"acorn","version":"8.16.0"}"#
+        try #"{"name":"acorn","version":"\#(version)"}"#
             .write(to: package.appendingPathComponent("package.json"), atomically: true, encoding: .utf8)
         try #"{"name":"commander","version":"14.0.0"}"#
             .write(to: transitive.appendingPathComponent("package.json"), atomically: true, encoding: .utf8)
@@ -122,6 +122,8 @@ private struct FakeRunner: CommandRunning {
     #expect(packages.count == 1)
     #expect(packages.first?.isOutdated == true)
     #expect(packages.first?.name == "acorn")
+    #expect(packages.first?.installedVersion == "8.16.0")
+    #expect(packages.first?.installedVersions == ["8.16.0", "8.15.0"])
 }
 
 @Test func uvScannerIncludesToolsAndOnlyUvManagedPythons() throws {

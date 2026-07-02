@@ -172,8 +172,12 @@ struct MainWindowDossierView: View {
                         PackageBadgeBanner(text: "Outdated \(mainWindowVersionText(package))", color: AVGlassPalette.orange)
                     }
                     InfoSection(title: "Package") {
+                        let otherInstalledVersions = mainWindowOtherInstalledVersions(package)
                         PermissionRow(label: "Manager", value: package.manager.title)
                         PermissionRow(label: "Installed", value: package.installedVersion ?? "unknown")
+                        if !otherInstalledVersions.isEmpty {
+                            PermissionRow(label: "Other", value: otherInstalledVersions.joined(separator: ", "))
+                        }
                         PermissionRow(label: "Latest", value: package.latestVersion ?? "unknown")
                         PermissionRow(label: "Category", value: package.category ?? "uncategorized")
                     }
@@ -259,6 +263,10 @@ private func mainWindowHomeRelativePath(_ path: String?) -> String {
     if path == home { return "~" }
     if path.hasPrefix(home + "/") { return "~/" + String(path.dropFirst(home.count + 1)) }
     return path
+}
+
+private func mainWindowOtherInstalledVersions(_ package: ManagedPackage) -> [String] {
+    package.installedVersions.filter { $0 != package.installedVersion }
 }
 
 private var hairline: some View { Rectangle().fill(AVGlassPalette.hairline).frame(height: 1) }

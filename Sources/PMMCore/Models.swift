@@ -26,6 +26,7 @@ public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
     public let manager: PackageManagerKind
     public let name: String
     public let installedVersion: String?
+    public let installedVersions: [String]
     public let latestVersion: String?
     public let summary: String?
     public let category: String?
@@ -39,6 +40,7 @@ public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
         manager: PackageManagerKind,
         name: String,
         installedVersion: String?,
+        installedVersions: [String] = [],
         latestVersion: String?,
         summary: String? = nil,
         category: String? = nil,
@@ -51,6 +53,7 @@ public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
         self.manager = manager
         self.name = name
         self.installedVersion = installedVersion
+        self.installedVersions = installedVersions
         self.latestVersion = latestVersion
         self.summary = summary
         self.category = category
@@ -72,6 +75,7 @@ public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
             manager: manager,
             name: name,
             installedVersion: installedVersion,
+            installedVersions: installedVersions,
             latestVersion: metadata.version ?? latestVersion,
             summary: metadata.summary ?? summary,
             category: metadata.category ?? category,
