@@ -205,3 +205,43 @@ private struct FakeRunner: CommandRunning {
     #expect(packages.first?.installLocation?.hasSuffix("/environments-v2/ruff-0123456789abcdef") == true)
     #expect(packages.first?.binaryPath?.hasSuffix("/environments-v2/ruff-0123456789abcdef/bin/ruff") == true)
 }
+
+@Test func uvxScannerReadsSymlinkedCachedToolMetadata() throws {
+    let temp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    let archive = temp.appendingPathComponent("archive-v0/Q3TrjBbVSvYNhiMC", isDirectory: true)
+    let environmentEntry = temp.appendingPathComponent("environments-v2/b0305c6237c84604", isDirectory: true)
+    let environmentLink = environmentEntry.appendingPathComponent("5341eec7131f3f0c")
+    let bin = archive.appendingPathComponent("bin", isDirectory: true)
+    let distInfo = archive.appendingPathComponent("lib/python3.13/site-packages/cowsay-6.1.dist-info", isDirectory: true)
+    try FileManager.default.createDirectory(at: bin, withIntermediateDirectories: true)
+    try FileManager.default.createDirectory(at: distInfo, withIntermediateDirectories: true)
+    try FileManager.default.createDirectory(at: environmentEntry, withIntermediateDirectories: true)
+    try "".write(to: archive.appendingPathComponent("pyvenv.cfg"), atomically: true, encoding: .utf8)
+    try "".write(to: distInfo.appendingPathComponent("REQUESTED"), atomically: true, encoding: .utf8)
+    try """
+    Metadata-Version: 2.1
+    Name: cowsay
+    Version: 6.1
+    Summary: The famous cowsay for GNU/Linux is now available for python
+    Home-page: https://github.com/VaasuDevanS/cowsay-python
+    """.write(to: distInfo.appendingPathComponent("METADATA"), atomically: true, encoding: .utf8)
+    FileManager.default.createFile(atPath: bin.appendingPathComponent("cowsay").path, contents: Data())
+    try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: bin.appendingPathComponent("cowsay").path)
+    try FileManager.default.createSymbolicLink(at: environmentLink, withDestinationURL: archive)
+    defer { try? FileManager.default.removeItem(at: temp) }
+
+    let runner = FakeRunner(responses: [
+        "/fake/uv cache dir": CommandResult(stdout: "\(temp.path)\n", stderr: "", status: 0),
+    ])
+    let scanner = PackageScanner(runner: runner, toolPaths: ["uv": "/fake/uv"])
+
+    let package = try #require(scanner.scanUVX(database: PackageDatabase()).first)
+
+    #expect(package.manager == .uvx)
+    #expect(package.name == "cowsay")
+    #expect(package.installedVersion == "6.1")
+    #expect(package.summary == "The famous cowsay for GNU/Linux is now available for python")
+    #expect(package.homepage == "https://github.com/VaasuDevanS/cowsay-python")
+    #expect(package.installLocation?.hasSuffix("/environments-v2/b0305c6237c84604/5341eec7131f3f0c") == true)
+    #expect(package.binaryPath?.hasSuffix("/environments-v2/b0305c6237c84604/5341eec7131f3f0c/bin/cowsay") == true)
+}

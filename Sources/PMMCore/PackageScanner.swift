@@ -132,21 +132,24 @@ public struct PackageScanner {
         let environments = URL(fileURLWithPath: cacheDir).appendingPathComponent("environments-v2", isDirectory: true)
         guard let entries = try? fileManager.contentsOfDirectory(at: environments, includingPropertiesForKeys: nil) else { return [] }
 
-        return entries.compactMap { entry in
-            let envName = entry.lastPathComponent
-            guard !envName.hasPrefix(".") else { return nil }
-            let name = uvxDisplayName(envName)
-            let dist = matchingDistInfo(in: entry, packageName: name)
-            return ManagedPackage(
-                manager: .uvx,
-                name: name,
-                installedVersion: dist?.version,
-                latestVersion: nil,
-                summary: "uvx cached tool environment",
-                category: "developer-tools",
-                installLocation: entry.path,
-                binaryPath: uvxBinaryPath(in: entry, preferredName: name)
-            )
+        return entries.flatMap { entry -> [ManagedPackage] in
+            guard !entry.lastPathComponent.hasPrefix(".") else { return [] }
+            return uvxEnvironmentRoots(entry).map { environment in
+                let fallbackName = uvxDisplayName(entry.lastPathComponent)
+                let dist = requestedDistInfo(in: environment) ?? matchingDistInfo(in: environment, packageName: fallbackName) ?? firstDistInfo(in: environment)
+                let name = dist?.name ?? fallbackName
+                return ManagedPackage(
+                    manager: .uvx,
+                    name: name,
+                    installedVersion: dist?.version,
+                    latestVersion: nil,
+                    summary: dist?.summary ?? "uvx cached tool environment",
+                    category: "developer-tools",
+                    homepage: dist?.homepage,
+                    installLocation: environment.path,
+                    binaryPath: uvxBinaryPath(in: environment, preferredName: name)
+                )
+            }
         }
     }
 
@@ -469,23 +472,75 @@ public struct PackageScanner {
         return prefix.isEmpty ? directoryName : String(prefix)
     }
 
-    private func matchingDistInfo(in environment: URL, packageName: String) -> (name: String, version: String?)? {
-        let lib = environment.appendingPathComponent("lib", isDirectory: true)
-        guard let pythonDirs = try? fileManager.contentsOfDirectory(at: lib, includingPropertiesForKeys: nil) else { return nil }
-        let normalizedPackage = normalizedPythonPackageName(packageName)
-        for pythonDir in pythonDirs {
-            let sitePackages = pythonDir.appendingPathComponent("site-packages", isDirectory: true)
-            guard let entries = try? fileManager.contentsOfDirectory(at: sitePackages, includingPropertiesForKeys: nil) else { continue }
-            if let entry = entries.first(where: { entry in
-                guard entry.pathExtension == "dist-info",
-                      let distName = distInfoNameAndVersion(entry.deletingPathExtension().lastPathComponent)?.name else { return false }
-                return normalizedPythonPackageName(distName) == normalizedPackage
-            }) {
-                let stem = entry.deletingPathExtension().lastPathComponent
-                return distInfoNameAndVersion(stem)
-            }
+    private func uvxEnvironmentRoots(_ entry: URL) -> [URL] {
+        if isPythonEnvironment(entry) {
+            return [entry]
         }
-        return nil
+        let children = (try? fileManager.contentsOfDirectory(at: entry, includingPropertiesForKeys: nil)) ?? []
+        let environments = children.filter(isPythonEnvironment)
+        return environments.isEmpty ? [entry] : environments
+    }
+
+    private func isPythonEnvironment(_ url: URL) -> Bool {
+        fileManager.fileExists(atPath: url.appendingPathComponent("pyvenv.cfg").path)
+            || fileManager.directoryExists(atPath: url.appendingPathComponent("lib", isDirectory: true).path)
+    }
+
+    private func requestedDistInfo(in environment: URL) -> (name: String, version: String?, summary: String?, homepage: String?)? {
+        distInfos(in: environment).first { fileManager.fileExists(atPath: $0.appendingPathComponent("REQUESTED").path) }
+            .flatMap(pythonPackageMetadata)
+    }
+
+    private func firstDistInfo(in environment: URL) -> (name: String, version: String?, summary: String?, homepage: String?)? {
+        distInfos(in: environment).first.flatMap(pythonPackageMetadata)
+    }
+
+    private func distInfos(in environment: URL) -> [URL] {
+        let lib = environment.appendingPathComponent("lib", isDirectory: true)
+        guard let pythonDirs = try? fileManager.contentsOfDirectory(at: lib, includingPropertiesForKeys: nil) else { return [] }
+        return pythonDirs.flatMap { pythonDir -> [URL] in
+            let sitePackages = pythonDir.appendingPathComponent("site-packages", isDirectory: true)
+            let entries = (try? fileManager.contentsOfDirectory(at: sitePackages, includingPropertiesForKeys: nil)) ?? []
+            return entries.filter { $0.pathExtension == "dist-info" }
+        }.sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
+    }
+
+    private func matchingDistInfo(in environment: URL, packageName: String) -> (name: String, version: String?, summary: String?, homepage: String?)? {
+        let normalizedPackage = normalizedPythonPackageName(packageName)
+        return distInfos(in: environment).first { entry in
+            guard let distName = distInfoNameAndVersion(entry.deletingPathExtension().lastPathComponent)?.name else { return false }
+            return normalizedPythonPackageName(distName) == normalizedPackage
+        }.flatMap(pythonPackageMetadata)
+    }
+
+    private func pythonPackageMetadata(from distInfo: URL) -> (name: String, version: String?, summary: String?, homepage: String?)? {
+        let stem = distInfo.deletingPathExtension().lastPathComponent
+        let nameAndVersion = distInfoNameAndVersion(stem)
+        let fields = metadataFields(distInfo.appendingPathComponent("METADATA"))
+        guard let name = fields["Name"] ?? nameAndVersion?.name else { return nil }
+        return (
+            name,
+            fields["Version"] ?? nameAndVersion?.version,
+            fields["Summary"],
+            fields["Home-page"] ?? projectURL(named: "Homepage", in: fields)
+        )
+    }
+
+    private func metadataFields(_ url: URL) -> [String: String] {
+        guard let text = try? String(contentsOf: url, encoding: .utf8) else { return [:] }
+        return text.split(separator: "\n", omittingEmptySubsequences: false).reduce(into: [:]) { fields, line in
+            guard !line.isEmpty, let colon = line.firstIndex(of: ":") else { return }
+            let key = String(line[..<colon])
+            let value = line[line.index(after: colon)...].trimmingCharacters(in: .whitespaces)
+            fields[key] = value
+        }
+    }
+
+    private func projectURL(named label: String, in fields: [String: String]) -> String? {
+        guard let value = fields["Project-URL"] else { return nil }
+        let parts = value.split(separator: ",", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespaces) }
+        guard parts.count == 2, parts[0].localizedCaseInsensitiveCompare(label) == .orderedSame else { return nil }
+        return parts[1]
     }
 
     private func distInfoNameAndVersion(_ stem: String) -> (name: String, version: String?)? {
