@@ -29,7 +29,7 @@ struct MainWindowView: View {
             let height = proxy.size.height
             let sidebarWidth = min(290, max(270, width * 0.20))
             let packageWidth = min(273, max(231, width * 0.21))
-            let dossierWidth = min(360, max(310, width * 0.25))
+            let dossierWidth = packageWidth
             HStack(alignment: .top, spacing: 0) {
                 sidebar.frame(width: sidebarWidth, height: height)
                 packageList.frame(width: packageWidth, height: height, alignment: .top)
