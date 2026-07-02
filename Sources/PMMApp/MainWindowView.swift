@@ -315,6 +315,7 @@ private struct PackageRow: View {
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(AVGlassPalette.secondaryText)
                         .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
                 }
                 Text(subtitle)
                     .font(.system(size: 12))
@@ -323,7 +324,7 @@ private struct PackageRow: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 13)
-            .frame(height: 72)
+            .frame(height: 72, alignment: .topLeading)
             .background {
                 if selected {
                     RoundedRectangle(cornerRadius: 8, style: .continuous).fill(AVGlassPalette.packageSelectedFill)
