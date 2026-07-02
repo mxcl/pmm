@@ -52,8 +52,9 @@ public struct PackageScanner {
         guard let brew = executable(named: "brew", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin"]) else { return [] }
         let outdated = try homebrewOutdated(brew)
         let requestedFormulae = homebrewRequestedFormulae(brew)
-        let formulae = try homebrewList(brew, kindFlag: "--formula", names: requestedFormulae, outdated: outdated.formulae, database: database)
-        let casks = try homebrewList(brew, kindFlag: "--cask", outdated: outdated.casks, database: database)
+        let installedMetadata = homebrewInstalledMetadata(brew)
+        let formulae = try homebrewList(brew, kindFlag: "--formula", names: requestedFormulae, outdated: outdated.formulae, metadata: installedMetadata.formulae, database: database)
+        let casks = try homebrewList(brew, kindFlag: "--cask", outdated: outdated.casks, metadata: installedMetadata.casks, database: database)
         return formulae + casks
     }
 
@@ -240,6 +241,7 @@ public struct PackageScanner {
         kindFlag: String,
         names: Set<String>? = nil,
         outdated: [String: String],
+        metadata installedMetadata: [String: PackageMetadata],
         database: PackageDatabase
     ) throws -> [ManagedPackage] {
         let result = try runner.run(brew, ["list", "--versions", kindFlag])
@@ -251,13 +253,13 @@ public struct PackageScanner {
             if let names, !names.contains(name) { return nil }
             let version = parts.dropFirst().last
             let curation = database.metadata(for: .homebrew, name: name)
-            let metadata = homebrewCachedMetadata(name: name, kindFlag: kindFlag)
+            let metadata = installedMetadata[name] ?? homebrewCachedMetadata(name: name, kindFlag: kindFlag)
             return ManagedPackage(
                 manager: .homebrew,
                 identifier: "\(identifierPrefix):\(name)",
                 displayName: name,
                 installedVersion: version,
-                latestVersion: outdated[name],
+                latestVersion: outdated[name] ?? metadata?.version,
                 summary: metadata?.summary,
                 category: curation?.category,
                 homepage: metadata?.homepage,
@@ -268,6 +270,27 @@ public struct PackageScanner {
                 installLocation: nil,
                 binaryPath: nil
             )
+        }
+    }
+
+    private func homebrewInstalledMetadata(_ brew: String) -> (formulae: [String: PackageMetadata], casks: [String: PackageMetadata]) {
+        guard let result = try? runner.run(brew, ["info", "--json=v2", "--installed"]),
+              result.status == 0,
+              let data = result.stdout.data(using: .utf8),
+              let raw = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return ([:], [:]) }
+        return (
+            homebrewMetadataMap(raw["formulae"]),
+            homebrewMetadataMap(raw["casks"])
+        )
+    }
+
+    private func homebrewMetadataMap(_ value: Any?) -> [String: PackageMetadata] {
+        guard let items = value as? [[String: Any]] else { return [:] }
+        return items.reduce(into: [:]) { result, item in
+            let metadata = homebrewMetadata(from: item)
+            for key in [item["name"] as? String, item["full_name"] as? String, item["token"] as? String].compactMap({ $0 }) {
+                result[key] = metadata
+            }
         }
     }
 
@@ -338,8 +361,15 @@ public struct PackageScanner {
             category: nil,
             homepage: raw["homepage"] as? String,
             repo: sourceRepositoryURL(sourceURL),
-            version: nil
+            version: homebrewVersion(in: raw)
         )
+    }
+
+    private func homebrewVersion(in raw: [String: Any]) -> String? {
+        if let version = raw["version"] as? String {
+            return version
+        }
+        return (raw["versions"] as? [String: Any])?["stable"] as? String
     }
 
     private func homebrewRequestedFormulae(_ brew: String) -> Set<String>? {
@@ -788,9 +818,19 @@ private func sourceRepositoryURL(_ raw: Any?) -> String? {
     } else {
         value = nil
     }
-    return value?
-        .replacingOccurrences(of: "git+", with: "")
-        .replacingOccurrences(of: ".git", with: "")
+    guard var cleaned = value?.replacingOccurrences(of: "git+", with: "") else { return nil }
+    if cleaned.hasSuffix(".git") {
+        cleaned.removeLast(4)
+    }
+    return githubRepositoryURL(cleaned) ?? cleaned
+}
+
+private func githubRepositoryURL(_ string: String) -> String? {
+    guard let url = URL(string: string),
+          url.host()?.lowercased() == "github.com" else { return nil }
+    let parts = url.pathComponents.filter { $0 != "/" }
+    guard parts.count >= 2 else { return nil }
+    return "https://github.com/\(parts[0])/\(parts[1])"
 }
 
 private extension FileManager {

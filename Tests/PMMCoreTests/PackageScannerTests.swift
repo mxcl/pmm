@@ -161,8 +161,8 @@ private final class EmptyNPMRegistryURLProtocol: URLProtocol, @unchecked Sendabl
     let runner = FakeRunner(responses: [
         "/fake/brew leaves --installed-on-request": CommandResult(stdout: "git\n", stderr: "", status: 0),
         "/fake/brew outdated --json=v2": CommandResult(stdout: #"{"formulae":[],"casks":[]}"#, stderr: "", status: 0),
-        "/fake/brew list --versions --formula": CommandResult(stdout: "git 2.50.0\n", stderr: "", status: 0),
-        "/fake/brew list --versions --cask": CommandResult(stdout: "visual-studio-code 1.101.2\n", stderr: "", status: 0),
+        "/fake/brew list --versions --formula": CommandResult(stdout: "git 2.51.0\n", stderr: "", status: 0),
+        "/fake/brew list --versions --cask": CommandResult(stdout: "visual-studio-code 1.102.0\n", stderr: "", status: 0),
     ])
     let scanner = PackageScanner(runner: runner, toolPaths: ["brew": "/fake/brew"], environment: ["HOMEBREW_CACHE": temp.path])
 
@@ -173,16 +173,53 @@ private final class EmptyNPMRegistryURLProtocol: URLProtocol, @unchecked Sendabl
 
     #expect(packages.map(\.identifier) == ["brew:git", "brew:cask:visual-studio-code"])
     #expect(packages.map(\.displayName) == ["git", "visual-studio-code"])
-    #expect(packages.first?.latestVersion == nil)
+    #expect(packages.first?.latestVersion == "2.51.0")
     #expect(packages.first?.summary == "Distributed revision control system")
     #expect(packages.first?.category == "developer-tools")
     #expect(packages.first?.homepage == "https://git-scm.com/")
     #expect(packages.first?.repo == "https://github.com/git/git")
     #expect(packages.first?.lastUpdatedAt == "2026-06-26T22:01:54Z")
     #expect(packages.first?.pulseKind == "updated")
-    #expect(packages.last?.latestVersion == nil)
+    #expect(packages.last?.latestVersion == "1.102.0")
     #expect(packages.last?.summary == "Code editor")
     #expect(packages.last?.category == "productivity")
+}
+
+@Test func homebrewScannerUsesInstalledInfoMetadataWhenCacheIsMissing() throws {
+    let temp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    defer { try? FileManager.default.removeItem(at: temp) }
+
+    let runner = FakeRunner(responses: [
+        "/fake/brew leaves --installed-on-request": CommandResult(stdout: "create-dmg\n", stderr: "", status: 0),
+        "/fake/brew outdated --json=v2": CommandResult(stdout: #"{"formulae":[],"casks":[]}"#, stderr: "", status: 0),
+        "/fake/brew info --json=v2 --installed": CommandResult(stdout: #"""
+        {
+          "formulae": [{
+            "name": "create-dmg",
+            "full_name": "create-dmg",
+            "desc": "Shell script to build fancy DMGs",
+            "homepage": "https://github.com/create-dmg/create-dmg",
+            "versions": { "stable": "1.3.0" },
+            "urls": { "stable": { "url": "https://github.com/create-dmg/create-dmg/archive/refs/tags/v1.3.0.tar.gz" } }
+          }],
+          "casks": []
+        }
+        """#, stderr: "", status: 0),
+        "/fake/brew list --versions --formula": CommandResult(stdout: "create-dmg 1.3.0\n", stderr: "", status: 0),
+        "/fake/brew list --versions --cask": CommandResult(stdout: "", stderr: "", status: 0),
+    ])
+    let scanner = PackageScanner(runner: runner, toolPaths: ["brew": "/fake/brew"], environment: ["HOMEBREW_CACHE": temp.path])
+
+    let packages = try scanner.scanHomebrew(database: PackageDatabase(
+        formulas: ["create-dmg": PackageMetadata(summary: nil, category: "developer-tools", homepage: nil, version: nil)]
+    ))
+
+    #expect(packages.first?.identifier == "brew:create-dmg")
+    #expect(packages.first?.summary == "Shell script to build fancy DMGs")
+    #expect(packages.first?.latestVersion == "1.3.0")
+    #expect(packages.first?.homepage == "https://github.com/create-dmg/create-dmg")
+    #expect(packages.first?.repo == "https://github.com/create-dmg/create-dmg")
+    #expect(packages.first?.category == "developer-tools")
 }
 
 @Test func homebrewScannerKeepsOnlyRequestedFormulaeAndCasks() throws {
