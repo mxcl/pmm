@@ -108,24 +108,14 @@ struct MainWindowPackageListView: View {
     @ObservedObject var model: MainWindowModel
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Text("Package")
-                Image(systemName: "arrow.up.arrow.down").font(.system(size: 11, weight: .bold))
-                Spacer()
-                if model.isReloading { ProgressView().controlSize(.small) }
-            }
-            .font(.system(size: 13, weight: .bold))
-            .foregroundStyle(AVGlassPalette.quietText)
-            .padding(.horizontal, 12)
-            .frame(height: 42)
-            hairline
+        ZStack(alignment: .top) {
             ScrollView {
                 let displayedPackages = model.displayedPackages
                 if model.isReloading && displayedPackages.isEmpty {
                     ProgressView()
                         .controlSize(.small)
                         .frame(maxWidth: .infinity, minHeight: 180)
+                        .padding(.top, 43)
                 } else {
                     LazyVStack(spacing: 0) {
                         ForEach(displayedPackages) { package in
@@ -139,7 +129,21 @@ struct MainWindowPackageListView: View {
                             }
                         }
                     }
+                    .padding(.top, 43)
                 }
+            }
+            VStack(spacing: 0) {
+                HStack {
+                    Text("Package Manager Manager")
+                    Spacer()
+                    if model.isReloading { ProgressView().controlSize(.small) }
+                }
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(AVGlassPalette.quietText)
+                .padding(.horizontal, 12)
+                .frame(height: 42)
+                .background(LiquidGlassSurface(material: .ultraThinMaterial, tint: AVGlassPalette.topBarTint).ignoresSafeArea(.container, edges: .top))
+                hairline
             }
         }
         .ignoresSafeArea(.container, edges: .top)
