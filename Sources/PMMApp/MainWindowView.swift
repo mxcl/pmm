@@ -3,50 +3,12 @@ import Foundation
 import SwiftUI
 import WebKit
 
-struct MainWindowView: View {
+struct MainWindowSidebarView: View {
     @ObservedObject var model: MainWindowModel
-    @State private var linkTab: MainWindowLinkTab = .homepage
 
     var body: some View {
-        ZStack {
-            background
-            mainContent
-        }
-        .frame(minWidth: 1060, minHeight: 680)
-        .background(Color.clear)
-        .preferredColorScheme(.dark)
-    }
-
-    private var background: some View {
-        LiquidGlassSurface(material: .ultraThinMaterial, tint: AVGlassPalette.windowTint)
-            .backgroundExtensionEffect()
-            .ignoresSafeArea()
-    }
-
-    private var mainContent: some View {
-        GeometryReader { proxy in
-            let width = proxy.size.width
-            let height = proxy.size.height
-            let sidebarWidth = min(290, max(270, width * 0.20))
-            let packageWidth = min(273, max(231, width * 0.21))
-            let dossierWidth = packageWidth
-            HStack(alignment: .top, spacing: 0) {
-                sidebar.frame(width: sidebarWidth, height: height)
-                packageList.frame(width: packageWidth, height: height, alignment: .top)
-                verticalHairline.frame(height: height)
-                dossierPanel.frame(width: dossierWidth, height: height, alignment: .top)
-                verticalHairline.frame(height: height)
-                linksPanel.frame(width: max(width - sidebarWidth - packageWidth - dossierWidth - 2, 300), height: height)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        }
-        .ignoresSafeArea(.container, edges: .top)
-    }
-
-    private var sidebar: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                Spacer().frame(height: 72)
                 searchField
                     .padding(.bottom, 18)
                 ForEach(MainWindowSection.librarySections) { sidebarRow($0) }
@@ -67,23 +29,9 @@ struct MainWindowView: View {
             .padding(.vertical, 16)
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
+        .safeAreaPadding(.top, 8)
         .scrollIndicators(.hidden)
-        .background {
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .overlay {
-                    RoundedRectangle(cornerRadius: 28, style: .continuous)
-                        .fill(AVGlassPalette.sidebarTint)
-                }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(AVGlassPalette.sidebarBorder)
-        }
-        .padding(.leading, 10)
-        .padding(.trailing, 0)
-        .padding(.vertical, 10)
+        .preferredColorScheme(.dark)
     }
 
     private func sidebarHeader(_ text: String) -> some View {
@@ -158,8 +106,12 @@ struct MainWindowView: View {
         default: Color(red: 0.46, green: 0.49, blue: 0.53)
         }
     }
+}
 
-    private var packageList: some View {
+struct MainWindowPackageListView: View {
+    @ObservedObject var model: MainWindowModel
+
+    var body: some View {
         VStack(spacing: 0) {
             HStack {
                 Text("Package")
@@ -185,7 +137,7 @@ struct MainWindowView: View {
                                 package: package,
                                 selected: model.selectedPackage?.id == package.id,
                                 showsManager: model.activeSidebarSection == .outdated,
-                                versionText: versionText(package, section: model.activeSidebarSection)
+                                versionText: mainWindowVersionText(package, section: model.activeSidebarSection)
                             ) {
                                 model.select(package)
                             }
@@ -194,22 +146,15 @@ struct MainWindowView: View {
                 }
             }
         }
+        .background(LiquidGlassSurface(material: .ultraThinMaterial, tint: AVGlassPalette.windowTint).ignoresSafeArea())
+        .preferredColorScheme(.dark)
     }
+}
 
-    private var searchField: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass")
-            TextField("Search", text: $model.searchText)
-                .textFieldStyle(.plain)
-        }
-        .font(.system(size: 13))
-        .foregroundStyle(AVGlassPalette.secondaryText)
-        .padding(.horizontal, 12)
-        .frame(height: 34)
-        .background(AVGlassPalette.searchFill, in: Capsule(style: .continuous))
-    }
+struct MainWindowDossierView: View {
+    @ObservedObject var model: MainWindowModel
 
-    private var dossierPanel: some View {
+    var body: some View {
         ScrollView {
             if let package = model.selectedPackage {
                 VStack(alignment: .leading, spacing: 18) {
@@ -227,7 +172,7 @@ struct MainWindowView: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     if package.isOutdated {
-                        PackageBadgeBanner(text: "Outdated \(versionText(package))", color: AVGlassPalette.orange)
+                        PackageBadgeBanner(text: "Outdated \(mainWindowVersionText(package))", color: AVGlassPalette.orange)
                     }
                     InfoSection(title: "Package") {
                         PermissionRow(label: "Manager", value: package.manager.title)
@@ -236,8 +181,8 @@ struct MainWindowView: View {
                         PermissionRow(label: "Category", value: package.category ?? "uncategorized")
                     }
                     InfoSection(title: "Location") {
-                        PermissionRow(label: "Install Root", value: homeRelativePath(package.installLocation))
-                        PermissionRow(label: "Binary", value: homeRelativePath(package.binaryPath))
+                        PermissionRow(label: "Install Root", value: mainWindowHomeRelativePath(package.installLocation))
+                        PermissionRow(label: "Binary", value: mainWindowHomeRelativePath(package.binaryPath))
                     }
                 }
                 .padding(.horizontal, 22)
@@ -249,9 +194,15 @@ struct MainWindowView: View {
                     .frame(maxWidth: .infinity, minHeight: 300)
             }
         }
+        .background(LiquidGlassSurface(material: .ultraThinMaterial, tint: AVGlassPalette.windowTint).ignoresSafeArea())
+        .preferredColorScheme(.dark)
     }
+}
 
-    private var linksPanel: some View {
+struct MainWindowLinksView: View {
+    @ObservedObject var model: MainWindowModel
+
+    var body: some View {
         VStack(spacing: 0) {
             LinkURLBar(url: selectedURL) { model.open(url: selectedURL) }
                 .padding(.horizontal, 12)
@@ -268,37 +219,53 @@ struct MainWindowView: View {
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(AVGlassPalette.quietText)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
+                }
         }
+        .background(LiquidGlassSurface(material: .ultraThinMaterial, tint: AVGlassPalette.windowTint).ignoresSafeArea())
+        .preferredColorScheme(.dark)
     }
 
     private var selectedURL: URL? {
         model.selectedPackage?.homepage.flatMap(URL.init(string:))
     }
+}
 
-    private func versionText(_ package: ManagedPackage, section: MainWindowSection? = nil) -> String {
-        if package.isOutdated {
-            if section == nil || section == .outdated {
-                return "\(package.installedVersion ?? "?") → \(package.latestVersion ?? "?")"
-            }
-            return package.installedVersion ?? package.latestVersion ?? "available"
-        }
-        if section?.categoryIdentifier != nil, package.installedVersion == nil, package.latestVersion == nil {
-            return package.manager.title
+private func mainWindowVersionText(_ package: ManagedPackage, section: MainWindowSection? = nil) -> String {
+    if package.isOutdated {
+        if section == nil || section == .outdated {
+            return "\(package.installedVersion ?? "?") → \(package.latestVersion ?? "?")"
         }
         return package.installedVersion ?? package.latestVersion ?? "available"
     }
-
-    private func homeRelativePath(_ path: String?) -> String {
-        guard let path else { return "unknown" }
-        let home = NSHomeDirectory()
-        if path == home { return "~" }
-        if path.hasPrefix(home + "/") { return "~/" + String(path.dropFirst(home.count + 1)) }
-        return path
+    if section?.categoryIdentifier != nil, package.installedVersion == nil, package.latestVersion == nil {
+        return package.manager.title
     }
+    return package.installedVersion ?? package.latestVersion ?? "available"
+}
 
-    private var hairline: some View { Rectangle().fill(AVGlassPalette.hairline).frame(height: 1) }
-    private var verticalHairline: some View { Rectangle().fill(AVGlassPalette.hairline).frame(width: 1) }
+private func mainWindowHomeRelativePath(_ path: String?) -> String {
+    guard let path else { return "unknown" }
+    let home = NSHomeDirectory()
+    if path == home { return "~" }
+    if path.hasPrefix(home + "/") { return "~/" + String(path.dropFirst(home.count + 1)) }
+    return path
+}
+
+private var hairline: some View { Rectangle().fill(AVGlassPalette.hairline).frame(height: 1) }
+
+private extension MainWindowSidebarView {
+    var searchField: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+            TextField("Search", text: $model.searchText)
+                .textFieldStyle(.plain)
+        }
+        .font(.system(size: 13))
+        .foregroundStyle(AVGlassPalette.secondaryText)
+        .padding(.horizontal, 12)
+        .frame(height: 34)
+        .background(AVGlassPalette.searchFill, in: Capsule(style: .continuous))
+    }
 }
 
 private struct PackageRow: View {

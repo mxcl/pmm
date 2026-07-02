@@ -33,7 +33,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
         window.titlebarSeparatorStyle = .none
-        window.toolbarStyle = .unified
+        window.toolbarStyle = .automatic
         window.toolbar = controller.makeToolbar()
         window.isMovableByWindowBackground = true
         window.minSize = NSSize(width: 1060, height: 680)
