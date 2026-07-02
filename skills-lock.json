@@ -1,0 +1,190 @@
+{
+  "version": 1,
+  "skills": {
+    "axiom-accessibility": {
+      "source": "CharlesWiltgen/Axiom",
+      "sourceType": "github",
+      "skillPath": ".claude-plugin/plugins/axiom/skills/axiom-accessibility/SKILL.md",
+      "computedHash": "77091d3f006d7561206d1ba19f5431774aad25f6d4457ae91f96a4305860dcef"
+    },
+    "axiom-ai": {
+      "source": "CharlesWiltgen/Axiom",
+      "sourceType": "github",
+      "skillPath": ".claude-plugin/plugins/axiom/skills/axiom-ai/SKILL.md",
+      "computedHash": "7a708d228d8061ab04ac9002031eeba441116b04b948392bd2ffb9db828cf72e"
+    },
+    "axiom-apple-docs": {
+      "source": "CharlesWiltgen/Axiom",
+      "sourceType": "github",
+      "skillPath": ".claude-plugin/plugins/axiom/skills/axiom-apple-docs/SKILL.md",
+      "computedHash": "2b1f062422a3cbe2c5730ea4adce3509b3705f6c64288c5c7bd70babe58af8e6"
+    },
+    "axiom-build": {
+      "source": "CharlesWiltgen/Axiom",
+      "sourceType": "github",
+      "skillPath": ".claude-plugin/plugins/axiom/skills/axiom-build/SKILL.md",
+      "computedHash": "b5afbe5429d5b6e57e991aabcc242e5b44896e93b45b1451be68adafbb541cde"
+    },
+    "axiom-concurrency": {
+      "source": "CharlesWiltgen/Axiom",
+      "sourceType": "github",
+      "skillPath": ".claude-plugin/plugins/axiom/skills/axiom-concurrency/SKILL.md",
+      "computedHash": "fab4322b63e97f23206ca14e4e77b002efbae0b840423a33545f870b2dae1787"
+    },
+    "axiom-data": {
+      "source": "CharlesWiltgen/Axiom",
+      "sourceType": "github",
+      "skillPath": ".claude-plugin/plugins/axiom/skills/axiom-data/SKILL.md",
+      "computedHash": "0b93ca7fc9f9913846575c1969a2f74ae4a4f0b57318c173f6fcc2b51dcf0df3"
+    },
+    "axiom-design": {
+      "source": "CharlesWiltgen/Axiom",
+      "sourceType": "github",
+      "skillPath": ".claude-plugin/plugins/axiom/skills/axiom-design/SKILL.md",
+      "computedHash": "c01b05c8d2a772303ce13a3efa68f207dfe2dbe5169de8ebe7764b19403f2c52"
+    },
+    "axiom-games": {
+      "source": "CharlesWiltgen/Axiom",
+      "sourceType": "github",
+      "skillPath": ".claude-plugin/plugins/axiom/skills/axiom-games/SKILL.md",
+      "computedHash": "42dc787d0fedc48b60c843df2ed96bc075156a653b0c1cc3fb1cbb8a0cc9f338"
+    },
+    "axiom-graphics": {
+      "source": "CharlesWiltgen/Axiom",
+      "sourceType": "github",
+      "skillPath": ".claude-plugin/plugins/axiom/skills/axiom-graphics/SKILL.md",
+      "computedHash": "a3e612e6f3e54c7072755d38aec454c6ad48e84c6f01f1c0413d9234ed0fa071"
+    },
+    "axiom-health": {
+      "source": "CharlesWiltgen/Axiom",
+      "sourceType": "github",
+      "skillPath": ".claude-plugin/plugins/axiom/skills/axiom-health/SKILL.md",
+      "computedHash": "7bdb881f6ccc6260e97aad6961895acaa350cdf9a8bd832bdb730601d6144737"
+    },
+    "axiom-integration": {
+      "source": "CharlesWiltgen/Axiom",
+      "sourceType": "github",
+      "skillPath": ".claude-plugin/plugins/axiom/skills/axiom-integration/SKILL.md",
+      "computedHash": "0821374ce4827957405a62fc220f7631cb011c2f4b98891e3d4f902d92397500"
+    },
+    "axiom-location": {
+      "source": "CharlesWiltgen/Axiom",
+      "sourceType": "github",
+      "skillPath": ".claude-plugin/plugins/axiom/skills/axiom-location/SKILL.md",
+      "computedHash": "02d37a88523da8c164cb0610333135b0be3abcdc940e4b5a60d40f843b1074cb"
+    },
+    "axiom-macos": {
+      "source": "CharlesWiltgen/Axiom",
+      "sourceType": "github",
+      "skillPath": ".claude-plugin/plugins/axiom/skills/axiom-macos/SKILL.md",
+      "computedHash": "064442f27d794c09753301babd6699066ea824b4f596f7fa259de51170cba77c"
+    },
+    "axiom-media": {
+      "source": "CharlesWiltgen/Axiom",
+      "sourceType": "github",
+      "skillPath": ".claude-plugin/plugins/axiom/skills/axiom-media/SKILL.md",
+      "computedHash": "98dfa8f9c0f3eb0fcceb06bfe4a0d94f0ecbb312797318831da2bd564a4627dd"
+    },
+    "axiom-networking": {
+      "source": "CharlesWiltgen/Axiom",
+      "sourceType": "github",
+      "skillPath": ".claude-plugin/plugins/axiom/skills/axiom-networking/SKILL.md",
+      "computedHash": "01730d13153144d754b52dc5442ee6c3b3a8d915790120ff4e8487859a5d123c"
+    },
+    "axiom-payments": {
+      "source": "CharlesWiltgen/Axiom",
+      "sourceType": "github",
+      "skillPath": ".claude-plugin/plugins/axiom/skills/axiom-payments/SKILL.md",
+      "computedHash": "ca0e3190ce5792e98838eaf27199ad325a870842730e45c2cfcef3d3c5be6bca"
+    },
+    "axiom-performance": {
+      "source": "CharlesWiltgen/Axiom",
+      "sourceType": "github",
+      "skillPath": ".claude-plugin/plugins/axiom/skills/axiom-performance/SKILL.md",
+      "computedHash": "5a9a9a888a8b99c03f88daba5f67df806b026460364ba4bc3be7e10bed31e38b"
+    },
+    "axiom-security": {
+      "source": "CharlesWiltgen/Axiom",
+      "sourceType": "github",
+      "skillPath": ".claude-plugin/plugins/axiom/skills/axiom-security/SKILL.md",
+      "computedHash": "129b46d8069eb8d5b68bf223be8824633a672d07419d730a811c4cf3a312f07e"
+    },
+    "axiom-shipping": {
+      "source": "CharlesWiltgen/Axiom",
+      "sourceType": "github",
+      "skillPath": ".claude-plugin/plugins/axiom/skills/axiom-shipping/SKILL.md",
+      "computedHash": "999246ab13cab91995d1a26bd3d82dce6c5c492a5e6dc76f951137b460bf09cd"
+    },
+    "axiom-swift": {
+      "source": "CharlesWiltgen/Axiom",
+      "sourceType": "github",
+      "skillPath": ".claude-plugin/plugins/axiom/skills/axiom-swift/SKILL.md",
+      "computedHash": "8822f1137298c95218e922b7a0395e8407dbdb33166bb2d2d5f5c95d1d7613ae"
+    },
+    "axiom-swiftui": {
+      "source": "CharlesWiltgen/Axiom",
+      "sourceType": "github",
+      "skillPath": ".claude-plugin/plugins/axiom/skills/axiom-swiftui/SKILL.md",
+      "computedHash": "c906ef774bdb54c065e30f83cbf616352d84ec216598dd41c76638afcd9e0db8"
+    },
+    "axiom-testing": {
+      "source": "CharlesWiltgen/Axiom",
+      "sourceType": "github",
+      "skillPath": ".claude-plugin/plugins/axiom/skills/axiom-testing/SKILL.md",
+      "computedHash": "b6ae2f689f041a2392f772dc97cd2dad0817ea4360649b3a8cca57e54fe32807"
+    },
+    "axiom-tools": {
+      "source": "CharlesWiltgen/Axiom",
+      "sourceType": "github",
+      "skillPath": ".claude-plugin/plugins/axiom/skills/axiom-tools/SKILL.md",
+      "computedHash": "26e0ad13ede61ca11d66fd9364f10d65e01e7bb2c47f94e5eabc6e6f720bb5e8"
+    },
+    "axiom-uikit": {
+      "source": "CharlesWiltgen/Axiom",
+      "sourceType": "github",
+      "skillPath": ".claude-plugin/plugins/axiom/skills/axiom-uikit/SKILL.md",
+      "computedHash": "2bc65b71a4743468b9b5f44c0ed0c5d21fd82e4ad37db6bca54918da7ce2d563"
+    },
+    "axiom-vision": {
+      "source": "CharlesWiltgen/Axiom",
+      "sourceType": "github",
+      "skillPath": ".claude-plugin/plugins/axiom/skills/axiom-vision/SKILL.md",
+      "computedHash": "e53b408b257a7e4f0abd2bba371e490924935c600f4e0f53d8696454bbf5d2ff"
+    },
+    "axiom-watchos": {
+      "source": "CharlesWiltgen/Axiom",
+      "sourceType": "github",
+      "skillPath": ".claude-plugin/plugins/axiom/skills/axiom-watchos/SKILL.md",
+      "computedHash": "7ade28fa64a92179f334cf4662f4f06a806349abcd9dd49aa325a418e97fd616"
+    },
+    "axiom-xcode-mcp": {
+      "source": "CharlesWiltgen/Axiom",
+      "sourceType": "github",
+      "skillPath": ".claude-plugin/plugins/axiom/skills/axiom-xcode-mcp/SKILL.md",
+      "computedHash": "5b046e3d5d3e52ac735abc796f1ebdc974c969044b726540797e95d8c530d0f5"
+    },
+    "beautiful-cli-design": {
+      "source": "curiositech/windags-skills",
+      "sourceType": "github",
+      "skillPath": "skills/beautiful-cli-design/SKILL.md",
+      "computedHash": "89f2679b41f7eebdd56d0a0ae796cffa072f2eb2847ee79d9017699de6417bdf"
+    },
+    "kpi-dashboard-design": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "skillPath": "plugins/business-analytics/skills/kpi-dashboard-design/SKILL.md",
+      "computedHash": "d886fe70e98d7555ece81ae8c53579f0fd4a0042c646cf88a1054651ce14fb72"
+    },
+    "mxcl-readme": {
+      "source": "mxcl/skills",
+      "sourceType": "github",
+      "skillPath": "mxcl-readme/SKILL.md",
+      "computedHash": "68a063662522710ae37a7b8e7a31af2754de7691d87dc0916f25aa6159d93149"
+    },
+    "rust-architecture-patterns": {
+      "source": "smithery.ai",
+      "sourceType": "well-known",
+      "computedHash": "899339840173bcfbef30002dda5cd4fc76fa627e8ce56ebd479a8dcf669955ce"
+    }
+  }
+}

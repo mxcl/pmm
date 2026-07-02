@@ -1,0 +1,4 @@
+interface:
+  display_name: "mxcl README"
+  short_description: "Generate READMEs in mxcl's concise pkgx-style voice."
+  default_prompt: "Draft or rewrite a README in mxcl's terse, example-led style."

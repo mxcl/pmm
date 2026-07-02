@@ -25,13 +25,9 @@ struct MainWindowSidebarView: View {
                 Spacer(minLength: 24)
                 ForEach(MainWindowSection.utilitySections) { sidebarRow($0) }
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 16)
+            .padding(.horizontal, 12)
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
-        .safeAreaPadding(.top, 8)
-        .scrollIndicators(.hidden)
-        .preferredColorScheme(.dark)
     }
 
     private func sidebarHeader(_ text: String) -> some View {

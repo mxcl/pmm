@@ -19,9 +19,9 @@ final class MainWindowController: NSSplitViewController {
         splitView.dividerStyle = .thin
 
         addSplitViewItem(sidebarItem())
-        addSplitViewItem(contentItem(MainWindowPackageListView(model: model), width: 252, minimumWidth: 220))
-        addSplitViewItem(contentItem(MainWindowDossierView(model: model), width: 252, minimumWidth: 220))
-        addSplitViewItem(contentItem(MainWindowLinksView(model: model), width: 624, minimumWidth: 300))
+        addSplitViewItem(contentItem(MainWindowPackageListView(model: model), width: 252, minimumWidth: 252))
+        addSplitViewItem(contentItem(MainWindowDossierView(model: model), width: 252, minimumWidth: 252))
+        addSplitViewItem(contentItem(MainWindowLinksView(model: model), width: 624, minimumWidth: 350))
     }
 
     override func viewDidAppear() {
