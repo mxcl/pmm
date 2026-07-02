@@ -143,7 +143,8 @@ struct MainWindowPackageListView: View {
                 .padding(.horizontal, 12)
                 .frame(height: 42)
                 .background(LiquidGlassSurface(material: .ultraThinMaterial, tint: AVGlassPalette.topBarTint).ignoresSafeArea(.container, edges: .top))
-                LiquidGlassSurface(material: .ultraThinMaterial, tint: AVGlassPalette.sidebarBorder)
+                Rectangle()
+                    .fill(AVGlassPalette.sidebarBorder)
                     .frame(height: 1)
             }
         }
