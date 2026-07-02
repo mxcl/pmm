@@ -29,6 +29,7 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
 
     static let librarySections: [MainWindowSection] = [.installed, .outdated]
     static let managerSections: [MainWindowSection] = [.rust, .homebrew, .javascript, .python]
+        .sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
     static let categorySections: [MainWindowSection] = [
         .developerTools, .cloudInfrastructure, .networking, .system, .security,
         .data, .languageRuntime, .media, .productivity, .science, .games, .toys, .other

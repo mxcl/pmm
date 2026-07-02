@@ -74,7 +74,7 @@ import Testing
     ]
     let index = PackageIndex(packages: packages, catalogPackages: [], newUpdatedLastClickedAt: nil)
 
-    #expect(MainWindowSection.managerSections.map(\.title) == ["Rust", "Homebrew", "JavaScript", "Python"])
+    #expect(MainWindowSection.managerSections.map(\.title) == ["Homebrew", "JavaScript", "Python", "Rust"])
     #expect(index.packagesBySection[.rust]?.map(\.name) == ["ripgrep"])
     #expect(index.packagesBySection[.homebrew]?.map(\.name) == ["git"])
     #expect(index.packagesBySection[.javascript]?.map(\.name) == ["acorn", "alpha", "beta", "zeta"])
