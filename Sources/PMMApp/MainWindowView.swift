@@ -115,7 +115,6 @@ struct MainWindowPackageListView: View {
                     ProgressView()
                         .controlSize(.small)
                         .frame(maxWidth: .infinity, minHeight: 180)
-                        .padding(.top, 43)
                 } else {
                     LazyVStack(spacing: 0) {
                         ForEach(displayedPackages) { package in
@@ -129,7 +128,6 @@ struct MainWindowPackageListView: View {
                             }
                         }
                     }
-                    .padding(.top, 43)
                 }
             }
             VStack(spacing: 0) {
@@ -142,16 +140,20 @@ struct MainWindowPackageListView: View {
                 .foregroundStyle(.white)
                 .padding(.horizontal, 12)
                 .frame(height: 42)
-                .background {
-                    Rectangle()
-                        .fill(.ultraThinMaterial)
+                .background(alignment: .top) {
+                    VisualEffectMaterial(material: .sidebar)
                         .mask(
                             LinearGradient(
-                                colors: [.black, .black.opacity(0)],
+                                stops: [
+                                    .init(color: .black, location: 0),
+                                    .init(color: .black, location: 0.7),
+                                    .init(color: .clear, location: 1),
+                                ],
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
                         )
+                        .frame(height: 56)
                         .ignoresSafeArea(.container, edges: .top)
                 }
             }
@@ -621,6 +623,22 @@ private struct PackageWebView: NSViewRepresentable {
             }
             decisionHandler(.cancel)
         }
+    }
+}
+
+private struct VisualEffectMaterial: NSViewRepresentable {
+    let material: NSVisualEffectView.Material
+
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.blendingMode = .withinWindow
+        view.material = material
+        view.state = .active
+        return view
+    }
+
+    func updateNSView(_ view: NSVisualEffectView, context: Context) {
+        view.material = material
     }
 }
 
