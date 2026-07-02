@@ -139,12 +139,18 @@ final class MainWindowModel: ObservableObject {
     private var newUpdatedSelectionDisplayCount: Int?
     private let userDefaults: UserDefaults
     private let cratesIOClient: CratesIOClient
-    private var crateMetadataCache: [String: PackageMetadata] = [:]
+    private let npmRegistryClient: NPMRegistryClient
+    private var packageMetadataCache: [String: PackageMetadata] = [:]
     private var selectedMetadataTask: Task<Void, Never>?
 
-    init(userDefaults: UserDefaults = .standard, cratesIOClient: CratesIOClient = CratesIOClient()) {
+    init(
+        userDefaults: UserDefaults = .standard,
+        cratesIOClient: CratesIOClient = CratesIOClient(),
+        npmRegistryClient: NPMRegistryClient = NPMRegistryClient()
+    ) {
         self.userDefaults = userDefaults
         self.cratesIOClient = cratesIOClient
+        self.npmRegistryClient = npmRegistryClient
         newUpdatedLastClickedAt = userDefaults.object(forKey: Self.newUpdatedLastClickedAtDefaultsKey) as? Date
     }
 
@@ -201,7 +207,7 @@ final class MainWindowModel: ObservableObject {
     }
 
     func select(_ package: ManagedPackage) {
-        selectedPackage = package.applying(metadata: crateMetadataCache[package.name])
+        selectedPackage = package.applying(metadata: cachedMetadata(for: package))
         loadSelectedPackageMetadata()
     }
 
@@ -239,37 +245,62 @@ final class MainWindowModel: ObservableObject {
         errors = next.errors
         selectedPackage = selectedPackage.flatMap { selected in displayedPackages.first { $0.id == selected.id } } ?? displayedPackages.first
         if let selectedPackage {
-            self.selectedPackage = selectedPackage.applying(metadata: crateMetadataCache[selectedPackage.name])
+            self.selectedPackage = selectedPackage.applying(metadata: cachedMetadata(for: selectedPackage))
         }
         loadSelectedPackageMetadata()
     }
 
     private func loadSelectedPackageMetadata() {
         selectedMetadataTask?.cancel()
-        guard let package = selectedPackage, package.manager == .cargoInstall else {
+        guard let package = selectedPackage, shouldLoadMetadata(for: package) else {
             isLoadingSelectedPackageMetadata = false
             return
         }
-        if let metadata = crateMetadataCache[package.name] {
+        if let metadata = cachedMetadata(for: package) {
             selectedPackage = package.applying(metadata: metadata)
             isLoadingSelectedPackageMetadata = false
             return
         }
 
         isLoadingSelectedPackageMetadata = true
-        selectedMetadataTask = Task.detached { [cratesIOClient] in
+        let key = metadataKey(for: package)
+        selectedMetadataTask = Task.detached { [cratesIOClient, npmRegistryClient] in
             let name = package.name
-            let metadata = try? await cratesIOClient.metadata(for: name)
+            let metadata = try? await {
+                switch package.manager {
+                case .cargoInstall:
+                    return try await cratesIOClient.metadata(for: name)
+                case .npm, .npx:
+                    return try await npmRegistryClient.metadata(for: name)
+                case .homebrew, .uv, .uvx:
+                    return nil
+                }
+            }()
             guard !Task.isCancelled else { return }
             await MainActor.run {
                 guard self.selectedPackage?.id == package.id else { return }
                 if let metadata {
-                    self.crateMetadataCache[name] = metadata
+                    self.packageMetadataCache[key] = metadata
                     self.selectedPackage = self.selectedPackage?.applying(metadata: metadata)
                 }
                 self.isLoadingSelectedPackageMetadata = false
             }
         }
+    }
+
+    private func shouldLoadMetadata(for package: ManagedPackage) -> Bool {
+        switch package.manager {
+        case .cargoInstall, .npm, .npx: true
+        case .homebrew, .uv, .uvx: false
+        }
+    }
+
+    private func cachedMetadata(for package: ManagedPackage) -> PackageMetadata? {
+        packageMetadataCache[metadataKey(for: package)]
+    }
+
+    private func metadataKey(for package: ManagedPackage) -> String {
+        "\(package.manager.rawValue):\(package.name)"
     }
 
     private func scanAndApply(database: PackageDatabase, newUpdatedLastClickedAt: Date?) async {
