@@ -146,6 +146,7 @@ struct MainWindowPackageListView: View {
                 Rectangle()
                     .fill(AVGlassPalette.sidebarBorder)
                     .frame(height: 1)
+                    .padding(.trailing, 1)
             }
         }
         .overlay(alignment: .trailing) {
@@ -220,6 +221,11 @@ struct MainWindowDossierView: View {
         }
         .ignoresSafeArea(.container, edges: .top)
         .background(LiquidGlassSurface(material: .ultraThinMaterial, tint: AVGlassPalette.windowTint).ignoresSafeArea())
+        .overlay(alignment: .trailing) {
+            Rectangle()
+                .fill(AVGlassPalette.sidebarBorder)
+                .frame(width: 1)
+        }
         .sheet(isPresented: uninstallModalBinding) {
             PackageProgressView(title: "Uninstalling \(model.uninstallingPackageName ?? "package")")
                 .interactiveDismissDisabled(true)
