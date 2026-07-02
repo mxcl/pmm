@@ -7,6 +7,7 @@ let package = Package(
     platforms: [.macOS("26.0")],
     products: [
         .executable(name: "PMMApp", targets: ["PMMApp"]),
+        .executable(name: "PMMMenuBar", targets: ["PMMMenuBar"]),
         .executable(name: "pmmctl", targets: ["pmmctl"]),
         .library(name: "PMMCore", targets: ["PMMCore"]),
     ],
@@ -16,6 +17,10 @@ let package = Package(
             name: "PMMApp",
             dependencies: ["PMMCore"],
             resources: [.copy("Resources/AppIcon.icon")]
+        ),
+        .executableTarget(
+            name: "PMMMenuBar",
+            dependencies: ["PMMCore"]
         ),
         .executableTarget(
             name: "pmmctl",
@@ -28,6 +33,10 @@ let package = Package(
         .testTarget(
             name: "PMMAppTests",
             dependencies: ["PMMApp"]
+        ),
+        .testTarget(
+            name: "PMMMenuBarTests",
+            dependencies: ["PMMMenuBar"]
         ),
     ],
     swiftLanguageModes: [.v5]

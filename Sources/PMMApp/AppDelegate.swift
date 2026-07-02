@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.mainMenu = makeMainMenu()
         showMainWindow()
+        launchMenuBarApp()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -50,6 +51,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(makeEditMenuItem())
         menu.addItem(makeWindowMenuItem())
         return menu
+    }
+
+    private func launchMenuBarApp() {
+        let helper = Bundle.main.bundleURL
+            .appendingPathComponent("Contents/Library/LoginItems/Package Manager Manager Menu.app", isDirectory: true)
+        guard FileManager.default.fileExists(atPath: helper.path) else { return }
+        let configuration = NSWorkspace.OpenConfiguration()
+        configuration.activates = false
+        configuration.addsToRecentItems = false
+        NSWorkspace.shared.openApplication(at: helper, configuration: configuration)
     }
 
     private func makeAppMenuItem() -> NSMenuItem {

@@ -5,10 +5,14 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 configuration="${CONFIGURATION:-release}"
 app_name="Package Manager Manager"
 executable="PMMApp"
+helper_app_name="Package Manager Manager Menu"
+helper_executable="PMMMenuBar"
 identifier="${PRODUCT_BUNDLE_IDENTIFIER:-dev.mxcl.pmm}"
+helper_identifier="${HELPER_BUNDLE_IDENTIFIER:-$identifier.menu}"
 version="${MARKETING_VERSION:-0.1.0}"
 build="${CURRENT_PROJECT_VERSION:-1}"
 app="${APP_PATH:-$root/dist/$app_name.app}"
+helper_app="$root/dist/$helper_app_name.app"
 icon="$root/Sources/PMMApp/Resources/AppIcon.icon"
 run=false
 install=false
@@ -29,20 +33,25 @@ done
 
 kill_existing() {
   pkill -x "$executable" 2>/dev/null || true
+  pkill -x "$helper_executable" 2>/dev/null || true
   for _ in {1..50}; do
-    pgrep -x "$executable" >/dev/null || return 0
+    { pgrep -x "$executable" >/dev/null || pgrep -x "$helper_executable" >/dev/null; } || return 0
     sleep 0.1
   done
   pkill -9 -x "$executable" 2>/dev/null || true
+  pkill -9 -x "$helper_executable" 2>/dev/null || true
 }
 
 swift build -c "$configuration" --product "$executable"
+swift build -c "$configuration" --product "$helper_executable"
 bin_dir="$(swift build -c "$configuration" --show-bin-path)"
 
-rm -rf "$app"
-mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
+rm -rf "$app" "$helper_app"
+mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources" "$app/Contents/Library/LoginItems"
+mkdir -p "$helper_app/Contents/MacOS"
 
 cp "$bin_dir/$executable" "$app/Contents/MacOS/$executable"
+cp "$bin_dir/$helper_executable" "$helper_app/Contents/MacOS/$helper_executable"
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
@@ -100,6 +109,48 @@ cat > "$work/Info.plist.xml" <<EOF
 EOF
 
 plutil -convert binary1 -o "$app/Contents/Info.plist" "$work/Info.plist.xml"
+cat > "$work/HelperInfo.plist.xml" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleDevelopmentRegion</key>
+  <string>en</string>
+  <key>CFBundleDisplayName</key>
+  <string>$helper_app_name</string>
+  <key>CFBundleExecutable</key>
+  <string>$helper_executable</string>
+  <key>CFBundleIdentifier</key>
+  <string>$helper_identifier</string>
+  <key>CFBundleInfoDictionaryVersion</key>
+  <string>6.0</string>
+  <key>CFBundleName</key>
+  <string>$helper_app_name</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>CFBundleShortVersionString</key>
+  <string>$version</string>
+  <key>CFBundleSupportedPlatforms</key>
+  <array>
+    <string>MacOSX</string>
+  </array>
+  <key>CFBundleVersion</key>
+  <string>$build</string>
+  <key>LSMinimumSystemVersion</key>
+  <string>26.0</string>
+  <key>LSUIElement</key>
+  <true/>
+  <key>NSHighResolutionCapable</key>
+  <true/>
+  <key>NSPrincipalClass</key>
+  <string>NSApplication</string>
+</dict>
+</plist>
+EOF
+
+plutil -convert binary1 -o "$helper_app/Contents/Info.plist" "$work/HelperInfo.plist.xml"
+codesign --force --sign - "$helper_app" >/dev/null
+mv "$helper_app" "$app/Contents/Library/LoginItems/$helper_app_name.app"
 codesign --force --sign - "$app" >/dev/null
 
 final_app="$app"
