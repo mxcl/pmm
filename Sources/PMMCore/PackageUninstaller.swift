@@ -28,7 +28,7 @@ public struct PackageUninstaller: Sendable {
             try removeCachedPackage(package, root: homeDirectory.appendingPathComponent(".npm/_npx", isDirectory: true))
         case .uv:
             let arguments = package.summary == "uv-managed Python"
-                ? ["python", "uninstall", package.name, "--color", "never"]
+                ? ["python", "uninstall", package.installedVersion ?? package.name, "--color", "never"]
                 : ["tool", "uninstall", package.name, "--color", "never"]
             try run("uv", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], arguments)
         case .uvx:

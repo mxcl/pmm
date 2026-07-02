@@ -23,14 +23,14 @@ private final class RecordingRunner: CommandRunning, @unchecked Sendable {
     try uninstaller.uninstall(package(.homebrew, "git"))
     try uninstaller.uninstall(package(.npm, "@scope/tool"))
     try uninstaller.uninstall(package(.uv, "ruff", summary: "uv-installed tool", category: "language-runtime"))
-    try uninstaller.uninstall(package(.uv, "cpython-3.13.12-macos-aarch64-none", summary: "uv-managed Python", category: "language-runtime"))
+    try uninstaller.uninstall(package(.uv, "uv Managed Python 3.13", installedVersion: "3.13.12", summary: "uv-managed Python", category: "language-runtime"))
 
     #expect(runner.commands == [
         "/fake/cargo uninstall ripgrep --color never",
         "/fake/brew uninstall git",
         "/fake/npm uninstall -g @scope/tool",
         "/fake/uv tool uninstall ruff --color never",
-        "/fake/uv python uninstall cpython-3.13.12-macos-aarch64-none --color never",
+        "/fake/uv python uninstall 3.13.12 --color never",
     ])
 }
 
@@ -58,6 +58,7 @@ private final class RecordingRunner: CommandRunning, @unchecked Sendable {
 private func package(
     _ manager: PackageManagerKind,
     _ name: String,
+    installedVersion: String = "1.0.0",
     summary: String? = nil,
     category: String? = nil,
     installLocation: String? = nil
@@ -65,7 +66,7 @@ private func package(
     ManagedPackage(
         manager: manager,
         name: name,
-        installedVersion: "1.0.0",
+        installedVersion: installedVersion,
         latestVersion: "1.0.0",
         summary: summary,
         category: category,

@@ -492,14 +492,10 @@ public struct PackageScanner {
     }
 
     private func uvPythonFamilyName(_ row: [String: Any]) -> String? {
-        guard let implementation = row["implementation"] as? String,
-              let os = row["os"] as? String,
-              let arch = row["arch"] as? String,
-              let libc = row["libc"] as? String,
-              let parts = row["version_parts"] as? [String: Any],
+        guard let parts = row["version_parts"] as? [String: Any],
               let major = parts["major"] as? Int,
               let minor = parts["minor"] as? Int else { return nil }
-        return [implementation, "\(major).\(minor)", os, arch, libc].joined(separator: "-")
+        return "uv Managed Python \(major).\(minor)"
     }
 
     private func successfulLine(_ executable: String, _ arguments: [String]) -> String? {

@@ -333,12 +333,12 @@ private final class NPMRegistryURLProtocol: URLProtocol, @unchecked Sendable {
 
     let packages = try scanner.scanUV(database: PackageDatabase())
 
-    #expect(packages.map(\.name) == ["ruff", "cpython-3.13-macos-aarch64-none"])
+    #expect(packages.map(\.name) == ["ruff", "uv Managed Python 3.13"])
     #expect(packages.first?.installedVersion == "0.6.9")
     #expect(packages.first?.latestVersion == "0.7.0")
     #expect(packages.first?.installLocation == tools.appendingPathComponent("ruff").path)
     #expect(packages.first?.binaryPath == bin.appendingPathComponent("ruff").path)
-    #expect(packages.last?.name == "cpython-3.13-macos-aarch64-none")
+    #expect(packages.last?.name == "uv Managed Python 3.13")
     #expect(packages.last?.installedVersion == "3.13.12")
     #expect(packages.last?.installedVersions == ["3.13.12", "3.13.10"])
     #expect(packages.last?.latestVersion == "3.13.14")
