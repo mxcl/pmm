@@ -259,7 +259,7 @@ public struct PackageScanner {
                 identifier: "\(identifierPrefix):\(name)",
                 displayName: name,
                 installedVersion: version,
-                latestVersion: outdated[name] ?? metadata?.version,
+                latestVersion: outdated[name] ?? (metadata?.version == version ? metadata?.version : nil),
                 summary: metadata?.summary,
                 category: curation?.category,
                 homepage: metadata?.homepage,
@@ -366,6 +366,9 @@ public struct PackageScanner {
     }
 
     private func homebrewVersion(in raw: [String: Any]) -> String? {
+        if let version = raw["linked_keg"] as? String {
+            return version
+        }
         if let version = raw["version"] as? String {
             return version
         }

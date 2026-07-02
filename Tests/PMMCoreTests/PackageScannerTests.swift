@@ -222,6 +222,33 @@ private final class EmptyNPMRegistryURLProtocol: URLProtocol, @unchecked Sendabl
     #expect(packages.first?.category == "developer-tools")
 }
 
+@Test func homebrewScannerDoesNotMarkInstalledFormulaRevisionsOutdated() throws {
+    let runner = FakeRunner(responses: [
+        "/fake/brew leaves --installed-on-request": CommandResult(stdout: "zopfli\n", stderr: "", status: 0),
+        "/fake/brew outdated --json=v2": CommandResult(stdout: #"{"formulae":[],"casks":[]}"#, stderr: "", status: 0),
+        "/fake/brew info --json=v2 --installed": CommandResult(stdout: #"""
+        {
+          "formulae": [{
+            "name": "zopfli",
+            "desc": "Compression tool",
+            "homepage": "https://github.com/google/zopfli",
+            "versions": { "stable": "1.0.3" },
+            "linked_keg": "1.0.3_1"
+          }],
+          "casks": []
+        }
+        """#, stderr: "", status: 0),
+        "/fake/brew list --versions --formula": CommandResult(stdout: "zopfli 1.0.3_1\n", stderr: "", status: 0),
+        "/fake/brew list --versions --cask": CommandResult(stdout: "", stderr: "", status: 0),
+    ])
+    let scanner = PackageScanner(runner: runner, toolPaths: ["brew": "/fake/brew"])
+
+    let package = try #require(scanner.scanHomebrew(database: PackageDatabase()).first)
+
+    #expect(package.latestVersion == "1.0.3_1")
+    #expect(!package.isOutdated)
+}
+
 @Test func homebrewScannerKeepsOnlyRequestedFormulaeAndCasks() throws {
     let runner = FakeRunner(responses: [
         "/fake/brew leaves --installed-on-request": CommandResult(stdout: "git\n", stderr: "", status: 0),
