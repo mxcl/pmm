@@ -116,8 +116,8 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
 
 enum MainWindowLinkTab: String, CaseIterable, Identifiable {
     case homepage
-    case docs
     case repo
+    case docs
 
     var id: String { rawValue }
     var title: String {
