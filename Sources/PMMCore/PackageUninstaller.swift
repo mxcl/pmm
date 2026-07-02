@@ -19,17 +19,17 @@ public struct PackageUninstaller: Sendable {
         guard package.installedVersion != nil else { return }
         switch package.manager {
         case .cargoInstall:
-            try run("cargo", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["uninstall", package.name, "--color", "never"])
+            try run("cargo", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["uninstall", package.packageToken, "--color", "never"])
         case .homebrew:
-            try run("brew", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin"], ["uninstall", package.name])
+            try run("brew", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin"], ["uninstall", package.packageToken])
         case .npm:
-            try run("npm", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["uninstall", "-g", package.name])
+            try run("npm", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["uninstall", "-g", package.packageToken])
         case .npx:
             try removeCachedPackage(package, root: homeDirectory.appendingPathComponent(".npm/_npx", isDirectory: true))
         case .uv:
             let arguments = package.summary == "uv-managed Python"
-                ? ["python", "uninstall", package.installedVersion ?? package.name, "--color", "never"]
-                : ["tool", "uninstall", package.name, "--color", "never"]
+                ? ["python", "uninstall", package.installedVersion ?? package.packageToken, "--color", "never"]
+                : ["tool", "uninstall", package.packageToken, "--color", "never"]
             try run("uv", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], arguments)
         case .uvx:
             try removeInstallLocation(package)
@@ -47,7 +47,7 @@ public struct PackageUninstaller: Sendable {
     }
 
     private func removeCachedPackage(_ package: ManagedPackage, root: URL) throws {
-        guard let path = package.installLocation else { throw PackageUninstallError.missingInstallLocation(package.name) }
+        guard let path = package.installLocation else { throw PackageUninstallError.missingInstallLocation(package.displayName) }
         let rootPath = root.standardizedFileURL.path
         var url = URL(fileURLWithPath: path).standardizedFileURL
         while url.path != "/" {
@@ -61,7 +61,7 @@ public struct PackageUninstaller: Sendable {
     }
 
     private func removeInstallLocation(_ package: ManagedPackage) throws {
-        guard let path = package.installLocation else { throw PackageUninstallError.missingInstallLocation(package.name) }
+        guard let path = package.installLocation else { throw PackageUninstallError.missingInstallLocation(package.displayName) }
         try FileManager.default.removeItem(atPath: path)
     }
 }

@@ -41,14 +41,16 @@ public struct PackageDatabase: Sendable {
 
     public var catalogPackages: [ManagedPackage] {
         let packages = (
-            managedPackages(for: .homebrew, metadata: formulas) +
-            managedPackages(for: .homebrew, metadata: casks) +
-            managedPackages(for: .npm, metadata: npms)
+            managedPackages(for: .homebrew, identifierPrefix: "brew", metadata: formulas) +
+            managedPackages(for: .homebrew, identifierPrefix: "brew:cask", metadata: casks) +
+            managedPackages(for: .npm, identifierPrefix: "npm", metadata: npms)
         )
         return Dictionary(grouping: packages, by: \.id).compactMap { $0.value.first }
             .sorted {
                 if $0.manager != $1.manager { return $0.manager.rawValue < $1.manager.rawValue }
-                return $0.name.localizedStandardCompare($1.name) == .orderedAscending
+                let displayOrder = $0.displayName.localizedStandardCompare($1.displayName)
+                if displayOrder != .orderedSame { return displayOrder == .orderedAscending }
+                return $0.identifier < $1.identifier
             }
     }
 
@@ -82,11 +84,12 @@ public struct PackageDatabase: Sendable {
         }
     }
 
-    private func managedPackages(for manager: PackageManagerKind, metadata: [String: PackageMetadata]) -> [ManagedPackage] {
+    private func managedPackages(for manager: PackageManagerKind, identifierPrefix: String, metadata: [String: PackageMetadata]) -> [ManagedPackage] {
         metadata.map { name, metadata in
             ManagedPackage(
                 manager: manager,
-                name: name,
+                identifier: "\(identifierPrefix):\(name)",
+                displayName: name,
                 installedVersion: nil,
                 latestVersion: nil,
                 summary: nil,

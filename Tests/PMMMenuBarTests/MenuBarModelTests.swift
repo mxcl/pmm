@@ -23,7 +23,7 @@ import Testing
     let state = MenuBarMenuState(inventory: PackageInventory(packages: [
         ManagedPackage(manager: .npm, name: "zeta", installedVersion: "1.0.0", latestVersion: "2.0.0"),
         ManagedPackage(manager: .homebrew, name: "git", installedVersion: "1.0.0", latestVersion: "1.2.0"),
-        ManagedPackage(manager: .npm, name: "alpha", installedVersion: "1.0.0", latestVersion: "3.0.0"),
+        ManagedPackage(manager: .npm, identifier: "npm:alpha", displayName: "alpha", installedVersion: "1.0.0", latestVersion: "3.0.0"),
     ]))
 
     #expect(state.statusSymbolName == "shippingbox")

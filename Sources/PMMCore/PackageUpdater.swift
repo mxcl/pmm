@@ -16,18 +16,18 @@ public struct PackageUpdater: Sendable {
         guard package.isOutdated else { return }
         switch package.manager {
         case .cargoInstall:
-            try run("cargo", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["install", package.name, "--force", "--color", "never"])
+            try run("cargo", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["install", package.packageToken, "--force", "--color", "never"])
         case .homebrew:
-            try run("brew", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin"], ["upgrade", package.name])
+            try run("brew", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin"], ["upgrade", package.packageToken])
         case .npm:
-            try run("npm", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["install", "-g", "\(package.name)@latest"])
+            try run("npm", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["install", "-g", "\(package.packageToken)@latest"])
         case .npx:
-            try run("npm", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["exec", "--yes", "--package", "\(package.name)@\(package.latestVersion ?? "latest")", "--", "true"])
+            try run("npm", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["exec", "--yes", "--package", "\(package.packageToken)@\(package.latestVersion ?? "latest")", "--", "true"])
         case .uv:
             if package.summary == "uv-managed Python", let latestVersion = package.latestVersion {
                 try run("uv", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["python", "install", latestVersion, "--color", "never"])
             } else {
-                try run("uv", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["tool", "upgrade", package.name, "--color", "never"])
+                try run("uv", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["tool", "upgrade", package.packageToken, "--color", "never"])
             }
         case .uvx:
             throw PackageUpdateError.unsupportedManager(package.manager)

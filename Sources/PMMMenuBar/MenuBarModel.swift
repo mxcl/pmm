@@ -46,12 +46,14 @@ struct MenuBarMenuState: Equatable {
         (inventory?.outdatedPackages ?? [])
             .sorted {
                 if $0.manager != $1.manager { return $0.manager.rawValue < $1.manager.rawValue }
-                return $0.name.localizedStandardCompare($1.name) == .orderedAscending
+                let displayOrder = $0.displayName.localizedStandardCompare($1.displayName)
+                if displayOrder != .orderedSame { return displayOrder == .orderedAscending }
+                return $0.identifier < $1.identifier
             }
             .map {
                 MenuBarPackageRow(
                     managerTitle: $0.manager.title,
-                    name: $0.name,
+                    name: $0.displayName,
                     installedVersion: $0.installedVersion ?? "?",
                     latestVersion: $0.latestVersion ?? "?"
                 )

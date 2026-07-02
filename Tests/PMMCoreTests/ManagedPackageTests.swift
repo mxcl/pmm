@@ -1,5 +1,52 @@
+import Foundation
 import Testing
 @testable import PMMCore
+
+@Test func packageIdentifierDrivesIDAndDisplayNameDefaultsToIdentifier() {
+    let package = ManagedPackage(
+        manager: .npm,
+        identifier: "npm:typescript",
+        installedVersion: "5.9.2",
+        latestVersion: nil,
+        installLocation: "/tmp/typescript"
+    )
+
+    #expect(package.id == "npm:typescript:/tmp/typescript")
+    #expect(package.name == "npm:typescript")
+    #expect(package.displayName == "npm:typescript")
+}
+
+@Test func packageDecodesOldJSONNameAndEncodesQualifiedNames() throws {
+    let oldJSON = #"{"manager":"npm","name":"typescript","installedVersion":"5.9.2","latestVersion":null}"#.data(using: .utf8)!
+    let decoded = try JSONDecoder().decode(ManagedPackage.self, from: oldJSON)
+
+    #expect(decoded.identifier == "typescript")
+    #expect(decoded.displayName == "typescript")
+
+    let encoded = try JSONSerialization.jsonObject(with: JSONEncoder().encode(ManagedPackage(
+        manager: .npm,
+        identifier: "npm:typescript",
+        displayName: "typescript",
+        installedVersion: "5.9.2",
+        latestVersion: nil
+    ))) as? [String: Any]
+
+    #expect(encoded?["identifier"] as? String == "npm:typescript")
+    #expect(encoded?["name"] as? String == "npm:typescript")
+    #expect(encoded?["displayName"] as? String == "typescript")
+}
+
+@Test func packageConsolidationGroupsByIdentifierAndPreservesDisplayName() {
+    let packages = ManagedPackage.consolidatingInstalledVersions(in: [
+        ManagedPackage(manager: .uv, identifier: "uv:cpython:3.13", displayName: "uv Managed Python 3.13", installedVersion: "3.13.10", latestVersion: "3.13.14"),
+        ManagedPackage(manager: .uv, identifier: "uv:cpython:3.13", displayName: "Different Label", installedVersion: "3.13.12", latestVersion: "3.13.14"),
+        ManagedPackage(manager: .uv, identifier: "uv:cpython:3.14", displayName: "uv Managed Python 3.14", installedVersion: "3.14.0", latestVersion: nil),
+    ])
+
+    #expect(packages.map(\.identifier) == ["uv:cpython:3.13", "uv:cpython:3.14"])
+    #expect(packages.first?.displayName == "Different Label")
+    #expect(packages.first?.installedVersions == ["3.13.12", "3.13.10"])
+}
 
 @Test func packageWithLatestAmongInstalledVersionsIsNotOutdated() {
     let package = ManagedPackage(

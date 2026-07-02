@@ -21,10 +21,11 @@ public enum PackageManagerKind: String, Codable, CaseIterable, Sendable {
 }
 
 public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
-    public var id: String { "\(manager.rawValue):\(name):\(installLocation ?? "")" }
+    public var id: String { "\(identifier):\(installLocation ?? "")" }
 
     public let manager: PackageManagerKind
-    public let name: String
+    public let identifier: String
+    public let displayName: String
     public let installedVersion: String?
     public let installedVersions: [String]
     public let latestVersion: String?
@@ -38,9 +39,48 @@ public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
     public let installLocation: String?
     public let binaryPath: String?
 
+    public var name: String { identifier }
+
     public init(
         manager: PackageManagerKind,
         name: String,
+        displayName: String? = nil,
+        installedVersion: String?,
+        installedVersions: [String] = [],
+        latestVersion: String?,
+        summary: String? = nil,
+        category: String? = nil,
+        homepage: String? = nil,
+        docs: String? = nil,
+        repo: String? = nil,
+        lastUpdatedAt: String? = nil,
+        pulseKind: String? = nil,
+        installLocation: String? = nil,
+        binaryPath: String? = nil
+    ) {
+        self.init(
+            manager: manager,
+            identifier: name,
+            displayName: displayName,
+            installedVersion: installedVersion,
+            installedVersions: installedVersions,
+            latestVersion: latestVersion,
+            summary: summary,
+            category: category,
+            homepage: homepage,
+            docs: docs,
+            repo: repo,
+            lastUpdatedAt: lastUpdatedAt,
+            pulseKind: pulseKind,
+            installLocation: installLocation,
+            binaryPath: binaryPath
+        )
+    }
+
+    public init(
+        manager: PackageManagerKind,
+        identifier: String,
+        displayName: String? = nil,
         installedVersion: String?,
         installedVersions: [String] = [],
         latestVersion: String?,
@@ -55,7 +95,8 @@ public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
         binaryPath: String? = nil
     ) {
         self.manager = manager
-        self.name = name
+        self.identifier = identifier
+        self.displayName = displayName ?? identifier
         self.installedVersion = installedVersion
         self.installedVersions = Self.normalizedVersions(installedVersions, including: installedVersion)
         self.latestVersion = latestVersion
@@ -68,6 +109,54 @@ public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
         self.pulseKind = pulseKind
         self.installLocation = installLocation
         self.binaryPath = binaryPath
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let manager = try container.decode(PackageManagerKind.self, forKey: .manager)
+        let identifier = try container.decodeIfPresent(String.self, forKey: .identifier)
+            ?? container.decode(String.self, forKey: .name)
+        let displayName = try container.decodeIfPresent(String.self, forKey: .displayName) ?? identifier
+        let installedVersion = try container.decodeIfPresent(String.self, forKey: .installedVersion)
+        let installedVersions = try container.decodeIfPresent([String].self, forKey: .installedVersions) ?? []
+        let latestVersion = try container.decodeIfPresent(String.self, forKey: .latestVersion)
+        self.init(
+            manager: manager,
+            identifier: identifier,
+            displayName: displayName,
+            installedVersion: installedVersion,
+            installedVersions: installedVersions,
+            latestVersion: latestVersion,
+            summary: try container.decodeIfPresent(String.self, forKey: .summary),
+            category: try container.decodeIfPresent(String.self, forKey: .category),
+            homepage: try container.decodeIfPresent(String.self, forKey: .homepage),
+            docs: try container.decodeIfPresent(String.self, forKey: .docs),
+            repo: try container.decodeIfPresent(String.self, forKey: .repo),
+            lastUpdatedAt: try container.decodeIfPresent(String.self, forKey: .lastUpdatedAt),
+            pulseKind: try container.decodeIfPresent(String.self, forKey: .pulseKind),
+            installLocation: try container.decodeIfPresent(String.self, forKey: .installLocation),
+            binaryPath: try container.decodeIfPresent(String.self, forKey: .binaryPath)
+        )
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(manager, forKey: .manager)
+        try container.encode(identifier, forKey: .identifier)
+        try container.encode(identifier, forKey: .name)
+        try container.encode(displayName, forKey: .displayName)
+        try container.encodeIfPresent(installedVersion, forKey: .installedVersion)
+        try container.encode(installedVersions, forKey: .installedVersions)
+        try container.encodeIfPresent(latestVersion, forKey: .latestVersion)
+        try container.encodeIfPresent(summary, forKey: .summary)
+        try container.encodeIfPresent(category, forKey: .category)
+        try container.encodeIfPresent(homepage, forKey: .homepage)
+        try container.encodeIfPresent(docs, forKey: .docs)
+        try container.encodeIfPresent(repo, forKey: .repo)
+        try container.encodeIfPresent(lastUpdatedAt, forKey: .lastUpdatedAt)
+        try container.encodeIfPresent(pulseKind, forKey: .pulseKind)
+        try container.encodeIfPresent(installLocation, forKey: .installLocation)
+        try container.encodeIfPresent(binaryPath, forKey: .binaryPath)
     }
 
     public var isOutdated: Bool {
@@ -83,7 +172,8 @@ public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
         guard let metadata else { return self }
         return ManagedPackage(
             manager: manager,
-            name: name,
+            identifier: identifier,
+            displayName: displayName,
             installedVersion: installedVersion,
             installedVersions: installedVersions,
             latestVersion: metadata.version ?? latestVersion,
@@ -100,11 +190,12 @@ public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
     }
 
     public static func consolidatingInstalledVersions(in packages: [ManagedPackage]) -> [ManagedPackage] {
-        Dictionary(grouping: packages, by: { "\($0.manager.rawValue):\($0.name)" }).values.compactMap { group in
+        Dictionary(grouping: packages, by: \.identifier).values.compactMap { group in
             guard let newest = group.max(by: { ($0.installedVersion ?? "").localizedStandardCompare($1.installedVersion ?? "") == .orderedAscending }) else { return nil }
             return ManagedPackage(
                 manager: newest.manager,
-                name: newest.name,
+                identifier: newest.identifier,
+                displayName: newest.displayName,
                 installedVersion: newest.installedVersion,
                 installedVersions: normalizedVersions(group.flatMap(\.installedVersions), including: newest.installedVersion),
                 latestVersion: newest.latestVersion,
@@ -121,13 +212,38 @@ public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
         }
         .sorted {
             if $0.manager != $1.manager { return $0.manager.rawValue < $1.manager.rawValue }
-            return $0.name.localizedStandardCompare($1.name) == .orderedAscending
+            let displayOrder = $0.displayName.localizedStandardCompare($1.displayName)
+            if displayOrder != .orderedSame { return displayOrder == .orderedAscending }
+            return $0.identifier < $1.identifier
         }
+    }
+
+    public var packageToken: String {
+        identifier.split(separator: ":").last.map(String.init) ?? identifier
     }
 
     private static func normalizedVersions(_ versions: [String], including installedVersion: String?) -> [String] {
         Array(Set(versions + [installedVersion].compactMap { $0 }.filter { !$0.isEmpty }))
             .sorted { $0.localizedStandardCompare($1) == .orderedDescending }
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case manager
+        case identifier
+        case name
+        case displayName
+        case installedVersion
+        case installedVersions
+        case latestVersion
+        case summary
+        case category
+        case homepage
+        case docs
+        case repo
+        case lastUpdatedAt
+        case pulseKind
+        case installLocation
+        case binaryPath
     }
 }
 

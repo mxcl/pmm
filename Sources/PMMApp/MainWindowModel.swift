@@ -242,7 +242,11 @@ final class MainWindowModel: ObservableObject {
         let base = packageIndex.packagesBySection[selectedSection] ?? []
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return base }
-        return base.filter { $0.name.localizedCaseInsensitiveContains(query) || ($0.summary?.localizedCaseInsensitiveContains(query) == true) }
+        return base.filter {
+            $0.displayName.localizedCaseInsensitiveContains(query)
+                || $0.identifier.localizedCaseInsensitiveContains(query)
+                || ($0.summary?.localizedCaseInsensitiveContains(query) == true)
+        }
     }
 
     func reload() {
@@ -313,7 +317,7 @@ final class MainWindowModel: ObservableObject {
 
     func uninstall(_ package: ManagedPackage) {
         guard package.installedVersion != nil, uninstallingPackageName == nil, updatingPackageName == nil else { return }
-        uninstallingPackageName = package.name
+        uninstallingPackageName = package.displayName
         Task {
             let result = await Task.detached { [packageUninstaller] in
                 Result { try packageUninstaller.uninstall(package) }
@@ -332,7 +336,7 @@ final class MainWindowModel: ObservableObject {
 
     func update(_ package: ManagedPackage) {
         guard PackageUpdater.supports(package), uninstallingPackageName == nil, updatingPackageName == nil else { return }
-        updatingPackageName = package.name
+        updatingPackageName = package.displayName
         Task {
             let result = await Task.detached { [packageUpdater] in
                 Result { try packageUpdater.update(package) }
@@ -384,7 +388,7 @@ final class MainWindowModel: ObservableObject {
         isLoadingSelectedPackageMetadata = true
         let key = metadataKey(for: package)
         selectedMetadataTask = Task.detached { [cratesIOClient, npmRegistryClient] in
-            let name = package.name
+            let name = package.packageToken
             let metadata = try? await {
                 switch package.manager {
                 case .cargoInstall:
@@ -419,7 +423,7 @@ final class MainWindowModel: ObservableObject {
     }
 
     private func metadataKey(for package: ManagedPackage) -> String {
-        "\(package.manager.rawValue):\(package.name)"
+        package.identifier
     }
 
     private func scanAndApply(database: PackageDatabase, newUpdatedLastClickedAt: Date?) async {
@@ -479,13 +483,19 @@ final class MainWindowModel: ObservableObject {
         let (next, index) = await Task.detached(priority: .background) {
             let sortedPackages = nextPackages.sorted {
                 if $0.manager != $1.manager { return $0.manager.rawValue < $1.manager.rawValue }
-                return $0.name.localizedStandardCompare($1.name) == .orderedAscending
+                return Self.packageDisplayOrder($0, $1)
             }
             let next = PackageInventory(packages: sortedPackages, errors: nextErrors)
             let index = PackageIndex(packages: sortedPackages, catalogPackages: catalogPackages, newUpdatedLastClickedAt: newUpdatedLastClickedAt)
             return (next, index)
         }.value
         apply(inventory: next, index: index)
+    }
+
+    nonisolated private static func packageDisplayOrder(_ lhs: ManagedPackage, _ rhs: ManagedPackage) -> Bool {
+        let displayOrder = lhs.displayName.localizedStandardCompare(rhs.displayName)
+        if displayOrder != .orderedSame { return displayOrder == .orderedAscending }
+        return lhs.identifier < rhs.identifier
     }
 }
 
@@ -535,7 +545,9 @@ struct PackageIndex: Sendable {
     }
 
     private static func alphabetical(_ lhs: ManagedPackage, _ rhs: ManagedPackage) -> Bool {
-        lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
+        let displayOrder = lhs.displayName.localizedStandardCompare(rhs.displayName)
+        if displayOrder != .orderedSame { return displayOrder == .orderedAscending }
+        return lhs.identifier < rhs.identifier
     }
 
     private static func newestUpdatedFirst(_ lhs: ManagedPackage, _ rhs: ManagedPackage) -> Bool {

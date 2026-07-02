@@ -48,14 +48,18 @@ import Testing
         formulas: [
             "git": PackageMetadata(summary: "Distributed revision control", category: "developer-tools", homepage: nil, version: "2.50.0")
         ],
+        casks: [
+            "git": PackageMetadata(summary: nil, category: "productivity", homepage: nil, version: nil)
+        ],
         npms: [
             "typescript": PackageMetadata(summary: "Typed JavaScript", category: "language-runtime", homepage: nil, version: "5.9.2")
         ]
     )
 
-    #expect(db.catalogPackages.map(\.name) == ["git", "typescript"])
-    #expect(db.catalogPackages.map(\.installedVersion) == [nil, nil])
-    #expect(Set(db.catalogPackages.compactMap(\.category)) == ["developer-tools", "language-runtime"])
+    #expect(db.catalogPackages.map(\.identifier) == ["brew:cask:git", "brew:git", "npm:typescript"])
+    #expect(db.catalogPackages.map(\.displayName) == ["git", "git", "typescript"])
+    #expect(db.catalogPackages.map(\.installedVersion) == [nil, nil, nil])
+    #expect(Set(db.catalogPackages.compactMap(\.category)) == ["developer-tools", "language-runtime", "productivity"])
 }
 
 @Test func loadsCachedDatabaseResponse() throws {

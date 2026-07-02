@@ -45,11 +45,11 @@ import Testing
     model.select(packages[1])
 
     #expect(model.selectAdjacentPackage(offset: 1))
-    #expect(model.selectedPackage?.name == "gamma")
+    #expect(model.selectedPackage?.displayName == "gamma")
     #expect(model.selectAdjacentPackage(offset: 1))
-    #expect(model.selectedPackage?.name == "gamma")
+    #expect(model.selectedPackage?.displayName == "gamma")
     #expect(model.selectAdjacentPackage(offset: -1))
-    #expect(model.selectedPackage?.name == "beta")
+    #expect(model.selectedPackage?.displayName == "beta")
 }
 
 @MainActor
@@ -77,7 +77,28 @@ import Testing
     ]
     let index = PackageIndex(packages: packages, catalogPackages: [], newUpdatedLastClickedAt: nil)
 
-    #expect(index.packagesBySection[.installed]?.map(\.name) == ["alpha", "beta", "zeta"])
+    #expect(index.packagesBySection[.installed]?.map(\.displayName) == ["alpha", "beta", "zeta"])
+}
+
+@MainActor
+@Test func packageSearchMatchesDisplayNameIdentifierAndSummary() {
+    let model = MainWindowModel(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
+    let packages = [
+        ManagedPackage(manager: .uv, identifier: "uv:cpython:3.13", displayName: "uv Managed Python 3.13", installedVersion: "3.13.12", latestVersion: nil, summary: "runtime"),
+        ManagedPackage(manager: .npm, identifier: "npm:@scope/tool", displayName: "@scope/tool", installedVersion: "1.0.0", latestVersion: nil, summary: "A scoped CLI"),
+    ]
+
+    model.apply(
+        inventory: PackageInventory(packages: packages),
+        index: PackageIndex(packages: packages, catalogPackages: [], newUpdatedLastClickedAt: nil)
+    )
+
+    model.searchText = "Managed Python"
+    #expect(model.displayedPackages.map(\.identifier) == ["uv:cpython:3.13"])
+    model.searchText = "npm:@scope"
+    #expect(model.displayedPackages.map(\.identifier) == ["npm:@scope/tool"])
+    model.searchText = "scoped"
+    #expect(model.displayedPackages.map(\.identifier) == ["npm:@scope/tool"])
 }
 
 @Test func languageSectionsGroupManagersAndSortPackagesAlphabetically() {
@@ -94,10 +115,10 @@ import Testing
     let index = PackageIndex(packages: packages, catalogPackages: [], newUpdatedLastClickedAt: nil)
 
     #expect(MainWindowSection.managerSections.map(\.title) == ["Homebrew", "JavaScript", "Python", "Rust"])
-    #expect(index.packagesBySection[.rust]?.map(\.name) == ["ripgrep"])
-    #expect(index.packagesBySection[.homebrew]?.map(\.name) == ["git"])
-    #expect(index.packagesBySection[.javascript]?.map(\.name) == ["acorn", "alpha", "beta", "zeta"])
-    #expect(index.packagesBySection[.python]?.map(\.name) == ["python", "ruff"])
+    #expect(index.packagesBySection[.rust]?.map(\.displayName) == ["ripgrep"])
+    #expect(index.packagesBySection[.homebrew]?.map(\.displayName) == ["git"])
+    #expect(index.packagesBySection[.javascript]?.map(\.displayName) == ["acorn", "alpha", "beta", "zeta"])
+    #expect(index.packagesBySection[.python]?.map(\.displayName) == ["python", "ruff"])
 }
 
 @Test func outdatedSectionSortsMostOutdatedFirst() {
@@ -108,7 +129,7 @@ import Testing
     ]
     let index = PackageIndex(packages: packages, catalogPackages: [], newUpdatedLastClickedAt: nil)
 
-    #expect(index.packagesBySection[.outdated]?.map(\.name) == ["major", "minor", "patch"])
+    #expect(index.packagesBySection[.outdated]?.map(\.displayName) == ["major", "minor", "patch"])
 }
 
 @Test func categorySectionsSortPackagesByNewestUpdateFirst() {
@@ -119,7 +140,7 @@ import Testing
     ]
     let index = PackageIndex(packages: [], catalogPackages: packages, newUpdatedLastClickedAt: nil)
 
-    #expect(index.packagesBySection[.developerTools]?.map(\.name) == ["new", "middle", "old"])
+    #expect(index.packagesBySection[.developerTools]?.map(\.displayName) == ["new", "middle", "old"])
 }
 
 @Test func packageLinksUseHomepageRepoDocsOrderAndSkipInvalidURLs() {

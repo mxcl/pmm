@@ -47,6 +47,24 @@ private final class NPMRegistryURLProtocol: URLProtocol, @unchecked Sendable {
     override func stopLoading() {}
 }
 
+private final class EmptyNPMRegistryURLProtocol: URLProtocol, @unchecked Sendable {
+    nonisolated(unsafe) static var responses: [String: Data] = [:]
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override func startLoading() {
+        let data = Self.responses[request.url?.path ?? ""] ?? Data()
+        let status = data.isEmpty ? 404 : 200
+        let response = HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: nil, headerFields: nil)!
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: data)
+        client?.urlProtocolDidFinishLoading(self)
+    }
+
+    override func stopLoading() {}
+}
+
 @Test func cargoInstallScannerParsesInstalledCratesAndBinaryPath() throws {
     let home = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
     let bin = home.appendingPathComponent(".cargo/bin", isDirectory: true)
@@ -69,7 +87,8 @@ private final class NPMRegistryURLProtocol: URLProtocol, @unchecked Sendable {
 
     #expect(packages.first == ManagedPackage(
         manager: .cargoInstall,
-        name: "ripgrep",
+        identifier: "cargo:ripgrep",
+        displayName: "ripgrep",
         installedVersion: "14.1.1",
         latestVersion: nil,
         summary: "cargo-installed Rust binary",
@@ -77,7 +96,8 @@ private final class NPMRegistryURLProtocol: URLProtocol, @unchecked Sendable {
         installLocation: home.appendingPathComponent(".cargo").path,
         binaryPath: bin.appendingPathComponent("rg").path
     ))
-    #expect(packages.last?.name == "cargo-edit")
+    #expect(packages.last?.identifier == "cargo:cargo-edit")
+    #expect(packages.last?.displayName == "cargo-edit")
     #expect(packages.last?.binaryPath == nil)
 }
 
@@ -110,7 +130,8 @@ private final class NPMRegistryURLProtocol: URLProtocol, @unchecked Sendable {
     #expect(packages == [
         ManagedPackage(
             manager: .npm,
-            name: "@scope/tool",
+            identifier: "npm:@scope/tool",
+            displayName: "@scope/tool",
             installedVersion: "1.0.0",
             latestVersion: "1.2.0",
             summary: "A scoped CLI",
@@ -150,7 +171,8 @@ private final class NPMRegistryURLProtocol: URLProtocol, @unchecked Sendable {
         casks: ["visual-studio-code": PackageMetadata(summary: nil, category: "productivity", homepage: nil, version: nil)]
     ))
 
-    #expect(packages.map(\.name) == ["git", "visual-studio-code"])
+    #expect(packages.map(\.identifier) == ["brew:git", "brew:cask:visual-studio-code"])
+    #expect(packages.map(\.displayName) == ["git", "visual-studio-code"])
     #expect(packages.first?.latestVersion == nil)
     #expect(packages.first?.summary == "Distributed revision control system")
     #expect(packages.first?.category == "developer-tools")
@@ -174,7 +196,8 @@ private final class NPMRegistryURLProtocol: URLProtocol, @unchecked Sendable {
 
     let packages = try scanner.scanHomebrew(database: PackageDatabase())
 
-    #expect(packages.map(\.name) == ["git", "visual-studio-code"])
+    #expect(packages.map(\.identifier) == ["brew:git", "brew:cask:visual-studio-code"])
+    #expect(packages.map(\.displayName) == ["git", "visual-studio-code"])
 }
 
 @Test func npxScannerShowsNewestPackageVersionAndKeepsOtherVersions() throws {
@@ -201,7 +224,8 @@ private final class NPMRegistryURLProtocol: URLProtocol, @unchecked Sendable {
 
     #expect(packages.count == 1)
     #expect(packages.first?.isOutdated == false)
-    #expect(packages.first?.name == "acorn")
+    #expect(packages.first?.identifier == "npx:acorn")
+    #expect(packages.first?.displayName == "acorn")
     #expect(packages.first?.installedVersion == "1.2.0")
     #expect(packages.first?.installedVersions == ["1.2.0", "1.0.0"])
     #expect(packages.first?.otherInstalledVersions == ["1.0.0"])
@@ -260,7 +284,7 @@ private final class NPMRegistryURLProtocol: URLProtocol, @unchecked Sendable {
         .write(to: package.appendingPathComponent("package.json"), atomically: true, encoding: .utf8)
     defer { try? FileManager.default.removeItem(at: home) }
 
-    NPMRegistryURLProtocol.responses = ["/acorn": Data("""
+    EmptyNPMRegistryURLProtocol.responses = ["/acorn": Data("""
     {
       "dist-tags": { "latest": "1.2.0" },
       "versions": {
@@ -268,10 +292,10 @@ private final class NPMRegistryURLProtocol: URLProtocol, @unchecked Sendable {
       }
     }
     """.utf8)]
-    defer { NPMRegistryURLProtocol.responses = [:] }
+    defer { EmptyNPMRegistryURLProtocol.responses = [:] }
 
     let configuration = URLSessionConfiguration.ephemeral
-    configuration.protocolClasses = [NPMRegistryURLProtocol.self]
+    configuration.protocolClasses = [EmptyNPMRegistryURLProtocol.self]
     let client = NPMRegistryClient(
         session: URLSession(configuration: configuration),
         baseURL: URL(string: "https://registry.example")!
@@ -333,12 +357,14 @@ private final class NPMRegistryURLProtocol: URLProtocol, @unchecked Sendable {
 
     let packages = try scanner.scanUV(database: PackageDatabase())
 
-    #expect(packages.map(\.name) == ["ruff", "uv Managed Python 3.13"])
+    #expect(packages.map(\.identifier) == ["uv:tool:ruff", "uv:cpython:3.13"])
+    #expect(packages.map(\.displayName) == ["ruff", "uv Managed Python 3.13"])
     #expect(packages.first?.installedVersion == "0.6.9")
     #expect(packages.first?.latestVersion == "0.7.0")
     #expect(packages.first?.installLocation == tools.appendingPathComponent("ruff").path)
     #expect(packages.first?.binaryPath == bin.appendingPathComponent("ruff").path)
-    #expect(packages.last?.name == "uv Managed Python 3.13")
+    #expect(packages.last?.identifier == "uv:cpython:3.13")
+    #expect(packages.last?.displayName == "uv Managed Python 3.13")
     #expect(packages.last?.installedVersion == "3.13.12")
     #expect(packages.last?.installedVersions == ["3.13.12", "3.13.10"])
     #expect(packages.last?.latestVersion == "3.13.14")
@@ -364,7 +390,8 @@ private final class NPMRegistryURLProtocol: URLProtocol, @unchecked Sendable {
 
     #expect(packages.count == 1)
     #expect(packages.first?.manager == .uvx)
-    #expect(packages.first?.name == "ruff")
+    #expect(packages.first?.identifier == "uvx:ruff")
+    #expect(packages.first?.displayName == "ruff")
     #expect(packages.first?.installedVersion == "0.6.9")
     #expect(packages.first?.summary == "uvx cached tool environment")
     #expect(packages.first?.category == "developer-tools")
@@ -404,7 +431,8 @@ private final class NPMRegistryURLProtocol: URLProtocol, @unchecked Sendable {
     let package = try #require(scanner.scanUVX(database: PackageDatabase()).first)
 
     #expect(package.manager == .uvx)
-    #expect(package.name == "cowsay")
+    #expect(package.identifier == "uvx:cowsay")
+    #expect(package.displayName == "cowsay")
     #expect(package.installedVersion == "6.1")
     #expect(package.summary == "The famous cowsay for GNU/Linux is now available for python")
     #expect(package.homepage == "https://github.com/VaasuDevanS/cowsay-python")

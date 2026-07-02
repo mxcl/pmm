@@ -19,11 +19,11 @@ private final class RecordingRunner: CommandRunning, @unchecked Sendable {
         toolPaths: ["cargo": "/fake/cargo", "brew": "/fake/brew", "npm": "/fake/npm", "uv": "/fake/uv"]
     )
 
-    try uninstaller.uninstall(package(.cargoInstall, "ripgrep"))
-    try uninstaller.uninstall(package(.homebrew, "git"))
-    try uninstaller.uninstall(package(.npm, "@scope/tool"))
-    try uninstaller.uninstall(package(.uv, "ruff", summary: "uv-installed tool", category: "language-runtime"))
-    try uninstaller.uninstall(package(.uv, "uv Managed Python 3.13", installedVersion: "3.13.12", summary: "uv-managed Python", category: "language-runtime"))
+    try uninstaller.uninstall(package(.cargoInstall, "cargo:ripgrep", displayName: "Ripgrep"))
+    try uninstaller.uninstall(package(.homebrew, "brew:git", displayName: "Git"))
+    try uninstaller.uninstall(package(.npm, "npm:@scope/tool", displayName: "Scoped Tool"))
+    try uninstaller.uninstall(package(.uv, "uv:tool:ruff", displayName: "Ruff", summary: "uv-installed tool", category: "language-runtime"))
+    try uninstaller.uninstall(package(.uv, "uv:cpython:3.13", displayName: "uv Managed Python 3.13", installedVersion: "3.13.12", summary: "uv-managed Python", category: "language-runtime"))
 
     #expect(runner.commands == [
         "/fake/cargo uninstall ripgrep --color never",
@@ -58,6 +58,7 @@ private final class RecordingRunner: CommandRunning, @unchecked Sendable {
 private func package(
     _ manager: PackageManagerKind,
     _ name: String,
+    displayName: String? = nil,
     installedVersion: String = "1.0.0",
     summary: String? = nil,
     category: String? = nil,
@@ -65,7 +66,8 @@ private func package(
 ) -> ManagedPackage {
     ManagedPackage(
         manager: manager,
-        name: name,
+        identifier: name,
+        displayName: displayName,
         installedVersion: installedVersion,
         latestVersion: "1.0.0",
         summary: summary,

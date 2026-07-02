@@ -178,7 +178,7 @@ struct MainWindowDossierView: View {
             ScrollView {
                 if let package = model.selectedPackage {
                     VStack(alignment: .leading, spacing: 18) {
-                        Text(package.name)
+                        Text(package.displayName)
                             .font(.system(size: 24, weight: .semibold))
                             .foregroundStyle(AVGlassPalette.primaryText)
                             .lineLimit(3)
@@ -444,7 +444,7 @@ private struct PackageRow: View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 3) {
                 HStack(alignment: .firstTextBaseline, spacing: 3) {
-                    Text(package.name)
+                    Text(package.displayName)
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(AVGlassPalette.primaryText)
                         .lineLimit(1)

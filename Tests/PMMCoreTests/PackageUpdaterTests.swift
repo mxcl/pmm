@@ -19,12 +19,12 @@ private final class RecordingRunner: CommandRunning, @unchecked Sendable {
         toolPaths: ["cargo": "/fake/cargo", "brew": "/fake/brew", "npm": "/fake/npm", "uv": "/fake/uv"]
     )
 
-    try updater.update(package(.cargoInstall, "ripgrep"))
-    try updater.update(package(.homebrew, "git"))
-    try updater.update(package(.npm, "@scope/tool"))
-    try updater.update(package(.npx, "acorn"))
-    try updater.update(package(.uv, "ruff", summary: "uv-installed tool", category: "language-runtime"))
-    try updater.update(package(.uv, "cpython-3.13.12-macos-aarch64-none", latestVersion: "3.13.14", summary: "uv-managed Python", category: "language-runtime"))
+    try updater.update(package(.cargoInstall, "cargo:ripgrep", displayName: "Ripgrep"))
+    try updater.update(package(.homebrew, "brew:git", displayName: "Git"))
+    try updater.update(package(.npm, "npm:@scope/tool", displayName: "Scoped Tool"))
+    try updater.update(package(.npx, "npx:acorn", displayName: "Acorn"))
+    try updater.update(package(.uv, "uv:tool:ruff", displayName: "Ruff", summary: "uv-installed tool", category: "language-runtime"))
+    try updater.update(package(.uv, "uv:cpython:3.13", displayName: "uv Managed Python 3.13", latestVersion: "3.13.14", summary: "uv-managed Python", category: "language-runtime"))
 
     #expect(runner.commands == [
         "/fake/cargo install ripgrep --force --color never",
@@ -57,13 +57,15 @@ private final class RecordingRunner: CommandRunning, @unchecked Sendable {
 private func package(
     _ manager: PackageManagerKind,
     _ name: String,
+    displayName: String? = nil,
     latestVersion: String = "2.0.0",
     summary: String? = nil,
     category: String? = nil
 ) -> ManagedPackage {
     ManagedPackage(
         manager: manager,
-        name: name,
+        identifier: name,
+        displayName: displayName,
         installedVersion: "1.0.0",
         latestVersion: latestVersion,
         summary: summary,

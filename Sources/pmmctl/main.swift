@@ -25,7 +25,7 @@ if json {
             ? "\(package.installedVersion ?? "?") → \(package.latestVersion ?? "?")"
             : (package.installedVersion ?? "installed")
         let category = package.category.map { " [\($0)]" } ?? ""
-        print("\(package.manager.title)\t\(package.name)\t\(status)\(category)")
+        print("\(package.manager.title)\t\(package.displayName)\t\(status)\(category)")
     }
     for error in inventory.errors {
         fputs("warning: \(error)\n", stderr)

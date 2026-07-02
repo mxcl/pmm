@@ -35,7 +35,7 @@ public struct PackageScanner {
         return PackageInventory(
             packages: packages.sorted {
                 if $0.manager != $1.manager { return $0.manager.rawValue < $1.manager.rawValue }
-                return $0.name.localizedStandardCompare($1.name) == .orderedAscending
+                return packageDisplayOrder($0, $1)
             },
             errors: errors
         )
@@ -75,7 +75,8 @@ public struct PackageScanner {
             let package = installLocation.flatMap { readPackageJSON(URL(fileURLWithPath: $0).appendingPathComponent("package.json")) }
             return ManagedPackage(
                 manager: .npm,
-                name: name,
+                identifier: "npm:\(name)",
+                displayName: name,
                 installedVersion: version,
                 latestVersion: outdated[name],
                 summary: package?.summary,
@@ -107,7 +108,8 @@ public struct PackageScanner {
                 let curation = database.metadata(for: .npx, name: name)
                 return ManagedPackage(
                     manager: .npx,
-                    name: name,
+                    identifier: "npx:\(name)",
+                    displayName: name,
                     installedVersion: package.version,
                     latestVersion: nil,
                     summary: package.summary,
@@ -127,7 +129,7 @@ public struct PackageScanner {
 
     public func scanNPX(database: PackageDatabase, npmRegistryClient: NPMRegistryClient) async throws -> [ManagedPackage] {
         let packages = try scanNPX(database: database)
-        let names = Set(packages.map(\.name))
+        let names = Set(packages.map(\.packageToken))
         let resolvedVersions = npxResolvedLatestVersions(for: names)
         let metadata = await withTaskGroup(of: (String, PackageMetadata?).self, returning: [String: PackageMetadata].self) { group in
             for name in names {
@@ -142,7 +144,7 @@ public struct PackageScanner {
             return metadata
         }
         return packages.map { package in
-            package.applyingNPXSourceMetadata(metadata[package.name], latestVersion: resolvedVersions[package.name])
+            package.applyingNPXSourceMetadata(metadata[package.packageToken], latestVersion: resolvedVersions[package.packageToken])
         }
     }
 
@@ -167,7 +169,8 @@ public struct PackageScanner {
                 let name = dist?.name ?? fallbackName
                 return ManagedPackage(
                     manager: .uvx,
-                    name: name,
+                    identifier: "uvx:\(name)",
+                    displayName: name,
                     installedVersion: dist?.version,
                     latestVersion: nil,
                     summary: dist?.summary ?? "uvx cached tool environment",
@@ -188,7 +191,8 @@ public struct PackageScanner {
             guard let crate = current else { return }
             packages.append(ManagedPackage(
                 manager: .cargoInstall,
-                name: crate.name,
+                identifier: "cargo:\(crate.name)",
+                displayName: crate.name,
                 installedVersion: crate.version,
                 latestVersion: nil,
                 summary: "cargo-installed Rust binary",
@@ -240,6 +244,7 @@ public struct PackageScanner {
     ) throws -> [ManagedPackage] {
         let result = try runner.run(brew, ["list", "--versions", kindFlag])
         guard result.status == 0 else { return [] }
+        let identifierPrefix = kindFlag == "--cask" ? "brew:cask" : "brew"
         return result.stdout.split(separator: "\n").compactMap { line in
             let parts = line.split(separator: " ", omittingEmptySubsequences: true).map(String.init)
             guard let name = parts.first else { return nil }
@@ -249,7 +254,8 @@ public struct PackageScanner {
             let metadata = homebrewCachedMetadata(name: name, kindFlag: kindFlag)
             return ManagedPackage(
                 manager: .homebrew,
-                name: name,
+                identifier: "\(identifierPrefix):\(name)",
+                displayName: name,
                 installedVersion: version,
                 latestVersion: outdated[name],
                 summary: metadata?.summary,
@@ -378,12 +384,13 @@ public struct PackageScanner {
         let packages: [ManagedPackage] = rows.compactMap { row in
             guard let path = row["path"] as? String,
                   path == pythonDir || path.hasPrefix("\(pythonDir)/"),
-                  let name = uvPythonFamilyName(row),
+                  let identity = uvPythonIdentity(row),
                   let version = row["version"] as? String else { return nil }
             let latestVersion = uvPythonKey(row).flatMap { latest[$0] }.flatMap { $0 == version ? nil : $0 }
             return ManagedPackage(
                 manager: .uv,
-                name: name,
+                identifier: identity.identifier,
+                displayName: identity.displayName,
                 installedVersion: version,
                 latestVersion: latestVersion,
                 summary: "uv-managed Python",
@@ -429,7 +436,8 @@ public struct PackageScanner {
             let metadata = database.metadata(for: .uv, name: tool.name)
             packages.append(ManagedPackage(
                 manager: .uv,
-                name: tool.name,
+                identifier: "uv:tool:\(tool.name)",
+                displayName: tool.name,
                 installedVersion: tool.version,
                 latestVersion: tool.latest ?? outdated[tool.name] ?? metadata?.version,
                 summary: metadata?.summary ?? "uv-installed tool",
@@ -491,11 +499,12 @@ public struct PackageScanner {
         return [implementation, "\(major).\(minor)", os, arch, libc, variant].joined(separator: ":")
     }
 
-    private func uvPythonFamilyName(_ row: [String: Any]) -> String? {
-        guard let parts = row["version_parts"] as? [String: Any],
+    private func uvPythonIdentity(_ row: [String: Any]) -> (identifier: String, displayName: String)? {
+        guard let implementation = row["implementation"] as? String,
+              let parts = row["version_parts"] as? [String: Any],
               let major = parts["major"] as? Int,
               let minor = parts["minor"] as? Int else { return nil }
-        return "uv Managed Python \(major).\(minor)"
+        return ("uv:\(implementation):\(major).\(minor)", "uv Managed Python \(major).\(minor)")
     }
 
     private func successfulLine(_ executable: String, _ arguments: [String]) -> String? {
@@ -722,6 +731,12 @@ private func jsonObject(_ text: String) -> [String: Any]? {
     return try? JSONSerialization.jsonObject(with: data) as? [String: Any]
 }
 
+private func packageDisplayOrder(_ lhs: ManagedPackage, _ rhs: ManagedPackage) -> Bool {
+    let displayOrder = lhs.displayName.localizedStandardCompare(rhs.displayName)
+    if displayOrder != .orderedSame { return displayOrder == .orderedAscending }
+    return lhs.identifier < rhs.identifier
+}
+
 private func outdatedMap(_ value: Any?) -> [String: String] {
     guard let array = value as? [[String: Any]] else { return [:] }
     return array.reduce(into: [:]) { result, item in
@@ -746,7 +761,8 @@ private extension ManagedPackage {
     func applyingNPXSourceMetadata(_ metadata: PackageMetadata?, latestVersion: String?) -> ManagedPackage {
         ManagedPackage(
             manager: manager,
-            name: name,
+            identifier: identifier,
+            displayName: displayName,
             installedVersion: installedVersion,
             installedVersions: installedVersions,
             latestVersion: latestVersion,
