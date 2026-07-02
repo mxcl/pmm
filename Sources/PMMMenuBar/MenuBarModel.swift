@@ -20,6 +20,10 @@ struct MenuBarMenuState: Equatable {
     var isRefreshing = false
     var errorMessage: String?
 
+    var statusSymbolName: String {
+        outdatedRows.isEmpty ? "shippingbox.fill" : "shippingbox"
+    }
+
     var rows: [MenuBarMenuRow] {
         var rows: [MenuBarMenuRow] = []
         if inventory == nil || isRefreshing {

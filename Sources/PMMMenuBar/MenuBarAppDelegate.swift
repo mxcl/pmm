@@ -55,6 +55,8 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func rebuildMenu() {
+        updateStatusButton()
+
         let menu = NSMenu()
         for row in state.rows {
             switch row {
@@ -90,12 +92,18 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
 
     private func configureStatusButton() {
         guard let button = statusItem.button else { return }
-        let image = NSImage(systemSymbolName: "shippingbox.fill", accessibilityDescription: "Package Manager Manager")
-        image?.isTemplate = true
-        button.image = image
         button.imagePosition = .imageOnly
         button.toolTip = "Package Manager Manager"
         button.setAccessibilityLabel("Package Manager Manager")
+        updateStatusButton()
+    }
+
+    private func updateStatusButton() {
+        guard let button = statusItem.button else { return }
+        let image = NSImage(systemSymbolName: state.statusSymbolName, accessibilityDescription: "Package Manager Manager")
+            ?? NSImage(systemSymbolName: "shippingbox.fill", accessibilityDescription: "Package Manager Manager")
+        image?.isTemplate = true
+        button.image = image
     }
 
     private func disabledItem(_ title: String) -> NSMenuItem {
