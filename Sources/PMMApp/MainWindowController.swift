@@ -7,6 +7,7 @@ final class MainWindowController: NSSplitViewController {
 
     init() {
         super.init(nibName: nil, bundle: nil)
+        splitView = NoDividerSplitView()
     }
 
     @MainActor @preconcurrency required dynamic init?(coder: NSCoder) {
@@ -16,11 +17,10 @@ final class MainWindowController: NSSplitViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         splitView.isVertical = true
-        splitView.dividerStyle = .thin
 
         addSplitViewItem(sidebarItem())
-        addSplitViewItem(contentItem(MainWindowPackageListView(model: model), width: 252, minimumWidth: 252))
-        addSplitViewItem(contentItem(MainWindowDossierView(model: model), width: 252, minimumWidth: 252))
+        addSplitViewItem(contentItem(MainWindowPackageListView(model: model), width: 252, minimumWidth: 252, maximumWidth: 252))
+        addSplitViewItem(contentItem(MainWindowDossierView(model: model), width: 252, minimumWidth: 252, maximumWidth: 252))
         addSplitViewItem(contentItem(MainWindowLinksView(model: model), width: 624, minimumWidth: 350))
     }
 
@@ -44,22 +44,31 @@ final class MainWindowController: NSSplitViewController {
         let controller = NSHostingController(rootView: MainWindowSidebarView(model: model))
         let item = NSSplitViewItem(sidebarWithViewController: controller)
         item.minimumThickness = 250
-        item.maximumThickness = 320
-        item.preferredThicknessFraction = 0.20
+        item.maximumThickness = 250
         return item
     }
 
-    private func contentItem<Content: View>(_ rootView: Content, width: CGFloat, minimumWidth: CGFloat) -> NSSplitViewItem {
+    private func contentItem<Content: View>(_ rootView: Content, width: CGFloat, minimumWidth: CGFloat, maximumWidth: CGFloat? = nil) -> NSSplitViewItem {
         let controller = NSHostingController(rootView: rootView)
         let item = NSSplitViewItem(viewController: controller)
         item.minimumThickness = minimumWidth
+        if let maximumWidth {
+            item.maximumThickness = maximumWidth
+        }
         item.preferredThicknessFraction = 0
+        item.holdingPriority = maximumWidth == nil ? .defaultLow : .defaultHigh
         controller.view.widthAnchor.constraint(greaterThanOrEqualToConstant: minimumWidth).isActive = true
         let widthConstraint = controller.view.widthAnchor.constraint(equalToConstant: width)
-        widthConstraint.priority = .defaultLow
+        widthConstraint.priority = maximumWidth == nil ? .defaultLow : .required
         widthConstraint.isActive = true
         return item
     }
+}
+
+private final class NoDividerSplitView: NSSplitView {
+    override var dividerThickness: CGFloat { 0 }
+
+    override func drawDivider(in rect: NSRect) {}
 }
 
 extension MainWindowController: NSToolbarDelegate {
