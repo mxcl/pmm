@@ -399,22 +399,24 @@ struct PackageIndex: Sendable {
     init(packages: [ManagedPackage], catalogPackages: [ManagedPackage], newUpdatedLastClickedAt: Date?) {
         let newUpdated = catalogPackages
             .filter { $0.pulseKind != nil }
-            .sorted { ($0.lastUpdatedAt ?? "") > ($1.lastUpdatedAt ?? "") }
+            .sorted(by: Self.newestUpdatedFirst)
 
         var bySection: [MainWindowSection: [ManagedPackage]] = [
-            .installed: packages,
-            .outdated: packages.filter(\.isOutdated),
+            .installed: packages.sorted(by: Self.alphabetical),
+            .outdated: packages.filter(\.isOutdated).sorted(by: Self.mostOutdatedFirst),
             .newUpdated: newUpdated,
-            .cargoInstall: packages.filter { $0.manager == .cargoInstall },
-            .homebrew: packages.filter { $0.manager == .homebrew },
-            .npm: packages.filter { $0.manager == .npm },
-            .npx: packages.filter { $0.manager == .npx },
-            .uv: packages.filter { $0.manager == .uv },
-            .uvx: packages.filter { $0.manager == .uvx },
+            .cargoInstall: packages.filter { $0.manager == .cargoInstall }.sorted(by: Self.alphabetical),
+            .homebrew: packages.filter { $0.manager == .homebrew }.sorted(by: Self.alphabetical),
+            .npm: packages.filter { $0.manager == .npm }.sorted(by: Self.alphabetical),
+            .npx: packages.filter { $0.manager == .npx }.sorted(by: Self.alphabetical),
+            .uv: packages.filter { $0.manager == .uv }.sorted(by: Self.alphabetical),
+            .uvx: packages.filter { $0.manager == .uvx }.sorted(by: Self.alphabetical),
         ]
 
         for section in MainWindowSection.categorySections {
-            bySection[section] = catalogPackages.filter { $0.category == section.categoryIdentifier }
+            bySection[section] = catalogPackages
+                .filter { $0.category == section.categoryIdentifier }
+                .sorted(by: Self.newestUpdatedFirst)
         }
 
         packagesBySection = bySection
@@ -426,5 +428,33 @@ struct PackageIndex: Sendable {
             return ($0.lastUpdatedAt ?? "") > clickedAt
         }.count
         newUpdatedUnreadCount = unread > 0 ? unread : nil
+    }
+
+    private static func alphabetical(_ lhs: ManagedPackage, _ rhs: ManagedPackage) -> Bool {
+        lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
+    }
+
+    private static func newestUpdatedFirst(_ lhs: ManagedPackage, _ rhs: ManagedPackage) -> Bool {
+        let order = (lhs.lastUpdatedAt ?? "").localizedStandardCompare(rhs.lastUpdatedAt ?? "")
+        if order != .orderedSame { return order == .orderedDescending }
+        return alphabetical(lhs, rhs)
+    }
+
+    private static func mostOutdatedFirst(_ lhs: ManagedPackage, _ rhs: ManagedPackage) -> Bool {
+        let lhsGap = versionGap(lhs)
+        let rhsGap = versionGap(rhs)
+        for index in lhsGap.indices where lhsGap[index] != rhsGap[index] {
+            return lhsGap[index] > rhsGap[index]
+        }
+        return alphabetical(lhs, rhs)
+    }
+
+    private static func versionGap(_ package: ManagedPackage) -> [Int] {
+        zip(versionParts(package.latestVersion), versionParts(package.installedVersion)).map { $0.0 - $0.1 }
+    }
+
+    private static func versionParts(_ version: String?) -> [Int] {
+        let parts = version?.split(separator: ".").prefix(3).map { Int($0) ?? 0 } ?? []
+        return parts + Array(repeating: 0, count: 3 - parts.count)
     }
 }
