@@ -512,19 +512,42 @@ private struct PackageWebView: NSViewRepresentable {
     func makeNSView(context: Context) -> WKWebView {
         let webView = WKWebView()
         webView.setValue(false, forKey: "drawsBackground")
+        webView.navigationDelegate = context.coordinator
         return webView
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
         if context.coordinator.loadedURL != url {
             context.coordinator.loadedURL = url
+            context.coordinator.allowsEmbeddedNavigation = true
             webView.load(URLRequest(url: initialBrowserURL(for: url)))
         }
     }
 
-    final class Coordinator {
+    final class Coordinator: NSObject, WKNavigationDelegate {
         var loadedURL: URL?
+        var allowsEmbeddedNavigation = false
+
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            allowsEmbeddedNavigation = false
+        }
+
+        func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+            guard shouldOpenNavigationInSystemBrowser(allowsEmbeddedNavigation: allowsEmbeddedNavigation, targetFrameIsMainFrame: navigationAction.targetFrame?.isMainFrame) else {
+                decisionHandler(.allow)
+                return
+            }
+
+            if let url = navigationAction.request.url {
+                NSWorkspace.shared.open(url)
+            }
+            decisionHandler(.cancel)
+        }
     }
+}
+
+func shouldOpenNavigationInSystemBrowser(allowsEmbeddedNavigation: Bool, targetFrameIsMainFrame: Bool?) -> Bool {
+    targetFrameIsMainFrame == nil || (targetFrameIsMainFrame == true && !allowsEmbeddedNavigation)
 }
 
 func initialBrowserURL(for url: URL) -> URL {

@@ -16,3 +16,11 @@ import Testing
     let url = URL(string: "https://github.com/foo/bar/issues")!
     #expect(initialBrowserURL(for: url) == url)
 }
+
+@Test func browserNavigationPolicyOpensOnlyPostLoadMainFrameNavigationExternally() {
+    #expect(!shouldOpenNavigationInSystemBrowser(allowsEmbeddedNavigation: true, targetFrameIsMainFrame: true))
+    #expect(!shouldOpenNavigationInSystemBrowser(allowsEmbeddedNavigation: false, targetFrameIsMainFrame: false))
+    #expect(shouldOpenNavigationInSystemBrowser(allowsEmbeddedNavigation: false, targetFrameIsMainFrame: true))
+    #expect(shouldOpenNavigationInSystemBrowser(allowsEmbeddedNavigation: true, targetFrameIsMainFrame: nil))
+    #expect(shouldOpenNavigationInSystemBrowser(allowsEmbeddedNavigation: false, targetFrameIsMainFrame: nil))
+}
