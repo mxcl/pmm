@@ -71,7 +71,7 @@ struct MainWindowView: View {
                 }
         }
         .overlay {
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .stroke(AVGlassPalette.sidebarBorder)
         }
         .padding(.leading, 10)
