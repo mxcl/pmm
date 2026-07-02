@@ -130,6 +130,9 @@ struct MainWindowPackageListView: View {
                     }
                 }
             }
+            .safeAreaInset(edge: .top, spacing: 0) {
+                Color.clear.frame(height: 42)
+            }
             VStack(spacing: 0) {
                 HStack {
                     Text("Package Manager Manager")
