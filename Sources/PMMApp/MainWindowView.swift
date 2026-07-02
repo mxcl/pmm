@@ -27,7 +27,7 @@ struct MainWindowView: View {
         GeometryReader { proxy in
             let width = proxy.size.width
             let sidebarWidth = min(290, max(270, width * 0.20))
-            let packageWidth = min(390, max(330, width * 0.30))
+            let packageWidth = min(273, max(231, width * 0.21))
             let dossierWidth = min(360, max(310, width * 0.25))
             HStack(alignment: .top, spacing: 0) {
                 sidebar.frame(width: sidebarWidth).frame(maxHeight: .infinity)
