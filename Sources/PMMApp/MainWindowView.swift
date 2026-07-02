@@ -133,6 +133,7 @@ struct MainWindowPackageListView: View {
             .safeAreaInset(edge: .top, spacing: 0) {
                 Color.clear.frame(height: 42)
             }
+            .scrollEdgeEffectStyle(.soft, for: .top)
             VStack(spacing: 0) {
                 HStack {
                     Text("Package Manager Manager")
@@ -143,22 +144,6 @@ struct MainWindowPackageListView: View {
                 .foregroundStyle(.white)
                 .padding(.horizontal, 12)
                 .frame(height: 42)
-                .background(alignment: .top) {
-                    VisualEffectMaterial(material: .sidebar)
-                        .mask(
-                            LinearGradient(
-                                stops: [
-                                    .init(color: .black, location: 0),
-                                    .init(color: .black, location: 0.7),
-                                    .init(color: .clear, location: 1),
-                                ],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                        .frame(height: 56)
-                        .ignoresSafeArea(.container, edges: .top)
-                }
             }
         }
         .overlay(alignment: .trailing) {
@@ -630,22 +615,6 @@ private struct PackageWebView: NSViewRepresentable {
             }
             decisionHandler(.cancel)
         }
-    }
-}
-
-private struct VisualEffectMaterial: NSViewRepresentable {
-    let material: NSVisualEffectView.Material
-
-    func makeNSView(context: Context) -> NSVisualEffectView {
-        let view = NSVisualEffectView()
-        view.blendingMode = .withinWindow
-        view.material = material
-        view.state = .active
-        return view
-    }
-
-    func updateNSView(_ view: NSVisualEffectView, context: Context) {
-        view.material = material
     }
 }
 
