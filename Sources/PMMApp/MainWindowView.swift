@@ -412,13 +412,18 @@ private struct PackageRow: View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 3) {
                 HStack(alignment: .firstTextBaseline, spacing: 3) {
-                    Text(package.name).font(.system(size: 13, weight: .semibold)).foregroundStyle(AVGlassPalette.primaryText).lineLimit(1).layoutPriority(1)
+                    Text(package.name)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(AVGlassPalette.primaryText)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
                     if package.isOutdated && !showsManager { PackageBadgePill(text: "Outdated", color: AVGlassPalette.orange) }
                     Spacer(minLength: 8)
                     Text(versionText)
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(AVGlassPalette.secondaryText)
                         .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
                 }
                 Text(subtitle)
                     .font(.system(size: 12))
