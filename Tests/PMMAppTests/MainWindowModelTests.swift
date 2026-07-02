@@ -61,15 +61,24 @@ import Testing
     #expect(index.packagesBySection[.installed]?.map(\.name) == ["alpha", "beta", "zeta"])
 }
 
-@Test func managerSectionsSortPackagesAlphabetically() {
+@Test func languageSectionsGroupManagersAndSortPackagesAlphabetically() {
     let packages = [
         package(.npm, "zeta"),
+        package(.npx, "acorn"),
+        package(.uvx, "ruff"),
+        package(.uv, "python"),
+        package(.cargoInstall, "ripgrep"),
+        package(.homebrew, "git"),
         package(.npm, "alpha"),
         package(.npm, "beta"),
     ]
     let index = PackageIndex(packages: packages, catalogPackages: [], newUpdatedLastClickedAt: nil)
 
-    #expect(index.packagesBySection[.npm]?.map(\.name) == ["alpha", "beta", "zeta"])
+    #expect(MainWindowSection.managerSections.map(\.title) == ["Rust", "Homebrew", "JavaScript", "Python"])
+    #expect(index.packagesBySection[.rust]?.map(\.name) == ["ripgrep"])
+    #expect(index.packagesBySection[.homebrew]?.map(\.name) == ["git"])
+    #expect(index.packagesBySection[.javascript]?.map(\.name) == ["acorn", "alpha", "beta", "zeta"])
+    #expect(index.packagesBySection[.python]?.map(\.name) == ["python", "ruff"])
 }
 
 @Test func outdatedSectionSortsMostOutdatedFirst() {

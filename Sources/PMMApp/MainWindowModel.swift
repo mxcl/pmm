@@ -6,12 +6,10 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
     case installed
     case outdated
     case newUpdated
-    case cargoInstall
+    case rust
     case homebrew
-    case npm
-    case npx
-    case uv
-    case uvx
+    case javascript
+    case python
     case developerTools
     case cloudInfrastructure
     case networking
@@ -30,7 +28,7 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
     var id: String { rawValue }
 
     static let librarySections: [MainWindowSection] = [.installed, .outdated]
-    static let managerSections: [MainWindowSection] = [.cargoInstall, .homebrew, .npm, .npx, .uv, .uvx]
+    static let managerSections: [MainWindowSection] = [.rust, .homebrew, .javascript, .python]
     static let categorySections: [MainWindowSection] = [
         .developerTools, .cloudInfrastructure, .networking, .system, .security,
         .data, .languageRuntime, .media, .productivity, .science, .games, .toys, .other
@@ -43,12 +41,10 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
         case .installed: "Installed"
         case .outdated: "Outdated"
         case .newUpdated: "New / Updated"
-        case .cargoInstall: "cargo install"
+        case .rust: "Rust"
         case .homebrew: "Homebrew"
-        case .npm: "npm"
-        case .npx: "npx"
-        case .uv: "uv"
-        case .uvx: "uvx"
+        case .javascript: "JavaScript"
+        case .python: "Python"
         case .developerTools: "Developer Tools"
         case .cloudInfrastructure: "Cloud Infrastructure"
         case .networking: "Networking"
@@ -71,12 +67,10 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
         case .installed: "shippingbox"
         case .outdated: "clock"
         case .newUpdated: "sparkles"
-        case .cargoInstall: "hammer"
+        case .rust: "hammer"
         case .homebrew: "mug"
-        case .npm: "shippingbox.circle"
-        case .npx: "terminal"
-        case .uv: "bolt"
-        case .uvx: "terminal.fill"
+        case .javascript: "shippingbox.circle"
+        case .python: "curlybraces"
         case .developerTools: "chevron.left.forwardslash.chevron.right"
         case .cloudInfrastructure: "cloud"
         case .networking: "network"
@@ -91,6 +85,16 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
         case .toys: "puzzlepiece"
         case .other: "ellipsis"
         case .about: "info.circle"
+        }
+    }
+
+    var packageManagers: Set<PackageManagerKind> {
+        switch self {
+        case .rust: [.cargoInstall]
+        case .homebrew: [.homebrew]
+        case .javascript: [.npm, .npx]
+        case .python: [.uv, .uvx]
+        default: []
         }
     }
 
@@ -186,7 +190,7 @@ final class MainWindowModel: ObservableObject {
     @Published private(set) var packages: [ManagedPackage] = []
     @Published private(set) var selectedPackage: ManagedPackage?
     @Published private(set) var isReloading = false
-    @Published private(set) var loadingManagerSections = Set(MainWindowSection.managerSections)
+    @Published private(set) var loadingManagers = Set(PackageManagerKind.allCases)
     @Published private(set) var errors: [String] = []
     @Published private(set) var isLoadingSelectedPackageMetadata = false
     @Published private(set) var uninstallingPackageName: String?
@@ -226,7 +230,7 @@ final class MainWindowModel: ObservableObject {
 
     var visibleManagerSections: [MainWindowSection] {
         if isReloading { return MainWindowSection.managerSections }
-        return MainWindowSection.managerSections.filter { loadingManagerSections.contains($0) || (count(for: $0) ?? 0) > 0 }
+        return MainWindowSection.managerSections.filter { isLoadingCount(for: $0) || (count(for: $0) ?? 0) > 0 }
     }
 
     var visibleCategorySections: [MainWindowSection] {
@@ -242,7 +246,7 @@ final class MainWindowModel: ObservableObject {
 
     func reload() {
         isReloading = true
-        loadingManagerSections = Set(MainWindowSection.managerSections)
+        loadingManagers = Set(PackageManagerKind.allCases)
         Task {
             let clickedAt = newUpdatedLastClickedAt
             let remoteDatabase = Task.detached(priority: .background, operation: { () -> PackageDatabase? in
@@ -257,7 +261,7 @@ final class MainWindowModel: ObservableObject {
             if let db = await remoteDatabase.value {
                 await scanAndApply(database: db, newUpdatedLastClickedAt: clickedAt)
             }
-            loadingManagerSections.removeAll()
+            loadingManagers.removeAll()
             isReloading = false
         }
     }
@@ -301,7 +305,7 @@ final class MainWindowModel: ObservableObject {
     }
 
     func isLoadingCount(for section: MainWindowSection) -> Bool {
-        loadingManagerSections.contains(section)
+        !section.packageManagers.isDisjoint(with: loadingManagers)
     }
 
     func open(url: URL?) {
@@ -462,7 +466,7 @@ final class MainWindowModel: ObservableObject {
 
             for await batch in group {
                 scannedManagers.formUnion(batch.managers)
-                loadingManagerSections.subtract(batch.sections)
+                loadingManagers.subtract(batch.managers)
                 scannedPackages.removeAll { batch.managers.contains($0.manager) }
                 scannedPackages += batch.packages
                 scannedErrors += batch.errors
@@ -490,19 +494,6 @@ private struct PackageScanBatch: Sendable {
     let managers: Set<PackageManagerKind>
     var packages: [ManagedPackage] = []
     var errors: [String] = []
-
-    var sections: Set<MainWindowSection> {
-        Set(managers.map {
-            switch $0 {
-            case .cargoInstall: .cargoInstall
-            case .homebrew: .homebrew
-            case .npm: .npm
-            case .npx: .npx
-            case .uv: .uv
-            case .uvx: .uvx
-            }
-        })
-    }
 }
 
 struct PackageIndex: Sendable {
@@ -521,12 +512,10 @@ struct PackageIndex: Sendable {
             .installed: packages.sorted(by: Self.alphabetical),
             .outdated: packages.filter(\.isOutdated).sorted(by: Self.mostOutdatedFirst),
             .newUpdated: newUpdated,
-            .cargoInstall: packages.filter { $0.manager == .cargoInstall }.sorted(by: Self.alphabetical),
+            .rust: packages.filter { $0.manager == .cargoInstall }.sorted(by: Self.alphabetical),
             .homebrew: packages.filter { $0.manager == .homebrew }.sorted(by: Self.alphabetical),
-            .npm: packages.filter { $0.manager == .npm }.sorted(by: Self.alphabetical),
-            .npx: packages.filter { $0.manager == .npx }.sorted(by: Self.alphabetical),
-            .uv: packages.filter { $0.manager == .uv }.sorted(by: Self.alphabetical),
-            .uvx: packages.filter { $0.manager == .uvx }.sorted(by: Self.alphabetical),
+            .javascript: packages.filter { [.npm, .npx].contains($0.manager) }.sorted(by: Self.alphabetical),
+            .python: packages.filter { [.uv, .uvx].contains($0.manager) }.sorted(by: Self.alphabetical),
         ]
 
         for section in MainWindowSection.categorySections {

@@ -13,7 +13,7 @@ struct MainWindowSidebarView: View {
                     .padding(.bottom, 18)
                 ForEach(MainWindowSection.librarySections) { sidebarRow($0) }
                 if !model.visibleManagerSections.isEmpty {
-                    sidebarHeader("MANAGERS").padding(.top, 22)
+                    sidebarHeader("ECOSYSTEMS").padding(.top, 22)
                     ForEach(model.visibleManagerSections) { sidebarRow($0) }
                 }
                 if !model.visibleCategorySections.isEmpty {
@@ -98,7 +98,7 @@ struct MainWindowSidebarView: View {
 
         return switch section {
         case .outdated, .newUpdated: AVGlassPalette.orange
-        case .cargoInstall, .homebrew, .npm, .npx, .uv, .uvx: Color(red: 0.00, green: 0.48, blue: 1.00)
+        case .rust, .homebrew, .javascript, .python: Color(red: 0.00, green: 0.48, blue: 1.00)
         default: Color(red: 0.46, green: 0.49, blue: 0.53)
         }
     }
@@ -122,7 +122,7 @@ struct MainWindowPackageListView: View {
                             PackageRow(
                                 package: package,
                                 selected: model.selectedPackage?.id == package.id,
-                                showsManager: model.activeSidebarSection == .outdated,
+                                showsManager: model.activeSidebarSection == .outdated || (model.activeSidebarSection?.packageManagers.count ?? 0) > 1,
                                 versionText: mainWindowVersionText(package, section: model.activeSidebarSection)
                             ) {
                                 model.select(package)
