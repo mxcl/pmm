@@ -326,6 +326,7 @@ private struct PackageRow: View {
             }
             .padding(.horizontal, 2)
             .padding(.vertical, 2)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
