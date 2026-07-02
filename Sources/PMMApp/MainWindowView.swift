@@ -40,11 +40,12 @@ struct MainWindowView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
+        .ignoresSafeArea(.container, edges: .top)
     }
 
     private var sidebar: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Spacer().frame(height: 28)
+            Spacer().frame(height: 72)
             searchField
                 .padding(.bottom, 18)
             ForEach(MainWindowSection.librarySections) { sidebarRow($0) }
