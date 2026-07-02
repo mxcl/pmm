@@ -274,15 +274,15 @@ public struct PackageScanner {
         guard result.status == 0,
               let data = result.stdout.data(using: .utf8),
               let rows = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else { return [] }
-        return rows.compactMap { row in
+        let packages: [ManagedPackage] = rows.compactMap { row in
             guard let path = row["path"] as? String,
                   path == pythonDir || path.hasPrefix("\(pythonDir)/"),
-                  let key = row["key"] as? String,
+                  let name = uvPythonFamilyName(row),
                   let version = row["version"] as? String else { return nil }
             let latestVersion = uvPythonKey(row).flatMap { latest[$0] }.flatMap { $0 == version ? nil : $0 }
             return ManagedPackage(
                 manager: .uv,
-                name: key,
+                name: name,
                 installedVersion: version,
                 latestVersion: latestVersion,
                 summary: "uv-managed Python",
@@ -291,6 +291,7 @@ public struct PackageScanner {
                 binaryPath: path
             )
         }
+        return ManagedPackage.consolidatingInstalledVersions(in: packages)
     }
 
     private func uvToolOutdated(_ uv: String) -> [String: String] {
@@ -385,6 +386,17 @@ public struct PackageScanner {
               let major = parts["major"] as? Int,
               let minor = parts["minor"] as? Int else { return nil }
         return [implementation, "\(major).\(minor)", os, arch, libc, variant].joined(separator: ":")
+    }
+
+    private func uvPythonFamilyName(_ row: [String: Any]) -> String? {
+        guard let implementation = row["implementation"] as? String,
+              let os = row["os"] as? String,
+              let arch = row["arch"] as? String,
+              let libc = row["libc"] as? String,
+              let parts = row["version_parts"] as? [String: Any],
+              let major = parts["major"] as? Int,
+              let minor = parts["minor"] as? Int else { return nil }
+        return [implementation, "\(major).\(minor)", os, arch, libc].joined(separator: "-")
     }
 
     private func successfulLine(_ executable: String, _ arguments: [String]) -> String? {

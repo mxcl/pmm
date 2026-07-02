@@ -31,7 +31,6 @@ private final class RecordingRunner: CommandRunning, @unchecked Sendable {
         "/fake/npm install -g @scope/tool@latest",
         "/fake/uv tool upgrade ruff --color never",
         "/fake/uv python install 3.13.14 --color never",
-        "/fake/uv python uninstall cpython-3.13.12-macos-aarch64-none --color never",
     ])
 }
 

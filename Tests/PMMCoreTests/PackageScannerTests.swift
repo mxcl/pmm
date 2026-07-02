@@ -132,16 +132,20 @@ private struct FakeRunner: CommandRunning {
     let tools = temp.appendingPathComponent("tools", isDirectory: true)
     let bin = temp.appendingPathComponent("bin", isDirectory: true)
     let pythonDir = temp.appendingPathComponent("python", isDirectory: true)
-    let pythonBin = pythonDir.appendingPathComponent("cpython-3.13-macos-aarch64-none/bin", isDirectory: true)
+    let pythonBin = pythonDir.appendingPathComponent("cpython-3.13.12-macos-aarch64-none/bin", isDirectory: true)
+    let oldPythonBin = pythonDir.appendingPathComponent("cpython-3.13.10-macos-aarch64-none/bin", isDirectory: true)
     try FileManager.default.createDirectory(at: tools.appendingPathComponent("ruff", isDirectory: true), withIntermediateDirectories: true)
     try FileManager.default.createDirectory(at: bin, withIntermediateDirectories: true)
     try FileManager.default.createDirectory(at: pythonBin, withIntermediateDirectories: true)
+    try FileManager.default.createDirectory(at: oldPythonBin, withIntermediateDirectories: true)
     FileManager.default.createFile(atPath: bin.appendingPathComponent("ruff").path, contents: Data())
     FileManager.default.createFile(atPath: pythonBin.appendingPathComponent("python3.13").path, contents: Data())
+    FileManager.default.createFile(atPath: oldPythonBin.appendingPathComponent("python3.13").path, contents: Data())
     defer { try? FileManager.default.removeItem(at: temp) }
 
     let pythonJSON = """
     [
+      {"key":"cpython-3.13.10-macos-aarch64-none","version":"3.13.10","version_parts":{"major":3,"minor":13,"patch":10},"path":"\(oldPythonBin.appendingPathComponent("python3.13").path)","os":"macos","variant":"default","implementation":"cpython","arch":"aarch64","libc":"none"},
       {"key":"cpython-3.13.12-macos-aarch64-none","version":"3.13.12","version_parts":{"major":3,"minor":13,"patch":12},"path":"\(pythonBin.appendingPathComponent("python3.13").path)","os":"macos","variant":"default","implementation":"cpython","arch":"aarch64","libc":"none"},
       {"key":"cpython-3.14.6-macos-aarch64-none","version":"3.14.6","version_parts":{"major":3,"minor":14,"patch":6},"path":"/opt/homebrew/bin/python3.14","os":"macos","variant":"default","implementation":"cpython","arch":"aarch64","libc":"none"}
     ]
@@ -172,12 +176,14 @@ private struct FakeRunner: CommandRunning {
 
     let packages = try scanner.scanUV(database: PackageDatabase())
 
-    #expect(packages.map(\.name) == ["ruff", "cpython-3.13.12-macos-aarch64-none"])
+    #expect(packages.map(\.name) == ["ruff", "cpython-3.13-macos-aarch64-none"])
     #expect(packages.first?.installedVersion == "0.6.9")
     #expect(packages.first?.latestVersion == "0.7.0")
     #expect(packages.first?.installLocation == tools.appendingPathComponent("ruff").path)
     #expect(packages.first?.binaryPath == bin.appendingPathComponent("ruff").path)
+    #expect(packages.last?.name == "cpython-3.13-macos-aarch64-none")
     #expect(packages.last?.installedVersion == "3.13.12")
+    #expect(packages.last?.installedVersions == ["3.13.12", "3.13.10"])
     #expect(packages.last?.latestVersion == "3.13.14")
 }
 

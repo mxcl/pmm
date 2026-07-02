@@ -24,7 +24,6 @@ public struct PackageUpdater: Sendable {
         case .uv:
             if package.summary == "uv-managed Python", let latestVersion = package.latestVersion {
                 try run("uv", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["python", "install", latestVersion, "--color", "never"])
-                try run("uv", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["python", "uninstall", package.name, "--color", "never"])
             } else {
                 try run("uv", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["tool", "upgrade", package.name, "--color", "never"])
             }
