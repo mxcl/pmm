@@ -148,6 +148,11 @@ struct MainWindowPackageListView: View {
                     .frame(height: 1)
             }
         }
+        .overlay(alignment: .trailing) {
+            Rectangle()
+                .fill(AVGlassPalette.sidebarBorder)
+                .frame(width: 1)
+        }
         .ignoresSafeArea(.container, edges: .top)
         .preferredColorScheme(.dark)
     }
