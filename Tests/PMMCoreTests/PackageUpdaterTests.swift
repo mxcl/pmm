@@ -22,6 +22,7 @@ private final class RecordingRunner: CommandRunning, @unchecked Sendable {
     try updater.update(package(.cargoInstall, "ripgrep"))
     try updater.update(package(.homebrew, "git"))
     try updater.update(package(.npm, "@scope/tool"))
+    try updater.update(package(.npx, "acorn"))
     try updater.update(package(.uv, "ruff", summary: "uv-installed tool", category: "language-runtime"))
     try updater.update(package(.uv, "cpython-3.13.12-macos-aarch64-none", latestVersion: "3.13.14", summary: "uv-managed Python", category: "language-runtime"))
 
@@ -29,6 +30,7 @@ private final class RecordingRunner: CommandRunning, @unchecked Sendable {
         "/fake/cargo install ripgrep --force --color never",
         "/fake/brew upgrade git",
         "/fake/npm install -g @scope/tool@latest",
+        "/fake/npm exec --yes --package acorn@latest -- true",
         "/fake/uv tool upgrade ruff --color never",
         "/fake/uv python install 3.13.14 --color never",
     ])
@@ -47,9 +49,6 @@ private final class RecordingRunner: CommandRunning, @unchecked Sendable {
 @Test func packageUpdaterThrowsOnUnsupportedManagers() throws {
     let updater = PackageUpdater()
 
-    #expect(throws: PackageUpdateError.unsupportedManager(.npx)) {
-        try updater.update(package(.npx, "acorn"))
-    }
     #expect(throws: PackageUpdateError.unsupportedManager(.uvx)) {
         try updater.update(package(.uvx, "ruff"))
     }

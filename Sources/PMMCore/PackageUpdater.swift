@@ -21,21 +21,23 @@ public struct PackageUpdater: Sendable {
             try run("brew", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin"], ["upgrade", package.name])
         case .npm:
             try run("npm", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["install", "-g", "\(package.name)@latest"])
+        case .npx:
+            try run("npm", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["exec", "--yes", "--package", "\(package.name)@latest", "--", "true"])
         case .uv:
             if package.summary == "uv-managed Python", let latestVersion = package.latestVersion {
                 try run("uv", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["python", "install", latestVersion, "--color", "never"])
             } else {
                 try run("uv", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["tool", "upgrade", package.name, "--color", "never"])
             }
-        case .npx, .uvx:
+        case .uvx:
             throw PackageUpdateError.unsupportedManager(package.manager)
         }
     }
 
     public static func supports(_ package: ManagedPackage) -> Bool {
         switch package.manager {
-        case .cargoInstall, .homebrew, .npm, .uv: package.isOutdated
-        case .npx, .uvx: false
+        case .cargoInstall, .homebrew, .npm, .npx, .uv: package.isOutdated
+        case .uvx: false
         }
     }
 
