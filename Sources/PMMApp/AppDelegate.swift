@@ -36,6 +36,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.toolbar = controller.makeToolbar()
         window.isMovableByWindowBackground = true
         window.minSize = NSSize(width: 1060, height: 680)
+        window.setContentSize(NSSize(width: 1380, height: 760))
         window.center()
         window.makeKeyAndOrderFront(nil)
         self.window = window
