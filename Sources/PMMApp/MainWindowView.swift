@@ -168,8 +168,7 @@ struct MainWindowView: View {
             }
             .font(.system(size: 13, weight: .bold))
             .foregroundStyle(AVGlassPalette.quietText)
-            .padding(.leading, 0)
-            .padding(.trailing, 12)
+            .padding(.horizontal, 12)
             .frame(height: 42)
             hairline
             ScrollView {
@@ -326,16 +325,14 @@ private struct PackageRow: View {
                     .lineLimit(2)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.leading, 0)
-            .padding(.trailing, 13)
+            .padding(.horizontal, 13)
             .frame(height: 72, alignment: .topLeading)
             .background {
                 if selected {
                     RoundedRectangle(cornerRadius: 8, style: .continuous).fill(AVGlassPalette.packageSelectedFill)
                 }
             }
-            .padding(.leading, 0)
-            .padding(.trailing, 2)
+            .padding(.horizontal, 2)
             .padding(.vertical, 2)
             .contentShape(Rectangle())
         }
