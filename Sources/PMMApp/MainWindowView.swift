@@ -146,6 +146,7 @@ struct MainWindowPackageListView: View {
                 }
             }
         }
+        .ignoresSafeArea(.container, edges: .top)
         .background(LiquidGlassSurface(material: .ultraThinMaterial, tint: AVGlassPalette.windowTint).ignoresSafeArea())
         .preferredColorScheme(.dark)
     }
@@ -194,6 +195,7 @@ struct MainWindowDossierView: View {
                     .frame(maxWidth: .infinity, minHeight: 300)
             }
         }
+        .ignoresSafeArea(.container, edges: .top)
         .background(LiquidGlassSurface(material: .ultraThinMaterial, tint: AVGlassPalette.windowTint).ignoresSafeArea())
         .preferredColorScheme(.dark)
     }
@@ -221,6 +223,7 @@ struct MainWindowLinksView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
         }
+        .ignoresSafeArea(.container, edges: .top)
         .background(LiquidGlassSurface(material: .ultraThinMaterial, tint: AVGlassPalette.windowTint).ignoresSafeArea())
         .preferredColorScheme(.dark)
     }
