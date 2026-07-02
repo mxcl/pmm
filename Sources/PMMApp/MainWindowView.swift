@@ -278,7 +278,7 @@ struct MainWindowView: View {
 
     private func versionText(_ package: ManagedPackage, section: MainWindowSection? = nil) -> String {
         if package.isOutdated {
-            if section == .outdated {
+            if section == nil || section == .outdated {
                 return "\(package.installedVersion ?? "?") → \(package.latestVersion ?? "?")"
             }
             return package.installedVersion ?? package.latestVersion ?? "available"
