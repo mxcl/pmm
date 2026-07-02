@@ -128,6 +128,7 @@ public struct PackageScanner {
     public func scanNPX(database: PackageDatabase, npmRegistryClient: NPMRegistryClient) async throws -> [ManagedPackage] {
         let packages = try scanNPX(database: database)
         let names = Set(packages.map(\.name))
+        let resolvedVersions = npxResolvedLatestVersions(for: names)
         let metadata = await withTaskGroup(of: (String, PackageMetadata?).self, returning: [String: PackageMetadata].self) { group in
             for name in names {
                 group.addTask {
@@ -141,7 +142,7 @@ public struct PackageScanner {
             return metadata
         }
         return packages.map { package in
-            package.applyingNPXSourceMetadata(metadata[package.name])
+            package.applyingNPXSourceMetadata(metadata[package.name], latestVersion: resolvedVersions[package.name])
         }
     }
 
@@ -516,6 +517,35 @@ public struct PackageScanner {
         toolPaths[name] ?? firstExecutable(named: name, extraPaths: extraPaths)
     }
 
+    private func npxResolvedLatestVersions(for names: Set<String>) -> [String: String] {
+        guard !names.isEmpty,
+              let npm = executable(named: "npm", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"]) else { return [:] }
+        let temp = FileManager.default.temporaryDirectory.appendingPathComponent("pmm-npx-\(UUID().uuidString)", isDirectory: true)
+        do {
+            try fileManager.createDirectory(at: temp, withIntermediateDirectories: true)
+            defer { try? fileManager.removeItem(at: temp) }
+            try #"{"private":true}"#.write(to: temp.appendingPathComponent("package.json"), atomically: true, encoding: .utf8)
+            let packages = names.sorted().map { "\($0)@latest" }
+            let result = try runner.run(npm, ["install", "--package-lock-only", "--ignore-scripts", "--no-audit", "--no-fund", "--prefix", temp.path] + packages)
+            guard result.status == 0 else { return [:] }
+            return npxResolvedVersions(in: temp.appendingPathComponent("package-lock.json"), names: names)
+        } catch {
+            return [:]
+        }
+    }
+
+    private func npxResolvedVersions(in packageLock: URL, names: Set<String>) -> [String: String] {
+        guard let data = try? Data(contentsOf: packageLock),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let packages = json["packages"] as? [String: Any] else { return [:] }
+        return names.reduce(into: [:]) { result, name in
+            guard let body = packages["node_modules/\(name)"] as? [String: Any]
+                    ?? packages.first(where: { $0.key.hasSuffix("/node_modules/\(name)") })?.value as? [String: Any],
+                  let version = body["version"] as? String else { return }
+            result[name] = version
+        }
+    }
+
     private func npmBinaryPath(packageName: String, root: String?, bin: String?) -> String? {
         guard let root, let bin else { return nil }
         let packageURL = URL(fileURLWithPath: root).appendingPathComponent(packageName, isDirectory: true)
@@ -717,13 +747,13 @@ private struct PackageJSON {
 }
 
 private extension ManagedPackage {
-    func applyingNPXSourceMetadata(_ metadata: PackageMetadata?) -> ManagedPackage {
+    func applyingNPXSourceMetadata(_ metadata: PackageMetadata?, latestVersion: String?) -> ManagedPackage {
         ManagedPackage(
             manager: manager,
             name: name,
             installedVersion: installedVersion,
             installedVersions: installedVersions,
-            latestVersion: metadata?.version,
+            latestVersion: latestVersion,
             summary: summary ?? metadata?.summary,
             category: category,
             homepage: homepage ?? metadata?.homepage,

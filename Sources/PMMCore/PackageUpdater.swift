@@ -22,7 +22,7 @@ public struct PackageUpdater: Sendable {
         case .npm:
             try run("npm", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["install", "-g", "\(package.name)@latest"])
         case .npx:
-            try run("npm", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["exec", "--yes", "--package", "\(package.name)@latest", "--", "true"])
+            try run("npm", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["exec", "--yes", "--package", "\(package.name)@\(package.latestVersion ?? "latest")", "--", "true"])
         case .uv:
             if package.summary == "uv-managed Python", let latestVersion = package.latestVersion {
                 try run("uv", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["python", "install", latestVersion, "--color", "never"])

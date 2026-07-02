@@ -30,7 +30,7 @@ private final class RecordingRunner: CommandRunning, @unchecked Sendable {
         "/fake/cargo install ripgrep --force --color never",
         "/fake/brew upgrade git",
         "/fake/npm install -g @scope/tool@latest",
-        "/fake/npm exec --yes --package acorn@latest -- true",
+        "/fake/npm exec --yes --package acorn@2.0.0 -- true",
         "/fake/uv tool upgrade ruff --color never",
         "/fake/uv python install 3.13.14 --color never",
     ])

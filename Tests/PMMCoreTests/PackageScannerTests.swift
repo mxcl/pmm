@@ -10,6 +10,25 @@ private struct FakeRunner: CommandRunning {
     }
 }
 
+private final class NPMResolveRunner: CommandRunning, @unchecked Sendable {
+    let version: String?
+    let status: Int32
+
+    init(version: String?, status: Int32 = 0) {
+        self.version = version
+        self.status = status
+    }
+
+    func run(_ executable: String, _ arguments: [String]) throws -> CommandResult {
+        if status == 0, let version, let prefix = arguments.firstIndex(of: "--prefix").map({ arguments[arguments.index(after: $0)] }) {
+            let lock = URL(fileURLWithPath: prefix).appendingPathComponent("package-lock.json")
+            try #"{"packages":{"\#(prefix)/node_modules/acorn":{"version":"\#(version)"}}}"#
+                .write(to: lock, atomically: true, encoding: .utf8)
+        }
+        return CommandResult(stdout: "", stderr: "", status: status)
+    }
+}
+
 private final class NPMRegistryURLProtocol: URLProtocol, @unchecked Sendable {
     nonisolated(unsafe) static var responses: [String: Data] = [:]
 
@@ -192,7 +211,7 @@ private final class NPMRegistryURLProtocol: URLProtocol, @unchecked Sendable {
     #expect(packages.first?.repo == "https://github.com/acornjs/acorn")
 }
 
-@Test func npxScannerChecksRegistryForLatestVersion() async throws {
+@Test func npxScannerUsesNPMResolvedLatestVersion() async throws {
     let home = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
     let package = home.appendingPathComponent(".npm/_npx/a/node_modules/acorn", isDirectory: true)
     try FileManager.default.createDirectory(at: package, withIntermediateDirectories: true)
@@ -219,15 +238,49 @@ private final class NPMRegistryURLProtocol: URLProtocol, @unchecked Sendable {
         session: URLSession(configuration: configuration),
         baseURL: URL(string: "https://registry.example")!
     )
-    let scanner = PackageScanner(runner: FakeRunner(responses: [:]), homeDirectory: home)
+    let scanner = PackageScanner(runner: NPMResolveRunner(version: "1.1.0"), homeDirectory: home, toolPaths: ["npm": "/fake/npm"])
     let packages = try await scanner.scanNPX(database: PackageDatabase(npms: [
         "acorn": PackageMetadata(summary: nil, category: "developer-tools", homepage: nil, version: nil)
     ]), npmRegistryClient: client)
 
-    #expect(packages.first?.latestVersion == "1.2.0")
+    #expect(packages.first?.latestVersion == "1.1.0")
     #expect(packages.first?.isOutdated == true)
     #expect(packages.first?.summary == "Local parser")
     #expect(packages.first?.category == "developer-tools")
+    #expect(packages.first?.homepage == "https://example.com/acorn")
+}
+
+@Test func npxScannerIgnoresRegistryLatestWhenNPMResolutionFails() async throws {
+    let home = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    let package = home.appendingPathComponent(".npm/_npx/a/node_modules/acorn", isDirectory: true)
+    try FileManager.default.createDirectory(at: package, withIntermediateDirectories: true)
+    try #"{"packages":{"":{"dependencies":{"acorn":"1.0.0"}}}}"#
+        .write(to: home.appendingPathComponent(".npm/_npx/a/package-lock.json"), atomically: true, encoding: .utf8)
+    try #"{"name":"acorn","version":"1.0.0"}"#
+        .write(to: package.appendingPathComponent("package.json"), atomically: true, encoding: .utf8)
+    defer { try? FileManager.default.removeItem(at: home) }
+
+    NPMRegistryURLProtocol.responses = ["/acorn": Data("""
+    {
+      "dist-tags": { "latest": "1.2.0" },
+      "versions": {
+        "1.2.0": { "homepage": "https://example.com/acorn" }
+      }
+    }
+    """.utf8)]
+    defer { NPMRegistryURLProtocol.responses = [:] }
+
+    let configuration = URLSessionConfiguration.ephemeral
+    configuration.protocolClasses = [NPMRegistryURLProtocol.self]
+    let client = NPMRegistryClient(
+        session: URLSession(configuration: configuration),
+        baseURL: URL(string: "https://registry.example")!
+    )
+    let scanner = PackageScanner(runner: NPMResolveRunner(version: nil, status: 1), homeDirectory: home, toolPaths: ["npm": "/fake/npm"])
+    let packages = try await scanner.scanNPX(database: PackageDatabase(), npmRegistryClient: client)
+
+    #expect(packages.first?.latestVersion == nil)
+    #expect(packages.first?.isOutdated == false)
     #expect(packages.first?.homepage == "https://example.com/acorn")
 }
 
