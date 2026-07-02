@@ -281,7 +281,7 @@ private struct PackageRow: View {
     var body: some View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 3) {
-                HStack(alignment: .firstTextBaseline, spacing: 7) {
+                HStack(alignment: .firstTextBaseline, spacing: 3) {
                     Text(package.name).font(.system(size: 13, weight: .semibold)).foregroundStyle(AVGlassPalette.primaryText).lineLimit(1).layoutPriority(1)
                     if package.isOutdated && !showsManager { PackageBadgePill(text: "Outdated", color: AVGlassPalette.orange) }
                     Spacer(minLength: 8)
@@ -296,8 +296,9 @@ private struct PackageRow: View {
                     .lineLimit(2)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 13)
-            .frame(height: 72, alignment: .topLeading)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 8)
+            .frame(height: 66, alignment: .topLeading)
             .background {
                 if selected {
                     RoundedRectangle(cornerRadius: 8, style: .continuous).fill(AVGlassPalette.packageSelectedFill)
@@ -356,10 +357,11 @@ private struct PackageBadgePill: View {
     let color: Color
     var body: some View {
         Text(text.uppercased())
-            .font(.system(size: 9, weight: .bold))
+            .font(.system(size: 8, weight: .bold))
             .foregroundStyle(color)
             .lineLimit(1)
             .fixedSize(horizontal: true, vertical: false)
+            .tracking(0.5)
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
             .background(color.opacity(0.12), in: Capsule())
