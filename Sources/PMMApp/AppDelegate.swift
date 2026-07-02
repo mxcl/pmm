@@ -28,6 +28,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.titleVisibility = .hidden
         window.titlebarSeparatorStyle = .none
         window.toolbarStyle = .unified
+        window.toolbar = controller.makeToolbar()
         window.isMovableByWindowBackground = true
         window.setContentSize(NSSize(width: 1380, height: 760))
         window.minSize = NSSize(width: 1060, height: 680)
