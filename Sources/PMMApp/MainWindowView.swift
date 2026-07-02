@@ -81,7 +81,7 @@ struct MainWindowView: View {
                 .stroke(AVGlassPalette.sidebarBorder)
         }
         .padding(.leading, 10)
-        .padding(.trailing, 14)
+        .padding(.trailing, 0)
         .padding(.vertical, 10)
     }
 
