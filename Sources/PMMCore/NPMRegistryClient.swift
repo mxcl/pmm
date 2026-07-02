@@ -31,7 +31,8 @@ public struct NPMRegistryClient: Sendable {
         return PackageMetadata(
             summary: json["description"] as? String ?? latestBody?["description"] as? String,
             category: "developer-tools",
-            homepage: homepage(in: json) ?? latestBody.flatMap(homepage),
+            homepage: homepage(in: json) ?? latestBody?["homepage"] as? String,
+            repo: repositoryURL(json["repository"] ?? latestBody?["repository"]),
             version: latest,
             lastUpdatedAt: latest.flatMap { time?[$0] as? String } ?? time?["modified"] as? String
         )
@@ -47,7 +48,7 @@ public struct NPMRegistryClient: Sendable {
     }
 
     private static func homepage(in json: [String: Any]) -> String? {
-        json["homepage"] as? String ?? repositoryURL(json["repository"])
+        json["homepage"] as? String
     }
 
     private static func repositoryURL(_ raw: Any?) -> String? {

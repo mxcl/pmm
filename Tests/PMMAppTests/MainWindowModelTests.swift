@@ -75,6 +75,34 @@ import Testing
     #expect(index.packagesBySection[.developerTools]?.map(\.name) == ["new", "middle", "old"])
 }
 
+@Test func packageLinksUseHomepageDocsRepoOrderAndSkipInvalidURLs() {
+    let links = mainWindowLinks(for: ManagedPackage(
+        manager: .homebrew,
+        name: "git",
+        installedVersion: nil,
+        latestVersion: nil,
+        homepage: "https://git-scm.com/",
+        docs: "not a url",
+        repo: "https://github.com/git/git"
+    ))
+
+    #expect(links.map(\.tab) == [.homepage, .repo])
+    #expect(links.map(\.url.absoluteString) == ["https://git-scm.com/", "https://github.com/git/git"])
+}
+
+@Test func packageLinksFallBackToDocsThenRepoWhenHomepageIsMissing() {
+    let links = mainWindowLinks(for: ManagedPackage(
+        manager: .homebrew,
+        name: "pkg",
+        installedVersion: nil,
+        latestVersion: nil,
+        docs: "https://example.com/docs",
+        repo: "https://example.com/repo"
+    ))
+
+    #expect(links.first?.tab == .docs)
+}
+
 private func package(
     _ manager: PackageManagerKind,
     _ name: String,

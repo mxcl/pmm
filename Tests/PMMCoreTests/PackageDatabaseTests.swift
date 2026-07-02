@@ -12,6 +12,8 @@ import Testing
               "summary": "Distributed revision control system",
               "category": "developer-tools",
               "homepage": "https://git-scm.com/",
+              "docs": "https://git-scm.com/docs",
+              "repo": "https://github.com/git/git",
               "last_updated_at": "2026-06-26T22:01:54Z",
               "pulse_kind": "updated"
             }
@@ -30,6 +32,9 @@ import Testing
 
     let db = try PackageDatabase.decode(data)
     #expect(db.metadata(for: .homebrew, name: "git")?.category == "developer-tools")
+    #expect(db.metadata(for: .homebrew, name: "git")?.homepage == "https://git-scm.com/")
+    #expect(db.metadata(for: .homebrew, name: "git")?.docs == "https://git-scm.com/docs")
+    #expect(db.metadata(for: .homebrew, name: "git")?.repo == "https://github.com/git/git")
     #expect(db.metadata(for: .homebrew, name: "git")?.lastUpdatedAt == "2026-06-26T22:01:54Z")
     #expect(db.metadata(for: .homebrew, name: "git")?.pulseKind == "updated")
     #expect(db.metadata(for: .npm, name: "typescript")?.version == "5.9.2")

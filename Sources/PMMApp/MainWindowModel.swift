@@ -116,8 +116,46 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
 
 enum MainWindowLinkTab: String, CaseIterable, Identifiable {
     case homepage
+    case docs
+    case repo
+
     var id: String { rawValue }
-    var title: String { "Home" }
+    var title: String {
+        switch self {
+        case .homepage: "Home"
+        case .docs: "Docs"
+        case .repo: "Repo"
+        }
+    }
+
+    func urlString(in package: ManagedPackage) -> String? {
+        switch self {
+        case .homepage: package.homepage
+        case .docs: package.docs
+        case .repo: package.repo
+        }
+    }
+}
+
+struct MainWindowPackageLink: Equatable, Identifiable {
+    let tab: MainWindowLinkTab
+    let url: URL
+
+    var id: MainWindowLinkTab { tab }
+}
+
+func mainWindowLinks(for package: ManagedPackage?) -> [MainWindowPackageLink] {
+    guard let package else { return [] }
+    return MainWindowLinkTab.allCases.compactMap { tab in
+        mainWindowWebURL(tab.urlString(in: package)).map { MainWindowPackageLink(tab: tab, url: $0) }
+    }
+}
+
+private func mainWindowWebURL(_ string: String?) -> URL? {
+    guard let string, let url = URL(string: string), let scheme = url.scheme?.lowercased(), ["http", "https"].contains(scheme), url.host() != nil else {
+        return nil
+    }
+    return url
 }
 
 @MainActor

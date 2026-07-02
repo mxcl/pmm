@@ -26,7 +26,9 @@ public struct CratesIOClient: Sendable {
         return PackageMetadata(
             summary: crate["description"] as? String,
             category: "developer-tools",
-            homepage: crate["homepage"] as? String ?? crate["repository"] as? String ?? crate["documentation"] as? String,
+            homepage: crate["homepage"] as? String,
+            docs: crate["documentation"] as? String,
+            repo: crate["repository"] as? String,
             version: crate["max_version"] as? String,
             lastUpdatedAt: crate["updated_at"] as? String
         )

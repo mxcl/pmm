@@ -21,7 +21,8 @@ import Testing
     #expect(try NPMRegistryClient.metadata(from: data) == PackageMetadata(
         summary: "TypeScript is a language for application scale JavaScript development",
         category: "developer-tools",
-        homepage: "https://github.com/microsoft/TypeScript",
+        homepage: "https://www.typescriptlang.org/",
+        repo: "https://github.com/microsoft/TypeScript",
         version: "5.9.2",
         lastUpdatedAt: "2026-06-20T00:00:00.000Z"
     ))

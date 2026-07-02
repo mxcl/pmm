@@ -31,6 +31,8 @@ public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
     public let summary: String?
     public let category: String?
     public let homepage: String?
+    public let docs: String?
+    public let repo: String?
     public let lastUpdatedAt: String?
     public let pulseKind: String?
     public let installLocation: String?
@@ -45,6 +47,8 @@ public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
         summary: String? = nil,
         category: String? = nil,
         homepage: String? = nil,
+        docs: String? = nil,
+        repo: String? = nil,
         lastUpdatedAt: String? = nil,
         pulseKind: String? = nil,
         installLocation: String? = nil,
@@ -58,6 +62,8 @@ public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
         self.summary = summary
         self.category = category
         self.homepage = homepage
+        self.docs = docs
+        self.repo = repo
         self.lastUpdatedAt = lastUpdatedAt
         self.pulseKind = pulseKind
         self.installLocation = installLocation
@@ -84,6 +90,8 @@ public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
             summary: metadata.summary ?? summary,
             category: metadata.category ?? category,
             homepage: metadata.homepage ?? homepage,
+            docs: metadata.docs ?? docs,
+            repo: metadata.repo ?? repo,
             lastUpdatedAt: metadata.lastUpdatedAt ?? lastUpdatedAt,
             pulseKind: metadata.pulseKind ?? pulseKind,
             installLocation: installLocation,
@@ -103,6 +111,8 @@ public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
                 summary: newest.summary,
                 category: newest.category,
                 homepage: newest.homepage,
+                docs: newest.docs,
+                repo: newest.repo,
                 lastUpdatedAt: newest.lastUpdatedAt,
                 pulseKind: newest.pulseKind,
                 installLocation: newest.installLocation,
@@ -150,14 +160,18 @@ public struct PackageMetadata: Equatable, Sendable {
     public let summary: String?
     public let category: String?
     public let homepage: String?
+    public let docs: String?
+    public let repo: String?
     public let version: String?
     public let lastUpdatedAt: String?
     public let pulseKind: String?
 
-    public init(summary: String?, category: String?, homepage: String?, version: String?, lastUpdatedAt: String? = nil, pulseKind: String? = nil) {
+    public init(summary: String?, category: String?, homepage: String?, docs: String? = nil, repo: String? = nil, version: String?, lastUpdatedAt: String? = nil, pulseKind: String? = nil) {
         self.summary = summary
         self.category = category
         self.homepage = homepage
+        self.docs = docs
+        self.repo = repo
         self.version = version
         self.lastUpdatedAt = lastUpdatedAt
         self.pulseKind = pulseKind

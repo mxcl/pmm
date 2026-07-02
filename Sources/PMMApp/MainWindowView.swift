@@ -239,14 +239,30 @@ struct MainWindowDossierView: View {
 
 struct MainWindowLinksView: View {
     @ObservedObject var model: MainWindowModel
+    @State private var selectedTab: MainWindowLinkTab = .homepage
 
     var body: some View {
+        let links = mainWindowLinks(for: model.selectedPackage)
+        let selectedLink = selectedLink(in: links)
+
         VStack(spacing: 0) {
-            LinkURLBar(url: selectedURL) { model.open(url: selectedURL) }
+            HStack(spacing: 10) {
+                if links.count > 1 {
+                    Picker("Page", selection: selectedTabBinding(in: links)) {
+                        ForEach(links) { link in
+                            Text(link.tab.title).tag(link.tab)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 170)
+                    .labelsHidden()
+                }
+                LinkURLBar(url: selectedLink?.url) { model.open(url: selectedLink?.url) }
+            }
                 .padding(.horizontal, 12)
                 .frame(height: 42)
             hairline
-            if let url = selectedURL {
+            if let url = selectedLink?.url {
                 PackageWebView(url: url)
             } else {
                 Spacer(minLength: 0)
@@ -254,11 +270,23 @@ struct MainWindowLinksView: View {
         }
         .ignoresSafeArea(.container, edges: .top)
         .background(LiquidGlassSurface(material: .ultraThinMaterial, tint: AVGlassPalette.windowTint).ignoresSafeArea())
+        .onChange(of: links) { _, links in
+            if !links.contains(where: { $0.tab == selectedTab }) {
+                selectedTab = links.first?.tab ?? .homepage
+            }
+        }
         .preferredColorScheme(.dark)
     }
 
-    private var selectedURL: URL? {
-        model.selectedPackage?.homepage.flatMap(URL.init(string:))
+    private func selectedLink(in links: [MainWindowPackageLink]) -> MainWindowPackageLink? {
+        links.first { $0.tab == selectedTab } ?? links.first
+    }
+
+    private func selectedTabBinding(in links: [MainWindowPackageLink]) -> Binding<MainWindowLinkTab> {
+        Binding(
+            get: { selectedLink(in: links)?.tab ?? .homepage },
+            set: { selectedTab = $0 }
+        )
     }
 }
 
