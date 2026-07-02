@@ -277,7 +277,10 @@ struct MainWindowView: View {
 
     private func versionText(_ package: ManagedPackage, section: MainWindowSection? = nil) -> String {
         if package.isOutdated {
-            return "\(package.installedVersion ?? "?") → \(package.latestVersion ?? "?")"
+            if section == .outdated {
+                return "\(package.installedVersion ?? "?") → \(package.latestVersion ?? "?")"
+            }
+            return package.installedVersion ?? package.latestVersion ?? "available"
         }
         if section?.categoryIdentifier != nil, package.installedVersion == nil, package.latestVersion == nil {
             return package.manager.title
@@ -308,14 +311,13 @@ private struct PackageRow: View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 3) {
                 HStack(alignment: .firstTextBaseline, spacing: 7) {
-                    Text(package.name).font(.system(size: 13, weight: .semibold)).foregroundStyle(AVGlassPalette.primaryText).lineLimit(1)
-                    if package.isOutdated { PackageBadgePill(text: "Outdated", color: AVGlassPalette.orange) }
+                    Text(package.name).font(.system(size: 13, weight: .semibold)).foregroundStyle(AVGlassPalette.primaryText).lineLimit(1).layoutPriority(1)
+                    if package.isOutdated && !showsManager { PackageBadgePill(text: "Outdated", color: AVGlassPalette.orange) }
                     Spacer(minLength: 8)
                     Text(versionText)
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(AVGlassPalette.secondaryText)
                         .lineLimit(1)
-                        .fixedSize(horizontal: true, vertical: false)
                 }
                 Text(subtitle)
                     .font(.system(size: 12))
@@ -385,6 +387,8 @@ private struct PackageBadgePill: View {
         Text(text.uppercased())
             .font(.system(size: 9, weight: .bold))
             .foregroundStyle(color)
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
             .background(color.opacity(0.12), in: Capsule())
