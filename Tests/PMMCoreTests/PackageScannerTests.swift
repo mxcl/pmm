@@ -101,7 +101,7 @@ private struct FakeRunner: CommandRunning {
     let home = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
     defer { try? FileManager.default.removeItem(at: home) }
 
-    for (cacheID, version) in ["a": "8.15.0", "b": "8.16.0", "c": "8.16.0"] {
+    for (cacheID, version) in ["a": "1.0.0", "b": "1.2.0", "c": "1.2.0"] {
         let package = home.appendingPathComponent(".npm/_npx/\(cacheID)/node_modules/acorn", isDirectory: true)
         let transitive = home.appendingPathComponent(".npm/_npx/\(cacheID)/node_modules/commander", isDirectory: true)
         try FileManager.default.createDirectory(at: package, withIntermediateDirectories: true)
@@ -116,14 +116,15 @@ private struct FakeRunner: CommandRunning {
 
     let scanner = PackageScanner(runner: FakeRunner(responses: [:]), homeDirectory: home)
     let packages = try scanner.scanNPX(database: PackageDatabase(npms: [
-        "acorn": PackageMetadata(summary: nil, category: nil, homepage: nil, version: "8.17.0")
+        "acorn": PackageMetadata(summary: nil, category: nil, homepage: nil, version: "1.2.0")
     ]))
 
     #expect(packages.count == 1)
-    #expect(packages.first?.isOutdated == true)
+    #expect(packages.first?.isOutdated == false)
     #expect(packages.first?.name == "acorn")
-    #expect(packages.first?.installedVersion == "8.16.0")
-    #expect(packages.first?.installedVersions == ["8.16.0", "8.15.0"])
+    #expect(packages.first?.installedVersion == "1.2.0")
+    #expect(packages.first?.installedVersions == ["1.2.0", "1.0.0"])
+    #expect(packages.first?.otherInstalledVersions == ["1.0.0"])
 }
 
 @Test func uvScannerIncludesToolsAndOnlyUvManagedPythons() throws {

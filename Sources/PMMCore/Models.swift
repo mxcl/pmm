@@ -53,7 +53,7 @@ public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
         self.manager = manager
         self.name = name
         self.installedVersion = installedVersion
-        self.installedVersions = installedVersions
+        self.installedVersions = Self.normalizedVersions(installedVersions, including: installedVersion)
         self.latestVersion = latestVersion
         self.summary = summary
         self.category = category
@@ -65,8 +65,12 @@ public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
     }
 
     public var isOutdated: Bool {
-        guard let installedVersion, let latestVersion else { return false }
-        return !installedVersion.isEmpty && !latestVersion.isEmpty && installedVersion != latestVersion
+        guard let latestVersion, !latestVersion.isEmpty, !installedVersions.isEmpty else { return false }
+        return !installedVersions.contains(latestVersion)
+    }
+
+    public var otherInstalledVersions: [String] {
+        installedVersions.filter { $0 != installedVersion }
     }
 
     public func applying(metadata: PackageMetadata?) -> ManagedPackage {
@@ -85,6 +89,35 @@ public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
             installLocation: installLocation,
             binaryPath: binaryPath
         )
+    }
+
+    public static func consolidatingInstalledVersions(in packages: [ManagedPackage]) -> [ManagedPackage] {
+        Dictionary(grouping: packages, by: { "\($0.manager.rawValue):\($0.name)" }).values.compactMap { group in
+            guard let newest = group.max(by: { ($0.installedVersion ?? "").localizedStandardCompare($1.installedVersion ?? "") == .orderedAscending }) else { return nil }
+            return ManagedPackage(
+                manager: newest.manager,
+                name: newest.name,
+                installedVersion: newest.installedVersion,
+                installedVersions: normalizedVersions(group.flatMap(\.installedVersions), including: newest.installedVersion),
+                latestVersion: newest.latestVersion,
+                summary: newest.summary,
+                category: newest.category,
+                homepage: newest.homepage,
+                lastUpdatedAt: newest.lastUpdatedAt,
+                pulseKind: newest.pulseKind,
+                installLocation: newest.installLocation,
+                binaryPath: newest.binaryPath
+            )
+        }
+        .sorted {
+            if $0.manager != $1.manager { return $0.manager.rawValue < $1.manager.rawValue }
+            return $0.name.localizedStandardCompare($1.name) == .orderedAscending
+        }
+    }
+
+    private static func normalizedVersions(_ versions: [String], including installedVersion: String?) -> [String] {
+        Array(Set(versions + [installedVersion].compactMap { $0 }.filter { !$0.isEmpty }))
+            .sorted { $0.localizedStandardCompare($1) == .orderedDescending }
     }
 }
 

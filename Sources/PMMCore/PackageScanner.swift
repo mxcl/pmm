@@ -116,7 +116,7 @@ public struct PackageScanner {
                 )
             }
         }
-        return newestNPXPackages(uniqued(packages))
+        return ManagedPackage.consolidatingInstalledVersions(in: packages)
     }
 
     public func scanUV(database: PackageDatabase) throws -> [ManagedPackage] {
@@ -569,37 +569,6 @@ public struct PackageScanner {
             .path
     }
 
-    private func uniqued(_ packages: [ManagedPackage]) -> [ManagedPackage] {
-        var seen = Set<String>()
-        return packages.filter {
-            seen.insert("\($0.manager.rawValue):\($0.name):\($0.installedVersion ?? "")").inserted
-        }
-    }
-
-    private func newestNPXPackages(_ packages: [ManagedPackage]) -> [ManagedPackage] {
-        Dictionary(grouping: packages, by: \.name).values.compactMap { group in
-            guard let newest = group.max(by: { ($0.installedVersion ?? "").localizedStandardCompare($1.installedVersion ?? "") == .orderedAscending }) else { return nil }
-            return ManagedPackage(
-                manager: newest.manager,
-                name: newest.name,
-                installedVersion: newest.installedVersion,
-                installedVersions: uniqueVersions(group.compactMap(\.installedVersion)),
-                latestVersion: newest.latestVersion,
-                summary: newest.summary,
-                category: newest.category,
-                homepage: newest.homepage,
-                lastUpdatedAt: newest.lastUpdatedAt,
-                pulseKind: newest.pulseKind,
-                installLocation: newest.installLocation,
-                binaryPath: newest.binaryPath
-            )
-        }
-        .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
-    }
-
-    private func uniqueVersions(_ versions: [String]) -> [String] {
-        Array(Set(versions)).sorted { $0.localizedStandardCompare($1) == .orderedDescending }
-    }
 }
 
 private func jsonObject(_ text: String) -> [String: Any]? {
