@@ -122,6 +122,30 @@ import Testing
     #expect(links.first?.tab == .repo)
 }
 
+@Test func packageLinksPreferRepoAndDocsOverDuplicateHomepage() {
+    let repoLinks = mainWindowLinks(for: ManagedPackage(
+        manager: .homebrew,
+        name: "pkg",
+        installedVersion: nil,
+        latestVersion: nil,
+        homepage: "https://example.com/repo",
+        docs: "https://example.com/docs",
+        repo: "https://example.com/repo"
+    ))
+    let docsLinks = mainWindowLinks(for: ManagedPackage(
+        manager: .homebrew,
+        name: "pkg",
+        installedVersion: nil,
+        latestVersion: nil,
+        homepage: "https://example.com/docs",
+        docs: "https://example.com/docs",
+        repo: "https://example.com/repo"
+    ))
+
+    #expect(repoLinks.map(\.tab) == [.repo, .docs])
+    #expect(docsLinks.map(\.tab) == [.repo, .docs])
+}
+
 @Test func packageLinksSkipInvalidURLs() {
     let links = mainWindowLinks(for: ManagedPackage(
         manager: .homebrew,

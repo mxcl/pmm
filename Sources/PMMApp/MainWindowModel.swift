@@ -146,9 +146,11 @@ struct MainWindowPackageLink: Equatable, Identifiable {
 
 func mainWindowLinks(for package: ManagedPackage?) -> [MainWindowPackageLink] {
     guard let package else { return [] }
-    return MainWindowLinkTab.allCases.compactMap { tab in
+    let links = MainWindowLinkTab.allCases.compactMap { tab in
         mainWindowWebURL(tab.urlString(in: package)).map { MainWindowPackageLink(tab: tab, url: $0) }
     }
+    let specificURLs = Set(links.filter { $0.tab != .homepage }.map(\.url))
+    return links.filter { $0.tab != .homepage || !specificURLs.contains($0.url) }
 }
 
 func mainWindowReleaseNotesURL(for package: ManagedPackage?) -> URL? {
