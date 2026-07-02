@@ -230,7 +230,7 @@ public struct PackageScanner {
                 manager: .homebrew,
                 name: name,
                 installedVersion: version,
-                latestVersion: outdated[name] ?? metadata?.version,
+                latestVersion: outdated[name],
                 summary: metadata?.summary,
                 category: curation?.category,
                 homepage: metadata?.homepage,
@@ -304,7 +304,6 @@ public struct PackageScanner {
     }
 
     private func homebrewMetadata(from raw: [String: Any]) -> PackageMetadata {
-        let versions = raw["versions"] as? [String: Any]
         let sourceURL = (raw["urls"] as? [String: Any])
             .flatMap { $0["head"] as? [String: Any] ?? $0["stable"] as? [String: Any] }?["url"] as? String
         return PackageMetadata(
@@ -312,7 +311,7 @@ public struct PackageScanner {
             category: nil,
             homepage: raw["homepage"] as? String,
             repo: sourceRepositoryURL(sourceURL),
-            version: versions?["stable"] as? String ?? raw["version"] as? String
+            version: nil
         )
     }
 

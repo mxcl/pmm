@@ -114,14 +114,14 @@ private struct FakeRunner: CommandRunning {
     ))
 
     #expect(packages.map(\.name) == ["git", "visual-studio-code"])
-    #expect(packages.first?.latestVersion == "2.51.0")
+    #expect(packages.first?.latestVersion == nil)
     #expect(packages.first?.summary == "Distributed revision control system")
     #expect(packages.first?.category == "developer-tools")
     #expect(packages.first?.homepage == "https://git-scm.com/")
     #expect(packages.first?.repo == "https://github.com/git/git")
     #expect(packages.first?.lastUpdatedAt == "2026-06-26T22:01:54Z")
     #expect(packages.first?.pulseKind == "updated")
-    #expect(packages.last?.latestVersion == "1.102.0")
+    #expect(packages.last?.latestVersion == nil)
     #expect(packages.last?.summary == "Code editor")
     #expect(packages.last?.category == "productivity")
 }
