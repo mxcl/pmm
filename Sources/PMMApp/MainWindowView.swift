@@ -76,6 +76,7 @@ struct MainWindowView: View {
                         .fill(AVGlassPalette.sidebarTint)
                 }
         }
+        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .stroke(AVGlassPalette.sidebarBorder)
