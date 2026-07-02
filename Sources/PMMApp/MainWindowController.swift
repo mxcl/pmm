@@ -36,7 +36,7 @@ final class MainWindowController: NSSplitViewController {
         return toolbar
     }
 
-    @objc private func refresh(_ sender: Any?) {
+    @objc func refresh(_ sender: Any?) {
         model.reload()
     }
 

@@ -43,14 +43,63 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func makeMainMenu() -> NSMenu {
-        let menu = NSMenu(title: "Main Menu")
-        let appItem = NSMenuItem()
-        let appMenu = NSMenu(title: "Package Manager Manager")
-        appMenu.addItem(withTitle: "About Package Manager Manager", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
-        appMenu.addItem(.separator())
-        appMenu.addItem(withTitle: "Quit Package Manager Manager", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
-        appItem.submenu = appMenu
-        menu.addItem(appItem)
+        let menu = NSMenu(title: L10n.string("Main Menu"))
+        menu.addItem(makeAppMenuItem())
+        menu.addItem(makeEditMenuItem())
+        menu.addItem(makeWindowMenuItem())
         return menu
+    }
+
+    private func makeAppMenuItem() -> NSMenuItem {
+        let appItem = NSMenuItem()
+        let appMenu = NSMenu(title: L10n.string("Package Manager Manager"))
+        let appName = L10n.string("Package Manager Manager")
+
+        appMenu.addItem(withTitle: L10n.format("About %@", appName), action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        appMenu.addItem(.separator())
+        appMenu.addItem(withTitle: L10n.format("Hide %@", appName), action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
+        let hideOthers = appMenu.addItem(withTitle: L10n.string("Hide Others"), action: #selector(NSApplication.hideOtherApplications(_:)), keyEquivalent: "h")
+        hideOthers.keyEquivalentModifierMask = [.command, .option]
+        appMenu.addItem(withTitle: L10n.string("Show All"), action: #selector(NSApplication.unhideAllApplications(_:)), keyEquivalent: "")
+        appMenu.addItem(.separator())
+        appMenu.addItem(withTitle: L10n.format("Quit %@", appName), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appItem.submenu = appMenu
+        return appItem
+    }
+
+    private func makeEditMenuItem() -> NSMenuItem {
+        let editItem = NSMenuItem()
+        let editMenu = NSMenu(title: L10n.string("Edit"))
+
+        editMenu.addItem(withTitle: L10n.string("Undo"), action: Selector(("undo:")), keyEquivalent: "z")
+        let redoItem = editMenu.addItem(withTitle: L10n.string("Redo"), action: Selector(("redo:")), keyEquivalent: "z")
+        redoItem.keyEquivalentModifierMask = [.command, .shift]
+        editMenu.addItem(.separator())
+        editMenu.addItem(withTitle: L10n.string("Cut"), action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+        editMenu.addItem(withTitle: L10n.string("Copy"), action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        editMenu.addItem(withTitle: L10n.string("Paste"), action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        editMenu.addItem(withTitle: L10n.string("Select All"), action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+
+        editItem.submenu = editMenu
+        return editItem
+    }
+
+    private func makeWindowMenuItem() -> NSMenuItem {
+        let windowItem = NSMenuItem()
+        let windowMenu = NSMenu(title: L10n.string("Window"))
+
+        let refreshItem = windowMenu.addItem(withTitle: L10n.string("Refresh"), action: #selector(refreshPackages(_:)), keyEquivalent: "r")
+        refreshItem.target = self
+        windowMenu.addItem(.separator())
+        windowMenu.addItem(withTitle: L10n.string("Close"), action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        windowMenu.addItem(withTitle: L10n.string("Minimize"), action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m")
+        windowMenu.addItem(withTitle: L10n.string("Zoom"), action: #selector(NSWindow.performZoom(_:)), keyEquivalent: "")
+        windowItem.submenu = windowMenu
+        NSApp.windowsMenu = windowMenu
+        return windowItem
+    }
+
+    @objc private func refreshPackages(_ sender: Any?) {
+        (window?.contentViewController as? MainWindowController)?.refresh(sender)
     }
 }
