@@ -202,7 +202,7 @@ final class MainWindowModel: ObservableObject {
             newUpdatedSelectionDisplayCount = nil
         }
         selectedSection = section
-        selectedPackage = displayedPackages.first
+        selectedPackage = nil
         loadSelectedPackageMetadata()
     }
 
@@ -238,12 +238,12 @@ final class MainWindowModel: ObservableObject {
         userDefaults.set(clickedAt, forKey: Self.newUpdatedLastClickedAtDefaultsKey)
     }
 
-    private func apply(inventory next: PackageInventory, index: PackageIndex) {
+    func apply(inventory next: PackageInventory, index: PackageIndex) {
         inventory = next
         packageIndex = index
         packages = next.packages
         errors = next.errors
-        selectedPackage = selectedPackage.flatMap { selected in displayedPackages.first { $0.id == selected.id } } ?? displayedPackages.first
+        selectedPackage = selectedPackage.flatMap { selected in displayedPackages.first { $0.id == selected.id } }
         if let selectedPackage {
             self.selectedPackage = selectedPackage.applying(metadata: cachedMetadata(for: selectedPackage))
         }
@@ -389,7 +389,7 @@ private struct PackageScanBatch: Sendable {
     }
 }
 
-private struct PackageIndex: Sendable {
+struct PackageIndex: Sendable {
     static let empty = PackageIndex(packages: [], catalogPackages: [], newUpdatedLastClickedAt: nil)
 
     let packagesBySection: [MainWindowSection: [ManagedPackage]]

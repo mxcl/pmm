@@ -26,6 +26,9 @@ final class MainWindowController: NSSplitViewController {
 
     override func viewDidAppear() {
         super.viewDidAppear()
+        DispatchQueue.main.async { [weak self] in
+            self?.view.window?.makeFirstResponder(nil)
+        }
         model.reload()
     }
 

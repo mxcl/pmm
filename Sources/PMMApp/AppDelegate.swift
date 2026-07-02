@@ -21,7 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let controller = MainWindowController()
-        let window = NSWindow(
+        let window = PMMWindow(
             contentRect: NSRect(origin: .zero, size: NSSize(width: 1380, height: 760)),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
@@ -101,5 +101,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func refreshPackages(_ sender: Any?) {
         (window?.contentViewController as? MainWindowController)?.refresh(sender)
+    }
+}
+
+private final class PMMWindow: NSWindow {
+    override func cancelOperation(_ sender: Any?) {
+        makeFirstResponder(nil)
+    }
+
+    override func sendEvent(_ event: NSEvent) {
+        if event.type == .leftMouseDown, firstResponder is NSText {
+            makeFirstResponder(nil)
+        }
+        super.sendEvent(event)
     }
 }
