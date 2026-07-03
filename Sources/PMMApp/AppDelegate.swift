@@ -1,7 +1,7 @@
 import AppKit
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate {
     private var window: NSWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -37,6 +37,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.toolbarStyle = .automatic
         let toolbar = NSToolbar(identifier: "PMMToolbar")
         toolbar.displayMode = .iconOnly
+        toolbar.delegate = self
         window.toolbar = toolbar
         window.isMovableByWindowBackground = true
         window.minSize = NSSize(width: 1104, height: 680)
@@ -116,6 +117,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func refreshPackages(_ sender: Any?) {
         (window?.contentViewController as? MainWindowController)?.refresh(sender)
+    }
+
+    func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
+        [.toggleSidebar]
+    }
+
+    func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
+        [.toggleSidebar]
+    }
+
+    func toolbar(_ toolbar: NSToolbar, itemForItemIdentifier itemIdentifier: NSToolbarItem.Identifier, willBeInsertedIntoToolbar flag: Bool) -> NSToolbarItem? {
+        guard itemIdentifier == .toggleSidebar else { return nil }
+        let item = NSToolbarItem(itemIdentifier: itemIdentifier)
+        item.label = L10n.string("Toggle Sidebar")
+        item.paletteLabel = item.label
+        item.toolTip = item.label
+        item.image = NSImage(systemSymbolName: "sidebar.left", accessibilityDescription: item.label)
+        item.target = nil
+        item.action = #selector(NSSplitViewController.toggleSidebar(_:))
+        return item
     }
 }
 
