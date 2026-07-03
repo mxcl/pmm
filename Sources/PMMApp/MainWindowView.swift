@@ -292,7 +292,7 @@ func mainWindowBrowserDisplayURL(_ url: URL) -> String {
 
 private func mainWindowVersionText(_ package: ManagedPackage, section: MainWindowSection? = nil) -> String {
     if section == .newUpdated, let pulseKind = package.pulseKind {
-        return pulseKind
+        return pulseKind.capitalized
     }
     if package.isOutdated {
         if section == nil || section == .outdated {
