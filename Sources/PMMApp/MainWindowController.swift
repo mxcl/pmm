@@ -27,7 +27,7 @@ final class MainWindowController: NSSplitViewController {
         DispatchQueue.main.async { [weak self] in
             self?.view.window?.makeFirstResponder(nil)
         }
-        model.reload()
+        model.syncFromHost()
     }
 
     @objc func refresh(_ sender: Any?) {

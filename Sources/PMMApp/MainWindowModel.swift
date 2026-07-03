@@ -187,12 +187,12 @@ private func mainWindowGitHubRepoReleaseNotesURL(_ string: String?) -> URL? {
 }
 
 @MainActor
-final class MainWindowModel: ObservableObject {
+final class MainWindowModel: NSObject, ObservableObject {
     @Published var selectedSection: MainWindowSection = .installed
     @Published private(set) var packages: [ManagedPackage] = []
     @Published private(set) var selectedPackage: ManagedPackage?
     @Published var selectedLinkTab: MainWindowLinkTab?
-    @Published private(set) var isReloading = false
+    @Published private(set) var isReloading = true
     @Published private(set) var loadingManagers = Set(PackageManagerKind.allCases)
     @Published private(set) var errors: [String] = []
     @Published private(set) var isLoadingSelectedPackageMetadata = false
@@ -207,26 +207,23 @@ final class MainWindowModel: ObservableObject {
     private var newUpdatedLastClickedAt: Date?
     private var newUpdatedSelectionDisplayCount: Int?
     private let userDefaults: UserDefaults
-    private let cratesIOClient: CratesIOClient
-    private let npmRegistryClient: NPMRegistryClient
-    private let packageUninstaller: PackageUninstaller
-    private let packageUpdater: PackageUpdater
-    private var packageMetadataCache: [String: PackageMetadata] = [:]
-    private var selectedMetadataTask: Task<Void, Never>?
+    private let store: PackageHostStore
+    private let notificationCenter = DistributedNotificationCenter.default()
 
     init(
         userDefaults: UserDefaults = .standard,
-        cratesIOClient: CratesIOClient = CratesIOClient(),
-        npmRegistryClient: NPMRegistryClient = NPMRegistryClient(),
-        packageUninstaller: PackageUninstaller = PackageUninstaller(),
-        packageUpdater: PackageUpdater = PackageUpdater()
+        store: PackageHostStore = PackageHostStore()
     ) {
         self.userDefaults = userDefaults
-        self.cratesIOClient = cratesIOClient
-        self.npmRegistryClient = npmRegistryClient
-        self.packageUninstaller = packageUninstaller
-        self.packageUpdater = packageUpdater
         newUpdatedLastClickedAt = userDefaults.object(forKey: Self.newUpdatedLastClickedAtDefaultsKey) as? Date
+        self.store = store
+        super.init()
+        syncFromHost()
+        notificationCenter.addObserver(self, selector: #selector(hostSnapshotChanged(_:)), name: PackageHostNotifications.snapshotChanged, object: nil)
+    }
+
+    deinit {
+        notificationCenter.removeObserver(self)
     }
 
     var activeSidebarSection: MainWindowSection? { selectedSection }
@@ -252,25 +249,7 @@ final class MainWindowModel: ObservableObject {
     }
 
     func reload() {
-        isReloading = true
-        loadingManagers = Set(PackageManagerKind.allCases)
-        Task {
-            let clickedAt = newUpdatedLastClickedAt
-            let remoteDatabase = Task.detached(priority: .background, operation: { () -> PackageDatabase? in
-                guard let db = try? await PackageDatabase.fetch() else { return nil }
-                return db
-            })
-
-            if let cached = await Task.detached(operation: { PackageDatabase.cached() }).value {
-                await scanAndApply(database: cached, newUpdatedLastClickedAt: clickedAt)
-            }
-
-            if let db = await remoteDatabase.value {
-                await scanAndApply(database: db, newUpdatedLastClickedAt: clickedAt)
-            }
-            loadingManagers.removeAll()
-            isReloading = false
-        }
+        PackageHostNotifications.postRefreshRequested()
     }
 
     func selectSection(_ section: MainWindowSection) {
@@ -283,13 +262,11 @@ final class MainWindowModel: ObservableObject {
         selectedSection = section
         selectedPackage = nil
         selectedLinkTab = nil
-        loadSelectedPackageMetadata()
     }
 
     func select(_ package: ManagedPackage) {
-        selectedPackage = package.applying(metadata: cachedMetadata(for: package))
+        selectedPackage = package
         selectedLinkTab = nil
-        loadSelectedPackageMetadata()
     }
 
     func selectAdjacentPackage(offset: Int) -> Bool {
@@ -319,38 +296,12 @@ final class MainWindowModel: ObservableObject {
 
     func uninstall(_ package: ManagedPackage) {
         guard package.installedVersion != nil, uninstallingPackageName == nil, updatingPackageName == nil else { return }
-        uninstallingPackageName = package.displayName
-        Task {
-            let result = await Task.detached { [packageUninstaller] in
-                Result { try packageUninstaller.uninstall(package) }
-            }.value
-            uninstallingPackageName = nil
-            switch result {
-            case .success:
-                selectedPackage = nil
-                selectedLinkTab = nil
-                reload()
-            case .failure(let error):
-                errors.append(error.localizedDescription)
-            }
-        }
+        PackageHostNotifications.postUninstallRequested(packageID: package.id)
     }
 
     func update(_ package: ManagedPackage) {
         guard PackageUpdater.supports(package), uninstallingPackageName == nil, updatingPackageName == nil else { return }
-        updatingPackageName = package.displayName
-        Task {
-            let result = await Task.detached { [packageUpdater] in
-                Result { try packageUpdater.update(package) }
-            }.value
-            updatingPackageName = nil
-            switch result {
-            case .success:
-                reload()
-            case .failure(let error):
-                errors.append(error.localizedDescription)
-            }
-        }
+        PackageHostNotifications.postUpdateRequested(packageID: package.id)
     }
 
     private var newUpdatedUnreadCount: Int? {
@@ -369,142 +320,52 @@ final class MainWindowModel: ObservableObject {
         packages = next.packages
         errors = next.errors
         selectedPackage = selectedPackage.flatMap { selected in displayedPackages.first { $0.id == selected.id } }
-        if let selectedPackage {
-            self.selectedPackage = selectedPackage.applying(metadata: cachedMetadata(for: selectedPackage))
-        }
-        loadSelectedPackageMetadata()
     }
 
-    private func loadSelectedPackageMetadata() {
-        selectedMetadataTask?.cancel()
-        guard let package = selectedPackage, shouldLoadMetadata(for: package) else {
-            isLoadingSelectedPackageMetadata = false
+    func syncFromHost() {
+        guard let snapshot = try? store.load(), let inventory = snapshot.inventory else {
+            isReloading = true
+            loadingManagers = Set(PackageManagerKind.allCases)
             return
         }
-        if let metadata = cachedMetadata(for: package) {
-            selectedPackage = package.applying(metadata: metadata)
-            isLoadingSelectedPackageMetadata = false
+        apply(snapshot: snapshot, inventory: inventory)
+    }
+
+    func apply(snapshot: PackageHostSnapshot) {
+        guard let inventory = snapshot.inventory else {
+            isReloading = true
+            loadingManagers = Set(PackageManagerKind.allCases)
+            uninstallingPackageName = nil
+            updatingPackageName = nil
             return
         }
+        apply(snapshot: snapshot, inventory: inventory)
+    }
 
-        isLoadingSelectedPackageMetadata = true
-        let key = metadataKey(for: package)
-        selectedMetadataTask = Task.detached { [cratesIOClient, npmRegistryClient] in
-            let name = package.packageToken
-            let metadata = try? await {
-                switch package.manager {
-                case .cargoInstall:
-                    return try await cratesIOClient.metadata(for: name)
-                case .npm, .npx:
-                    return try await npmRegistryClient.metadata(for: name)
-                case .homebrew, .uv, .uvx:
-                    return nil
-                }
-            }()
-            guard !Task.isCancelled else { return }
-            await MainActor.run {
-                guard self.selectedPackage?.id == package.id else { return }
-                if let metadata {
-                    self.packageMetadataCache[key] = metadata
-                    self.selectedPackage = self.selectedPackage?.applying(metadata: metadata)
-                }
-                self.isLoadingSelectedPackageMetadata = false
-            }
+    private func apply(snapshot: PackageHostSnapshot, inventory: PackageInventory) {
+        isReloading = snapshot.isRefreshing
+        loadingManagers = snapshot.isRefreshing ? Set(PackageManagerKind.allCases) : []
+        var nextErrors = inventory.errors
+        if let errorMessage = snapshot.errorMessage, !nextErrors.contains(errorMessage) {
+            nextErrors.insert(errorMessage, at: 0)
         }
+        let nextInventory = PackageInventory(generatedAt: inventory.generatedAt, packages: inventory.packages, errors: nextErrors)
+        apply(
+            inventory: nextInventory,
+            index: PackageIndex(
+                packages: nextInventory.packages,
+                catalogPackages: snapshot.catalogPackages,
+                newUpdatedLastClickedAt: newUpdatedLastClickedAt
+            )
+        )
+        uninstallingPackageName = snapshot.runningAction?.kind == .uninstall ? snapshot.runningAction?.displayName : nil
+        updatingPackageName = snapshot.runningAction?.kind == .update ? snapshot.runningAction?.displayName : nil
+        isLoadingSelectedPackageMetadata = false
     }
 
-    private func shouldLoadMetadata(for package: ManagedPackage) -> Bool {
-        switch package.manager {
-        case .cargoInstall, .npm, .npx: true
-        case .homebrew, .uv, .uvx: false
-        }
+    @objc private func hostSnapshotChanged(_ notification: Notification) {
+        syncFromHost()
     }
-
-    private func cachedMetadata(for package: ManagedPackage) -> PackageMetadata? {
-        packageMetadataCache[metadataKey(for: package)]
-    }
-
-    private func metadataKey(for package: ManagedPackage) -> String {
-        package.identifier
-    }
-
-    private func scanAndApply(database: PackageDatabase, newUpdatedLastClickedAt: Date?) async {
-        let catalogPackages = await Task.detached(priority: .background, operation: { database.catalogPackages }).value
-        let previousPackages = packages
-        var scannedPackages: [ManagedPackage] = []
-        var scannedErrors: [String] = []
-        var scannedManagers = Set<PackageManagerKind>()
-
-        await apply(packages: previousPackages, errors: errors, catalogPackages: catalogPackages, newUpdatedLastClickedAt: newUpdatedLastClickedAt)
-
-        await withTaskGroup(of: PackageScanBatch.self) { group in
-            group.addTask {
-                let scanner = PackageScanner()
-                do { return PackageScanBatch(managers: [.cargoInstall], packages: try scanner.scanCargoInstall(database: database)) }
-                catch { return PackageScanBatch(managers: [.cargoInstall], errors: [error.localizedDescription]) }
-            }
-            group.addTask {
-                let scanner = PackageScanner()
-                do { return PackageScanBatch(managers: [.homebrew], packages: try scanner.scanHomebrew(database: database)) }
-                catch { return PackageScanBatch(managers: [.homebrew], errors: [error.localizedDescription]) }
-            }
-            group.addTask {
-                let scanner = PackageScanner()
-                do { return PackageScanBatch(managers: [.npm], packages: try scanner.scanNPM(database: database)) }
-                catch { return PackageScanBatch(managers: [.npm], errors: [error.localizedDescription]) }
-            }
-            group.addTask { [npmRegistryClient] in
-                let scanner = PackageScanner()
-                do { return PackageScanBatch(managers: [.npx], packages: try await scanner.scanNPX(database: database, npmRegistryClient: npmRegistryClient)) }
-                catch { return PackageScanBatch(managers: [.npx], errors: [error.localizedDescription]) }
-            }
-            group.addTask {
-                let scanner = PackageScanner()
-                do { return PackageScanBatch(managers: [.uv], packages: try scanner.scanUV(database: database)) }
-                catch { return PackageScanBatch(managers: [.uv], errors: [error.localizedDescription]) }
-            }
-            group.addTask {
-                let scanner = PackageScanner()
-                do { return PackageScanBatch(managers: [.uvx], packages: try scanner.scanUVX(database: database)) }
-                catch { return PackageScanBatch(managers: [.uvx], errors: [error.localizedDescription]) }
-            }
-
-            for await batch in group {
-                scannedManagers.formUnion(batch.managers)
-                loadingManagers.subtract(batch.managers)
-                scannedPackages.removeAll { batch.managers.contains($0.manager) }
-                scannedPackages += batch.packages
-                scannedErrors += batch.errors
-                let visiblePackages = previousPackages.filter { !scannedManagers.contains($0.manager) } + scannedPackages
-                await apply(packages: visiblePackages, errors: scannedErrors, catalogPackages: catalogPackages, newUpdatedLastClickedAt: newUpdatedLastClickedAt)
-            }
-        }
-    }
-
-    private func apply(packages nextPackages: [ManagedPackage], errors nextErrors: [String], catalogPackages: [ManagedPackage], newUpdatedLastClickedAt: Date?) async {
-        let (next, index) = await Task.detached(priority: .background) {
-            let sortedPackages = nextPackages.sorted {
-                if $0.manager != $1.manager { return $0.manager.rawValue < $1.manager.rawValue }
-                return Self.packageDisplayOrder($0, $1)
-            }
-            let next = PackageInventory(packages: sortedPackages, errors: nextErrors)
-            let index = PackageIndex(packages: sortedPackages, catalogPackages: catalogPackages, newUpdatedLastClickedAt: newUpdatedLastClickedAt)
-            return (next, index)
-        }.value
-        apply(inventory: next, index: index)
-    }
-
-    nonisolated private static func packageDisplayOrder(_ lhs: ManagedPackage, _ rhs: ManagedPackage) -> Bool {
-        let displayOrder = lhs.displayName.localizedStandardCompare(rhs.displayName)
-        if displayOrder != .orderedSame { return displayOrder == .orderedAscending }
-        return lhs.identifier < rhs.identifier
-    }
-}
-
-private struct PackageScanBatch: Sendable {
-    let managers: Set<PackageManagerKind>
-    var packages: [ManagedPackage] = []
-    var errors: [String] = []
 }
 
 struct PackageIndex: Sendable {

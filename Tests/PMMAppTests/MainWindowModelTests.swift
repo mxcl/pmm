@@ -17,6 +17,53 @@ import Testing
 }
 
 @MainActor
+@Test func modelLoadsPackagesFromHostSnapshotStore() throws {
+    let root = FileManager.default.temporaryDirectory
+        .appendingPathComponent(UUID().uuidString, isDirectory: true)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let store = PackageHostStore(directory: root)
+    let package = ManagedPackage(manager: .homebrew, name: "git", installedVersion: "1", latestVersion: "2")
+    let catalogPackage = ManagedPackage(
+        manager: .homebrew,
+        name: "new-tool",
+        installedVersion: nil,
+        latestVersion: "1",
+        lastUpdatedAt: "2026-06-01T00:00:00Z",
+        pulseKind: "new"
+    )
+    try store.save(PackageHostSnapshot(
+        inventory: PackageInventory(packages: [package]),
+        catalogPackages: [catalogPackage],
+        isRefreshing: true,
+        runningAction: PackageHostRunningAction(kind: .update, packageID: package.id, displayName: "git")
+    ))
+
+    let model = MainWindowModel(userDefaults: UserDefaults(suiteName: UUID().uuidString)!, store: store)
+
+    #expect(model.packages == [package])
+    #expect(model.isReloading)
+    #expect(model.updatingPackageName == "git")
+    #expect(model.count(for: .outdated) == 1)
+    #expect(model.count(for: .newUpdated) == 1)
+}
+
+@MainActor
+@Test func modelShowsLoadingWhenHostSnapshotIsMissing() {
+    let root = FileManager.default.temporaryDirectory
+        .appendingPathComponent(UUID().uuidString, isDirectory: true)
+    defer { try? FileManager.default.removeItem(at: root) }
+
+    let model = MainWindowModel(
+        userDefaults: UserDefaults(suiteName: UUID().uuidString)!,
+        store: PackageHostStore(directory: root)
+    )
+
+    #expect(model.isReloading)
+    #expect(model.displayedPackages.isEmpty)
+    #expect(model.isLoadingCount(for: .homebrew))
+}
+
+@MainActor
 @Test func sectionSelectionClearsPackageSelection() {
     let model = MainWindowModel(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
     let package = ManagedPackage(manager: .homebrew, name: "pkg", installedVersion: "1", latestVersion: "2")
