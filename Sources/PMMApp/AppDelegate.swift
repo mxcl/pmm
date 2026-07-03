@@ -1,8 +1,9 @@
 import AppKit
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate {
     private var window: NSWindow?
+    private var sidebarToggleAccessory: NSTitlebarAccessoryViewController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.mainMenu = makeMainMenu()
@@ -37,8 +38,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate {
         window.toolbarStyle = .automatic
         let toolbar = NSToolbar(identifier: "PMMToolbar")
         toolbar.displayMode = .iconOnly
-        toolbar.delegate = self
         window.toolbar = toolbar
+        installSidebarToggleAccessory(in: window, target: controller)
         window.isMovableByWindowBackground = true
         window.minSize = NSSize(width: 1104, height: 680)
         window.setContentSize(initialContentSize)
@@ -119,25 +120,44 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate {
         (window?.contentViewController as? MainWindowController)?.refresh(sender)
     }
 
-    func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
-        [.toggleSidebar]
+    private func installSidebarToggleAccessory(in window: NSWindow, target: NSSplitViewController) {
+        let width: CGFloat = 170
+        let height: CGFloat = 52
+        let container = TitlebarAccessoryView(size: NSSize(width: width, height: height))
+        let title = L10n.string("Toggle Sidebar")
+        let button = NSButton(image: NSImage(systemSymbolName: "sidebar.left", accessibilityDescription: title) ?? NSImage(), target: target, action: #selector(NSSplitViewController.toggleSidebar(_:)))
+        button.bezelStyle = .texturedRounded
+        button.imagePosition = .imageOnly
+        button.toolTip = title
+        button.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(button)
+        NSLayoutConstraint.activate([
+            button.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -10),
+            button.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+        ])
+
+        let accessory = NSTitlebarAccessoryViewController()
+        accessory.layoutAttribute = .left
+        accessory.view = container
+        window.addTitlebarAccessoryViewController(accessory)
+        sidebarToggleAccessory = accessory
+    }
+}
+
+private final class TitlebarAccessoryView: NSView {
+    private let size: NSSize
+
+    init(size: NSSize) {
+        self.size = size
+        super.init(frame: NSRect(origin: .zero, size: size))
     }
 
-    func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
-        [.toggleSidebar]
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        nil
     }
 
-    func toolbar(_ toolbar: NSToolbar, itemForItemIdentifier itemIdentifier: NSToolbarItem.Identifier, willBeInsertedIntoToolbar flag: Bool) -> NSToolbarItem? {
-        guard itemIdentifier == .toggleSidebar else { return nil }
-        let item = NSToolbarItem(itemIdentifier: itemIdentifier)
-        item.label = L10n.string("Toggle Sidebar")
-        item.paletteLabel = item.label
-        item.toolTip = item.label
-        item.image = NSImage(systemSymbolName: "sidebar.left", accessibilityDescription: item.label)
-        item.target = nil
-        item.action = #selector(NSSplitViewController.toggleSidebar(_:))
-        return item
-    }
+    override var intrinsicContentSize: NSSize { size }
 }
 
 private final class PMMWindow: NSWindow {
