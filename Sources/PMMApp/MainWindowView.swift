@@ -26,9 +26,11 @@ struct MainWindowSidebarView: View {
                 ForEach(MainWindowSection.utilitySections) { sidebarRow($0) }
             }
             .padding(.horizontal, 12)
+            .safeAreaPadding(.top, 8)
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
         .scrollIndicators(.hidden)
+        .ignoresSafeArea(.container, edges: .top)
         .background {
             RoundedRectangle(cornerRadius: 28, style: .continuous)
                 .fill(.ultraThinMaterial)
