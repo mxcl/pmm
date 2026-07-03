@@ -579,20 +579,9 @@ private struct PackageWebView: NSViewRepresentable {
     }
 
     func makeNSView(context: Context) -> WKWebView {
-        let configuration = WKWebViewConfiguration()
-        configuration.userContentController.addUserScript(WKUserScript(
-            source: """
-            (() => {
-                const style = document.createElement("style");
-                style.textContent = "html, body { background-color: white; }";
-                (document.head || document.documentElement).appendChild(style);
-            })();
-            """,
-            injectionTime: .atDocumentStart,
-            forMainFrameOnly: true
-        ))
-        let webView = WKWebView(frame: .zero, configuration: configuration)
+        let webView = WKWebView()
         webView.setValue(false, forKey: "drawsBackground")
+        webView.underPageBackgroundColor = .white
         webView.navigationDelegate = context.coordinator
         return webView
     }
