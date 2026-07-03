@@ -185,6 +185,30 @@ private final class EmptyNPMRegistryURLProtocol: URLProtocol, @unchecked Sendabl
     #expect(packages.last?.category == "productivity")
 }
 
+@Test func homebrewScannerPrefersDatabaseRepositoryOverFormulaSource() throws {
+    let temp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    let formulaCache = temp.appendingPathComponent("api/formula", isDirectory: true)
+    try FileManager.default.createDirectory(at: formulaCache, withIntermediateDirectories: true)
+    try """
+    {"desc":"Fast, disk space efficient package manager","homepage":"https://pnpm.io/","versions":{"stable":"11.8.0"},"urls":{"stable":{"url":"https://registry.npmjs.org/pnpm/-/pnpm-11.8.0.tgz"}}}
+    """.write(to: formulaCache.appendingPathComponent("pnpm.json"), atomically: true, encoding: .utf8)
+    defer { try? FileManager.default.removeItem(at: temp) }
+
+    let runner = FakeRunner(responses: [
+        "/fake/brew leaves --installed-on-request": CommandResult(stdout: "pnpm\n", stderr: "", status: 0),
+        "/fake/brew outdated --json=v2": CommandResult(stdout: #"{"formulae":[],"casks":[]}"#, stderr: "", status: 0),
+        "/fake/brew list --versions --formula": CommandResult(stdout: "pnpm 11.8.0\n", stderr: "", status: 0),
+        "/fake/brew list --versions --cask": CommandResult(stdout: "", stderr: "", status: 0),
+    ])
+    let scanner = PackageScanner(runner: runner, toolPaths: ["brew": "/fake/brew"], environment: ["HOMEBREW_CACHE": temp.path])
+
+    let packages = try scanner.scanHomebrew(database: PackageDatabase(
+        formulas: ["pnpm": PackageMetadata(summary: nil, category: "developer-tools", homepage: nil, repo: "https://github.com/pnpm/pnpm", version: nil)]
+    ))
+
+    #expect(packages.first?.repo == "https://github.com/pnpm/pnpm")
+}
+
 @Test func homebrewScannerUsesInstalledInfoMetadataWhenCacheIsMissing() throws {
     let temp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
     defer { try? FileManager.default.removeItem(at: temp) }

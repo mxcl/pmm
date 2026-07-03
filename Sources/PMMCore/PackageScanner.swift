@@ -271,7 +271,7 @@ public struct PackageScanner {
                 category: curation?.category,
                 homepage: metadata?.homepage,
                 docs: metadata?.docs,
-                repo: metadata?.repo,
+                repo: curation?.repo ?? metadata?.repo,
                 lastUpdatedAt: curation?.lastUpdatedAt,
                 pulseKind: curation?.pulseKind,
                 installLocation: installLocation,
