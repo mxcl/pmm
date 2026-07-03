@@ -462,7 +462,7 @@ private struct PackageRow: View {
                     RoundedRectangle(cornerRadius: 8, style: .continuous).fill(AVGlassPalette.packageSelectedFill)
                 }
             }
-            .padding(.horizontal, 2)
+            .padding(.horizontal, 3)
             .padding(.vertical, 2)
             .contentShape(Rectangle())
         }
