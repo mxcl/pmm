@@ -147,9 +147,6 @@ struct MainWindowPackageListView: View {
             .frame(maxWidth: .infinity, minHeight: 42)
         }
         .scrollEdgeEffectStyle(.soft, for: .top)
-        .overlay(alignment: .trailing) {
-            columnBorder
-        }
         .ignoresSafeArea(.container, edges: .top)
         .preferredColorScheme(.dark)
     }
@@ -159,10 +156,7 @@ struct MainWindowDossierView: View {
     @ObservedObject var model: MainWindowModel
 
     var body: some View {
-        ZStack(alignment: .trailing) {
-            if model.selectedPackage != nil {
-                columnBorder
-            }
+        ZStack {
             ScrollView {
                 if let package = model.selectedPackage {
                     VStack(alignment: .leading, spacing: 20) {
@@ -329,13 +323,6 @@ private func mainWindowHomeRelativePath(_ path: String?) -> String {
     if path == home { return "~" }
     if path.hasPrefix(home + "/") { return "~/" + String(path.dropFirst(home.count + 1)) }
     return path
-}
-
-private var columnBorder: some View {
-    Rectangle()
-        .fill(AVGlassPalette.sidebarBorder)
-        .frame(width: 1)
-        .padding(.vertical, 0.5)
 }
 
 private extension MainWindowSidebarView {
