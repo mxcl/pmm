@@ -35,7 +35,6 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
         .data, .languageRuntime, .media, .productivity, .science, .games, .toys, .other
     ].sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
     static let categoryShortcutSections: [MainWindowSection] = [.newUpdated]
-    static let utilitySections: [MainWindowSection] = []
 
     var title: String {
         switch self {
@@ -72,8 +71,8 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
         case .rust: "hammer"
         case .homebrew: "mug"
         case .casks: "macwindow"
-        case .javascript: "shippingbox.circle"
-        case .python: "curlybraces"
+        case .javascript: "curlybraces"
+        case .python: "shippingbox.circle"
         case .developerTools: "chevron.left.forwardslash.chevron.right"
         case .cloudInfrastructure: "cloud"
         case .networking: "network"

@@ -13,27 +13,27 @@ struct MainWindowSidebarView: View {
                     .padding(.bottom, 18)
                 ForEach(MainWindowSection.librarySections) { sidebarRow($0) }
                 if !model.visibleManagerSections.isEmpty {
-                    sidebarHeader("ECOSYSTEMS").padding(.top, 22)
-                    ForEach(model.visibleManagerSections) { sidebarRow($0) }
+                    Spacer(minLength: 18)
+                    Section("Ecosystems") {
+                        ForEach(model.visibleManagerSections) { sidebarRow($0) }
+                    }
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
                 }
                 if !model.visibleCategorySections.isEmpty {
-                    sidebarHeader("CATEGORIES").padding(.top, 22)
-                    ForEach(model.visibleCategorySections) { sidebarRow($0) }
-                    sidebarDivider
-                    ForEach(MainWindowSection.categoryShortcutSections) { sidebarRow($0) }
+                    Spacer(minLength: 18)
+                    Section("Categories") {
+                        ForEach(model.visibleCategorySections) { sidebarRow($0) }
+                        Spacer(minLength: 8)
+                        ForEach(MainWindowSection.categoryShortcutSections) { sidebarRow($0) }
+                    }
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
                 }
-                Spacer(minLength: 24)
-                ForEach(MainWindowSection.utilitySections) { sidebarRow($0) }
             }
             .padding(.horizontal, 12)
-            .frame(maxWidth: .infinity, alignment: .topLeading)
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            Color.clear.frame(height: 44)
-        }
-        .scrollIndicators(.hidden)
-        .ignoresSafeArea(.container, edges: .top)
-        .preferredColorScheme(.dark)
+        .scrollEdgeEffectStyle(.soft, for: .top)
     }
 
     private func sidebarHeader(_ text: String) -> some View {
@@ -47,7 +47,6 @@ struct MainWindowSidebarView: View {
 
     private var sidebarDivider: some View {
         Rectangle()
-            .fill(AVGlassPalette.hairline)
             .frame(height: 1)
             .padding(.horizontal, 7)
             .padding(.vertical, 6)
@@ -55,7 +54,7 @@ struct MainWindowSidebarView: View {
 
     private func sidebarRow(_ section: MainWindowSection) -> some View {
         Button { model.selectSection(section) } label: {
-            HStack(spacing: 12) {
+            HStack(spacing: 8) {
                 sidebarIcon(section)
                 Text(section.title)
                     .font(.system(size: 14, weight: .regular))
@@ -75,15 +74,20 @@ struct MainWindowSidebarView: View {
                     }
                 }
             }
-            .foregroundStyle(model.activeSidebarSection == section ? AVGlassPalette.primaryText : AVGlassPalette.secondaryText)
-            .padding(.horizontal, 10)
-            .frame(maxWidth: .infinity, minHeight: 36, alignment: .leading)
+            .padding(.horizontal, 6)
+            .foregroundStyle(model.activeSidebarSection == section ? Color.accentColor : .primary)
+            .frame(maxWidth: .infinity, minHeight: 30, alignment: .leading)
+            .contentShape(Rectangle())
             .background {
                 if model.activeSidebarSection == section {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous).fill(AVGlassPalette.sidebarSelectedFill)
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(.selection.opacity(0.22))
+                        .background {
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(.ultraThinMaterial)
+                        }
                 }
             }
-            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .frame(maxWidth: .infinity)
@@ -91,22 +95,9 @@ struct MainWindowSidebarView: View {
 
     private func sidebarIcon(_ section: MainWindowSection) -> some View {
         Image(systemName: section.systemImage)
-            .font(.system(size: 13, weight: .semibold))
-            .foregroundStyle(.white)
-            .frame(width: 22, height: 22)
-            .background(sidebarIconFill(for: section), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-    }
-
-    private func sidebarIconFill(for section: MainWindowSection) -> Color {
-        if section.categoryIdentifier != nil {
-            return Color(red: 0.46, green: 0.49, blue: 0.53)
-        }
-
-        return switch section {
-        case .outdated, .newUpdated: AVGlassPalette.orange
-        case .rust, .homebrew, .casks, .javascript, .python: Color(red: 0.00, green: 0.48, blue: 1.00)
-        default: Color(red: 0.46, green: 0.49, blue: 0.53)
-        }
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundStyle(model.activeSidebarSection == section ? Color.accentColor : .primary)
+            .frame(width: 20, height: 20)
     }
 }
 
@@ -148,7 +139,6 @@ struct MainWindowPackageListView: View {
         }
         .scrollEdgeEffectStyle(.soft, for: .top)
         .ignoresSafeArea(.container, edges: .top)
-        .preferredColorScheme(.dark)
     }
 }
 
@@ -220,7 +210,6 @@ struct MainWindowDossierView: View {
             PackageProgressView(title: "Updating \(model.updatingPackageName ?? "package")")
                 .interactiveDismissDisabled(true)
         }
-        .preferredColorScheme(.dark)
     }
 
     private var isPackageActionRunning: Bool {
@@ -257,7 +246,6 @@ struct MainWindowLinksView: View {
                 model.selectedLinkTab = nil
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     private func selectedLink(in links: [MainWindowBrowserLink]) -> MainWindowBrowserLink? {
@@ -590,7 +578,6 @@ private struct PackageProgressView: View {
         .padding(28)
         .frame(width: 260)
         .background(LiquidGlassSurface(material: .ultraThinMaterial, tint: AVGlassPalette.windowTint))
-        .preferredColorScheme(.dark)
     }
 }
 
@@ -675,3 +662,9 @@ private enum AVGlassPalette {
     static let controlBorder = Color.white.opacity(0.18)
     static let orange = Color(red: 0.95, green: 0.72, blue: 0.20)
 }
+
+#Preview("MainWindowSidebarView.sidebarRow") {
+    // We need MainWindowModel and MainWindowSection to construct the view.
+    // Please provide these types or accessible fixtures/mocks to proceed.
+}
+

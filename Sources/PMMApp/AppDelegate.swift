@@ -3,7 +3,6 @@ import AppKit
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var window: NSWindow?
-    private var sidebarToggleAccessory: NSTitlebarAccessoryViewController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.mainMenu = makeMainMenu()
@@ -39,7 +38,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let toolbar = NSToolbar(identifier: "PMMToolbar")
         toolbar.displayMode = .iconOnly
         window.toolbar = toolbar
-        installSidebarToggleAccessory(in: window, target: controller)
         window.isMovableByWindowBackground = true
         window.minSize = NSSize(width: 1104, height: 680)
         window.setContentSize(initialContentSize)
@@ -118,29 +116,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func refreshPackages(_ sender: Any?) {
         (window?.contentViewController as? MainWindowController)?.refresh(sender)
-    }
-
-    private func installSidebarToggleAccessory(in window: NSWindow, target: NSSplitViewController) {
-        let width: CGFloat = 170
-        let height: CGFloat = 52
-        let container = TitlebarAccessoryView(size: NSSize(width: width, height: height))
-        let title = L10n.string("Toggle Sidebar")
-        let button = NSButton(image: NSImage(systemSymbolName: "sidebar.left", accessibilityDescription: title) ?? NSImage(), target: target, action: #selector(NSSplitViewController.toggleSidebar(_:)))
-        button.bezelStyle = .texturedRounded
-        button.imagePosition = .imageOnly
-        button.toolTip = title
-        button.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(button)
-        NSLayoutConstraint.activate([
-            button.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -10),
-            button.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-        ])
-
-        let accessory = NSTitlebarAccessoryViewController()
-        accessory.layoutAttribute = .left
-        accessory.view = container
-        window.addTitlebarAccessoryViewController(accessory)
-        sidebarToggleAccessory = accessory
     }
 }
 
