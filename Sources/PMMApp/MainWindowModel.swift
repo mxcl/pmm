@@ -516,7 +516,7 @@ struct PackageIndex: Sendable {
 
     init(packages: [ManagedPackage], catalogPackages: [ManagedPackage], newUpdatedLastClickedAt: Date?) {
         let newUpdated = catalogPackages
-            .filter { $0.pulseKind != nil }
+            .filter { $0.pulseKind == "new" }
             .sorted(by: Self.newestUpdatedFirst)
 
         var bySection: [MainWindowSection: [ManagedPackage]] = [

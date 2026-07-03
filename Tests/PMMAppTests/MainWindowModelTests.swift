@@ -151,8 +151,8 @@ import Testing
     #expect(index.packagesBySection[.developerTools]?.map(\.displayName) == ["new", "middle", "old"])
 }
 
-@Test func newUpdatedSectionKeepsCatalogMetadata() {
-    let package = ManagedPackage(
+@Test func newUpdatedSectionOnlyShowsNewPackages() {
+    let newPackage = ManagedPackage(
         manager: .homebrew,
         identifier: "brew:git",
         displayName: "git",
@@ -163,11 +163,24 @@ import Testing
         homepage: "https://git-scm.com/",
         repo: "https://github.com/git/git",
         lastUpdatedAt: "2026-06-01T00:00:00Z",
+        pulseKind: "new"
+    )
+    let updatedPackage = ManagedPackage(
+        manager: .homebrew,
+        identifier: "brew:curl",
+        displayName: "curl",
+        installedVersion: nil,
+        latestVersion: "8.0.0",
+        summary: nil,
+        category: "networking",
+        homepage: nil,
+        repo: nil,
+        lastUpdatedAt: "2026-06-02T00:00:00Z",
         pulseKind: "updated"
     )
-    let index = PackageIndex(packages: [], catalogPackages: [package], newUpdatedLastClickedAt: nil)
+    let index = PackageIndex(packages: [], catalogPackages: [newPackage, updatedPackage], newUpdatedLastClickedAt: nil)
 
-    #expect(index.packagesBySection[.newUpdated]?.first == package)
+    #expect(index.packagesBySection[.newUpdated] == [newPackage])
 }
 
 @Test func packageLinksUseHomepageRepoDocsOrderAndSkipInvalidURLs() {
