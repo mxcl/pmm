@@ -77,13 +77,17 @@ private struct MainWindowContentColumnsView: View {
     @ObservedObject var model: MainWindowModel
 
     var body: some View {
-        HStack(spacing: 0) {
-            MainWindowPackageListView(model: model)
-                .frame(width: 252)
-            MainWindowDossierView(model: model)
-                .frame(width: 252)
-            MainWindowLinksView(model: model)
-                .frame(minWidth: 350, maxWidth: .infinity)
+        if model.selectedSection == .home {
+            MainWindowDashboardView(model: model)
+        } else {
+            HStack(spacing: 0) {
+                MainWindowPackageListView(model: model)
+                    .frame(width: 252)
+                MainWindowDossierView(model: model)
+                    .frame(width: 252)
+                MainWindowLinksView(model: model)
+                    .frame(minWidth: 350, maxWidth: .infinity)
+            }
         }
     }
 }

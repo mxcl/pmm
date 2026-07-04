@@ -245,6 +245,514 @@ struct MainWindowLinksView: View {
     }
 }
 
+struct MainWindowDashboardView: View {
+    @ObservedObject var model: MainWindowModel
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                dashboardStats
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .top, spacing: 16) {
+                        dashboardMainColumn
+                        dashboardSideColumn
+                            .frame(width: 310)
+                    }
+                    VStack(alignment: .leading, spacing: 16) {
+                        dashboardMainColumn
+                        dashboardSideColumn
+                    }
+                }
+                DashboardProBanner()
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
+            .padding(.bottom, 18)
+        }
+        .safeAreaBar(edge: .top, alignment: .leading, spacing: 0) {
+            HStack(spacing: 10) {
+                Text("Dashboard")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(AVGlassPalette.primaryText)
+                Spacer()
+                if model.dashboardIsLoadingData {
+                    ProgressView()
+                        .controlSize(.small)
+                } else if let lastUpdated = model.dashboardLastUpdatedText {
+                    Text(lastUpdated)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(AVGlassPalette.quietText)
+                }
+                Button { model.reload() } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .frame(width: 18, height: 18)
+                }
+                .buttonStyle(.borderless)
+                .help("Refresh packages")
+            }
+            .padding(.horizontal, 16)
+            .frame(maxWidth: .infinity, minHeight: 54)
+            .background(LiquidGlassSurface(material: .ultraThinMaterial, tint: AVGlassPalette.windowTint))
+        }
+        .scrollEdgeEffectStyle(.soft, for: .top)
+        .ignoresSafeArea(.container, edges: .top)
+        .background(LiquidGlassSurface(material: .ultraThinMaterial, tint: AVGlassPalette.windowTint).ignoresSafeArea())
+    }
+
+    private var dashboardStats: some View {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 110), spacing: 14), count: 4), spacing: 14) {
+            DashboardMetricCard(title: "Installed packages", value: model.dashboardInstalledCount, detail: "+12 this week", isLoading: model.dashboardIsLoadingData, tint: .green)
+            DashboardMetricCard(title: "Outdated", value: model.dashboardOutdatedCount, detail: "View updates", isLoading: model.dashboardIsLoadingData, tint: Color.accentColor)
+            DashboardMetricCard(title: "Ecosystems", value: model.dashboardActiveEcosystemCount, detail: "Active", isLoading: model.dashboardIsLoadingData, tint: AVGlassPalette.secondaryText)
+            DashboardMetricCard(title: "Install packs", value: 3, detail: "1 update available", isLoading: false, tint: Color.accentColor)
+        }
+    }
+
+    private var dashboardMainColumn: some View {
+        VStack(spacing: 16) {
+            DashboardPackageSection(
+                title: "What's New",
+                systemImage: "sparkle",
+                packages: model.dashboardWhatsNewPackages,
+                isLoading: model.dashboardIsLoadingData,
+                emptyText: "No new packages yet"
+            )
+            DashboardRecommendationSection(
+                packages: model.dashboardRecommendedPackages,
+                isLoading: model.dashboardIsLoadingData
+            )
+        }
+    }
+
+    private var dashboardSideColumn: some View {
+        VStack(spacing: 16) {
+            DashboardSponsoredCard()
+            DashboardUpdatesCard()
+            DashboardInstallPacksCard()
+        }
+    }
+}
+
+private struct DashboardCard<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            content
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AVGlassPalette.cardFill, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(AVGlassPalette.controlBorder, lineWidth: 1)
+        }
+    }
+}
+
+private struct DashboardMetricCard: View {
+    let title: String
+    let value: Int?
+    let detail: String
+    let isLoading: Bool
+    let tint: Color
+
+    var body: some View {
+        DashboardCard {
+            VStack(alignment: .leading, spacing: 8) {
+                if isLoading {
+                    ProgressView()
+                        .controlSize(.small)
+                        .frame(height: 29, alignment: .leading)
+                } else {
+                    Text((value ?? 0).formatted())
+                        .font(.system(size: 24, weight: .semibold))
+                        .foregroundStyle(AVGlassPalette.primaryText)
+                        .monospacedDigit()
+                }
+                Text(title)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(AVGlassPalette.secondaryText)
+                    .lineLimit(1)
+                Text(detail)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(tint)
+                    .lineLimit(1)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, minHeight: 104, alignment: .leading)
+        }
+    }
+}
+
+private struct DashboardPackageSection: View {
+    let title: String
+    let systemImage: String
+    let packages: [ManagedPackage]
+    let isLoading: Bool
+    let emptyText: String
+
+    var body: some View {
+        DashboardCard {
+            DashboardSectionHeader(title: title, systemImage: systemImage)
+            if isLoading {
+                ProgressView()
+                    .controlSize(.small)
+                    .frame(maxWidth: .infinity, minHeight: 260)
+            } else if packages.isEmpty {
+                Text(emptyText)
+                    .font(.system(size: 13))
+                    .foregroundStyle(AVGlassPalette.quietText)
+                    .frame(maxWidth: .infinity, minHeight: 120)
+            } else {
+                LazyVStack(spacing: 0) {
+                    ForEach(packages) { package in
+                        DashboardPackageRow(package: package)
+                        if package.id != packages.last?.id {
+                            Divider().overlay(AVGlassPalette.hairline)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct DashboardSectionHeader: View {
+    let title: String
+    let systemImage: String?
+
+    init(title: String, systemImage: String? = nil) {
+        self.title = title
+        self.systemImage = systemImage
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            if let systemImage {
+                Image(systemName: systemImage)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(Color.accentColor)
+            }
+            Text(title)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(AVGlassPalette.primaryText)
+            Spacer()
+            Text("View all")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(Color.accentColor)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+    }
+}
+
+private struct DashboardPackageRow: View {
+    let package: ManagedPackage
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(AVGlassPalette.controlFill)
+                Image(systemName: package.manager.dashboardSymbol)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(AVGlassPalette.primaryText)
+            }
+            .frame(width: 40, height: 40)
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Text(package.displayName)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(AVGlassPalette.primaryText)
+                        .lineLimit(1)
+                    if package.pulseKind == "new" {
+                        PackageBadgePill(text: "New", color: Color.accentColor)
+                    }
+                    Text(package.manager.title)
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(AVGlassPalette.quietText)
+                        .lineLimit(1)
+                }
+                Text(package.summary ?? mainWindowCategoryTitle(package.category) ?? "Package")
+                    .font(.system(size: 12))
+                    .foregroundStyle(AVGlassPalette.secondaryText)
+                    .lineLimit(1)
+                HStack(spacing: 5) {
+                    Image(systemName: "arrow.down.right")
+                        .font(.system(size: 9, weight: .bold))
+                    Text(package.dashboardFooter)
+                        .font(.system(size: 11))
+                }
+                .foregroundStyle(AVGlassPalette.quietText)
+            }
+            Spacer(minLength: 8)
+            Text("Install")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(Color.accentColor)
+                .frame(width: 72, height: 30)
+                .background(AVGlassPalette.controlFill, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .stroke(AVGlassPalette.controlBorder, lineWidth: 1)
+                }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .frame(minHeight: 62)
+    }
+}
+
+private struct DashboardRecommendationSection: View {
+    let packages: [ManagedPackage]
+    let isLoading: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            DashboardSectionHeader(title: "Recommended for You")
+            if isLoading {
+                ProgressView()
+                    .controlSize(.small)
+                    .frame(maxWidth: .infinity, minHeight: 150)
+            } else if packages.isEmpty {
+                Text("No recommendations yet")
+                    .font(.system(size: 13))
+                    .foregroundStyle(AVGlassPalette.quietText)
+                    .frame(maxWidth: .infinity, minHeight: 120)
+            } else {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 130), spacing: 12), count: 3), spacing: 12) {
+                    ForEach(packages) { package in
+                        DashboardRecommendationCard(package: package)
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.bottom, 14)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private struct DashboardRecommendationCard: View {
+    let package: ManagedPackage
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            ZStack {
+                Circle().fill(AVGlassPalette.controlFill)
+                Image(systemName: package.manager.dashboardSymbol)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(AVGlassPalette.primaryText)
+            }
+            .frame(width: 38, height: 38)
+            Text(package.displayName)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(AVGlassPalette.primaryText)
+                .lineLimit(1)
+            Text(package.summary ?? package.manager.title)
+                .font(.system(size: 11))
+                .foregroundStyle(AVGlassPalette.secondaryText)
+                .lineLimit(2)
+                .frame(minHeight: 28, alignment: .topLeading)
+            Spacer(minLength: 0)
+            Text("Install")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(Color.accentColor)
+                .frame(maxWidth: .infinity, minHeight: 30)
+                .background(AVGlassPalette.controlFill, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+        }
+        .padding(12)
+        .frame(minHeight: 150, alignment: .topLeading)
+        .background(AVGlassPalette.controlFill, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(AVGlassPalette.controlBorder, lineWidth: 1)
+        }
+    }
+}
+
+private struct DashboardSponsoredCard: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Spacer(minLength: 0)
+            Image(systemName: "lock.shield")
+                .font(.system(size: 34, weight: .semibold))
+                .foregroundStyle(.white)
+            Text("Secure every install.")
+                .font(.system(size: 24, weight: .bold))
+                .foregroundStyle(.white)
+                .lineLimit(2)
+            Text("Zero-trust for the tools you use every day.")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.white.opacity(0.78))
+                .lineLimit(2)
+            Text("Learn more")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.black.opacity(0.86))
+                .padding(.horizontal, 18)
+                .frame(height: 32)
+                .background(.white.opacity(0.9), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+            HStack {
+                Spacer()
+                Text("SPONSORED")
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.7))
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, minHeight: 200, alignment: .leading)
+        .background {
+            LinearGradient(
+                colors: [Color(red: 0.35, green: 0.16, blue: 0.62), Color(red: 0.98, green: 0.44, blue: 0.25), Color(red: 0.05, green: 0.06, blue: 0.10)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(AVGlassPalette.controlBorder, lineWidth: 1)
+        }
+    }
+}
+
+private struct DashboardUpdatesCard: View {
+    private let updates = [
+        ("Introducing Install Packs", "Ship complete workflows in one click", "May 28, 2025", "shippingbox"),
+        ("Hermes in a Box: Safer agents", "Contain, approve, control", "May 22, 2025", "lock.cube"),
+        ("10,000 packages. One mission.", "Securing the open source supply chain", "May 15, 2025", "network.badge.shield.half.filled"),
+    ]
+
+    var body: some View {
+        DashboardCard {
+            DashboardSectionHeader(title: "Blog & Updates")
+            VStack(spacing: 12) {
+                ForEach(updates, id: \.0) { update in
+                    HStack(spacing: 12) {
+                        Image(systemName: update.3)
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundStyle(AVGlassPalette.primaryText)
+                            .frame(width: 48, height: 48)
+                            .background(AVGlassPalette.controlFill, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(update.0)
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(AVGlassPalette.primaryText)
+                                .lineLimit(1)
+                            Text(update.1)
+                                .font(.system(size: 11))
+                                .foregroundStyle(AVGlassPalette.secondaryText)
+                                .lineLimit(1)
+                            Text(update.2)
+                                .font(.system(size: 11))
+                                .foregroundStyle(AVGlassPalette.quietText)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.bottom, 14)
+        }
+    }
+}
+
+private struct DashboardInstallPacksCard: View {
+    private let packs = [
+        ("Agent Assistant", "18 tools for AI agent workflows", "sparkles"),
+        ("Web Developer", "12 essential web dev tools", "curlybraces"),
+        ("Data Scientist", "15 tools for data analysis", "chart.xyaxis.line"),
+    ]
+
+    var body: some View {
+        DashboardCard {
+            DashboardSectionHeader(title: "Install Packs")
+            VStack(spacing: 0) {
+                ForEach(packs, id: \.0) { pack in
+                    HStack(spacing: 12) {
+                        Image(systemName: pack.2)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 30, height: 30)
+                            .background(Color.accentColor.opacity(0.75), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(pack.0)
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(AVGlassPalette.primaryText)
+                                .lineLimit(1)
+                            Text(pack.1)
+                                .font(.system(size: 11))
+                                .foregroundStyle(AVGlassPalette.secondaryText)
+                                .lineLimit(1)
+                        }
+                        Spacer(minLength: 8)
+                        Text("Install")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(Color.accentColor)
+                            .frame(width: 58, height: 30)
+                            .background(AVGlassPalette.controlFill, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    if pack.0 != packs.last?.0 {
+                        Divider().overlay(AVGlassPalette.hairline)
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct DashboardProBanner: View {
+    var body: some View {
+        HStack(spacing: 18) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Upgrade to Pro")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(Color(red: 0.70, green: 0.42, blue: 1.00))
+                Text("Get advanced security scanning, private packages, and team features.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(AVGlassPalette.secondaryText)
+                    .lineLimit(2)
+            }
+            Spacer(minLength: 8)
+            VStack(alignment: .leading, spacing: 6) {
+                DashboardCheckmarkText(text: "Security scanning")
+                DashboardCheckmarkText(text: "Private repositories")
+                DashboardCheckmarkText(text: "Team management")
+            }
+            Text("Learn more")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 18)
+                .frame(height: 34)
+                .background(Color(red: 0.52, green: 0.28, blue: 0.90), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 14)
+        .frame(maxWidth: .infinity, minHeight: 78)
+        .background(Color(red: 0.18, green: 0.13, blue: 0.28).opacity(0.72), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Color(red: 0.45, green: 0.29, blue: 0.70).opacity(0.58), lineWidth: 1)
+        }
+    }
+}
+
+private struct DashboardCheckmarkText: View {
+    let text: String
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "checkmark")
+                .font(.system(size: 10, weight: .bold))
+            Text(text)
+                .font(.system(size: 11))
+        }
+        .foregroundStyle(AVGlassPalette.secondaryText)
+    }
+}
+
 struct MainWindowBrowserLink: Equatable, Identifiable {
     let title: String
     let tab: MainWindowLinkTab?
@@ -436,6 +944,29 @@ func mainWindowCategoryTitle(_ category: String?) -> String? {
     return category.split(separator: "-").map { word in
         word.prefix(1).uppercased() + word.dropFirst()
     }.joined(separator: " ")
+}
+
+private extension PackageManagerKind {
+    var dashboardSymbol: String {
+        switch self {
+        case .cargoInstall, .rustup: "hammer"
+        case .homebrew: "mug"
+        case .npm, .npx: "curlybraces"
+        case .uv, .uvx: "shippingbox.circle"
+        }
+    }
+}
+
+private extension ManagedPackage {
+    var dashboardFooter: String {
+        if let category = mainWindowCategoryTitle(category) {
+            return "Popular in \(category)"
+        }
+        if let latestVersion {
+            return "Latest \(latestVersion)"
+        }
+        return manager.title
+    }
 }
 
 private extension MainWindowSidebarView {
@@ -959,6 +1490,7 @@ private enum AVGlassPalette {
     static let packageSelectedFill = Color.white.opacity(0.08)
     static let linkSelectedFill = Color(red: 0.14, green: 0.16, blue: 0.16)
     static let controlFill = Color.white.opacity(0.07)
+    static let cardFill = Color.white.opacity(0.055)
     static let searchFill = Color.white.opacity(0.11)
     static let controlBorder = Color.white.opacity(0.18)
     static let orange = Color(red: 0.95, green: 0.72, blue: 0.20)
