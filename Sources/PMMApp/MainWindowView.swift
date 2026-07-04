@@ -477,9 +477,6 @@ private struct PackagePageSection: View {
                 if !dossier.buildDependencies.isEmpty {
                     InfoRow(label: "Build Dependencies", value: dossier.buildDependencies.prefix(12).joined(separator: ", "))
                 }
-                if !dossier.credentialsFileLocations.isEmpty {
-                    InfoRow(label: "Credentials", value: formatMap(dossier.credentialsFileLocations))
-                }
                 if !dossier.alsoAvailableVia.isEmpty {
                     InfoRow(label: "Also Available", value: dossier.alsoAvailableVia.prefix(5).compactMap(formatRelatedPackage).joined(separator: "\n"))
                 }
@@ -497,13 +494,6 @@ private struct PackagePageSection: View {
     private func nonEmpty(_ value: String?) -> String? {
         guard let value, !value.isEmpty else { return nil }
         return value
-    }
-
-    private func formatMap(_ values: [String: [String]]) -> String {
-        values.keys.sorted().compactMap { key in
-            let value = values[key]?.joined(separator: ", ")
-            return nonEmpty(value).map { "\(key): \($0)" }
-        }.joined(separator: "\n")
     }
 
     private func formatRelatedPackage(_ package: PackageDossierRelatedPackage) -> String? {
