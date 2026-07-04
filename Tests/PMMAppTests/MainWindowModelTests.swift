@@ -4,6 +4,14 @@ import Testing
 @testable import PMMApp
 
 @MainActor
+@Test func modelDefaultsToHomeSection() {
+    let model = MainWindowModel(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
+
+    #expect(model.selectedSection == .home)
+    #expect(MainWindowSection.librarySections.first == .home)
+}
+
+@MainActor
 @Test func inventoryApplyDoesNotSelectPackageAutomatically() {
     let model = MainWindowModel(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
     let package = ManagedPackage(manager: .homebrew, name: "pkg", installedVersion: "1", latestVersion: "1")
@@ -81,6 +89,23 @@ import Testing
 }
 
 @MainActor
+@Test func homeSelectionClearsPackageSelection() {
+    let model = MainWindowModel(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
+    let package = ManagedPackage(manager: .homebrew, name: "pkg", installedVersion: "1", latestVersion: "2")
+
+    model.apply(
+        inventory: PackageInventory(packages: [package]),
+        index: PackageIndex(packages: [package], catalogPackages: [], newUpdatedLastClickedAt: nil)
+    )
+    model.select(package)
+    model.selectedLinkTab = .docs
+    model.selectSection(.home)
+
+    #expect(model.selectedPackage == nil)
+    #expect(model.selectedLinkTab == nil)
+}
+
+@MainActor
 @Test func adjacentPackageSelectionMovesWithinDisplayedPackages() {
     let model = MainWindowModel(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
     let packages = [package(.homebrew, "alpha"), package(.homebrew, "beta"), package(.homebrew, "gamma")]
@@ -89,6 +114,7 @@ import Testing
         inventory: PackageInventory(packages: packages),
         index: PackageIndex(packages: packages, catalogPackages: [], newUpdatedLastClickedAt: nil)
     )
+    model.selectSection(.installed)
     model.select(packages[1])
 
     #expect(model.selectAdjacentPackage(offset: 1))
@@ -139,6 +165,7 @@ import Testing
         inventory: PackageInventory(packages: packages),
         index: PackageIndex(packages: packages, catalogPackages: [], newUpdatedLastClickedAt: nil)
     )
+    model.selectSection(.installed)
 
     model.searchText = "Managed Python"
     #expect(model.displayedPackages.map(\.identifier) == ["uv:cpython:3.13"])
@@ -197,6 +224,65 @@ import Testing
     let index = PackageIndex(packages: [], catalogPackages: packages, newUpdatedLastClickedAt: nil)
 
     #expect(index.packagesBySection[.developerTools]?.map(\.displayName) == ["new", "middle", "old"])
+}
+
+@MainActor
+@Test func dashboardDataUsesLoadedSnapshot() {
+    let model = MainWindowModel(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
+    let generatedAt = Date(timeIntervalSince1970: 100)
+    let outdated = package(.homebrew, "git", installedVersion: "1.0.0", latestVersion: "2.0.0")
+    let current = package(.npm, "eslint")
+    let python = package(.uv, "ruff")
+    let newPackage = ManagedPackage(
+        manager: .homebrew,
+        name: "mise",
+        installedVersion: nil,
+        latestVersion: "1",
+        category: "developer-tools",
+        lastUpdatedAt: "2026-06-03T00:00:00Z",
+        pulseKind: "new"
+    )
+    let recommended = ManagedPackage(
+        manager: .homebrew,
+        name: "ripgrep",
+        installedVersion: nil,
+        latestVersion: "1",
+        category: "developer-tools",
+        lastUpdatedAt: "2026-06-02T00:00:00Z",
+        pulseKind: "updated"
+    )
+
+    model.apply(snapshot: PackageHostSnapshot(
+        inventory: PackageInventory(generatedAt: generatedAt, packages: [outdated, current, python]),
+        catalogPackages: [recommended, newPackage],
+        isRefreshing: false
+    ))
+
+    #expect(!model.dashboardIsLoadingData)
+    #expect(model.dashboardInstalledCount == 3)
+    #expect(model.dashboardOutdatedCount == 1)
+    #expect(model.dashboardActiveEcosystemCount == 3)
+    #expect(model.dashboardLastUpdatedText?.hasPrefix("Last updated: ") == true)
+    #expect(model.dashboardWhatsNewPackages.map(\.displayName) == ["mise"])
+    #expect(model.dashboardRecommendedPackages.map(\.displayName) == ["ripgrep"])
+}
+
+@MainActor
+@Test func dashboardDataIsLoadingSafeWithoutInventory() {
+    let root = FileManager.default.temporaryDirectory
+        .appendingPathComponent(UUID().uuidString, isDirectory: true)
+    defer { try? FileManager.default.removeItem(at: root) }
+
+    let model = MainWindowModel(
+        userDefaults: UserDefaults(suiteName: UUID().uuidString)!,
+        store: PackageHostStore(directory: root)
+    )
+
+    #expect(model.dashboardIsLoadingData)
+    #expect(model.dashboardInstalledCount == nil)
+    #expect(model.dashboardOutdatedCount == nil)
+    #expect(model.dashboardActiveEcosystemCount == nil)
+    #expect(model.dashboardLastUpdatedText == nil)
 }
 
 @Test func newUpdatedSectionOnlyShowsNewPackages() {

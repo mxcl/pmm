@@ -2,6 +2,7 @@ import Foundation
 import PMMCore
 
 enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
+    case home
     case installed
     case outdated
     case newUpdated
@@ -27,7 +28,7 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
 
     var id: String { rawValue }
 
-    static let librarySections: [MainWindowSection] = [.installed, .outdated]
+    static let librarySections: [MainWindowSection] = [.home, .installed, .outdated]
     static let managerSections: [MainWindowSection] = [.rust, .homebrew, .casks, .javascript, .python]
         .sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
     static let categorySections: [MainWindowSection] = [
@@ -38,6 +39,7 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
 
     var title: String {
         switch self {
+        case .home: "Home"
         case .installed: "Installed"
         case .outdated: "Outdated"
         case .newUpdated: "New"
@@ -65,6 +67,7 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
 
     var systemImage: String {
         switch self {
+        case .home: "house"
         case .installed: "shippingbox"
         case .outdated: "clock"
         case .newUpdated: "sparkles"
@@ -188,7 +191,7 @@ private func mainWindowGitHubRepoReleaseNotesURL(_ string: String?) -> URL? {
 
 @MainActor
 final class MainWindowModel: NSObject, ObservableObject {
-    @Published var selectedSection: MainWindowSection = .installed
+    @Published var selectedSection: MainWindowSection = .home
     @Published private(set) var packages: [ManagedPackage] = []
     @Published private(set) var selectedPackage: ManagedPackage?
     @Published var selectedLinkTab: MainWindowLinkTab?
@@ -207,6 +210,7 @@ final class MainWindowModel: NSObject, ObservableObject {
 
     private var inventory = PackageInventory(packages: [])
     private var packageIndex = PackageIndex.empty
+    private var hasInventory = false
     private var newUpdatedLastClickedAt: Date?
     private var newUpdatedSelectionDisplayCount: Int?
     private let userDefaults: UserDefaults
@@ -235,6 +239,37 @@ final class MainWindowModel: NSObject, ObservableObject {
     }
 
     var activeSidebarSection: MainWindowSection? { selectedSection }
+
+    var dashboardIsLoadingData: Bool {
+        isReloading || !hasInventory
+    }
+
+    var dashboardInstalledCount: Int? {
+        hasInventory ? packages.count : nil
+    }
+
+    var dashboardOutdatedCount: Int? {
+        hasInventory ? count(for: .outdated) : nil
+    }
+
+    var dashboardActiveEcosystemCount: Int? {
+        hasInventory ? MainWindowSection.managerSections.filter { (count(for: $0) ?? 0) > 0 }.count : nil
+    }
+
+    var dashboardLastUpdatedText: String? {
+        guard hasInventory else { return nil }
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        return "Last updated: \(formatter.localizedString(for: inventory.generatedAt, relativeTo: Date()))"
+    }
+
+    var dashboardWhatsNewPackages: [ManagedPackage] {
+        Array((packageIndex.packagesBySection[.newUpdated] ?? []).prefix(5))
+    }
+
+    var dashboardRecommendedPackages: [ManagedPackage] {
+        Array(packageIndex.recommendedPackages.prefix(3))
+    }
 
     var visibleManagerSections: [MainWindowSection] {
         if isReloading { return MainWindowSection.managerSections }
@@ -294,7 +329,7 @@ final class MainWindowModel: NSObject, ObservableObject {
 
     func count(for section: MainWindowSection) -> Int? {
         switch section {
-        case .about: nil
+        case .home, .about: nil
         case .newUpdated: newUpdatedSelectionDisplayCount ?? newUpdatedUnreadCount
         default: packageIndex.countsBySection[section]
         }
@@ -327,6 +362,7 @@ final class MainWindowModel: NSObject, ObservableObject {
     func apply(inventory next: PackageInventory, index: PackageIndex) {
         inventory = next
         packageIndex = index
+        hasInventory = true
         packages = next.packages
         errors = next.errors
         selectedPackage = selectedPackage.flatMap { selected in displayedPackages.first { $0.id == selected.id } }
@@ -335,6 +371,7 @@ final class MainWindowModel: NSObject, ObservableObject {
 
     func syncFromHost() {
         guard let snapshot = try? store.load(), let inventory = snapshot.inventory else {
+            hasInventory = false
             isReloading = true
             loadingManagers = Set(PackageManagerKind.allCases)
             return
@@ -344,6 +381,7 @@ final class MainWindowModel: NSObject, ObservableObject {
 
     func apply(snapshot: PackageHostSnapshot) {
         guard let inventory = snapshot.inventory else {
+            hasInventory = false
             isReloading = true
             loadingManagers = Set(PackageManagerKind.allCases)
             uninstallingPackageName = nil
@@ -420,6 +458,7 @@ struct PackageIndex: Sendable {
 
     let packagesBySection: [MainWindowSection: [ManagedPackage]]
     let countsBySection: [MainWindowSection: Int]
+    let recommendedPackages: [ManagedPackage]
     let newUpdatedUnreadCount: Int?
 
     init(packages: [ManagedPackage], catalogPackages: [ManagedPackage], newUpdatedLastClickedAt: Date?) {
@@ -446,6 +485,10 @@ struct PackageIndex: Sendable {
 
         packagesBySection = bySection
         countsBySection = bySection.mapValues(\.count)
+        recommendedPackages = MainWindowSection.categorySections
+            .flatMap { bySection[$0] ?? [] }
+            .filter { $0.pulseKind != "new" }
+            .sorted(by: Self.newestUpdatedFirst)
 
         let clickedAt = newUpdatedLastClickedAt.map { ISO8601DateFormatter().string(from: $0) }
         let unread = newUpdated.filter {
