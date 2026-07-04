@@ -345,8 +345,8 @@ import Testing
     {
       "data": {
         "configFileLocations": {
-          "macos": "~/Library/Application Support/Tool/config",
-          "unix": ["~/.toolrc", "/etc/toolrc"],
+          "macos": "$XDG_CONFIG_HOME/tool/config",
+          "unix": ["~/.toolrc", "$HOME/.toolrc", "/etc/toolrc"],
           "linux": "/etc/linux-only",
           "windows": "C:\\\\Users\\\\user\\\\toolrc"
         },
@@ -359,12 +359,18 @@ import Testing
     }
     """.utf8))
 
-    #expect(mainWindowConfigurationLocations(for: dossier) == [
-        MainWindowConfigurationLocation(path: "~/Library/Application Support/Tool/config"),
-        MainWindowConfigurationLocation(path: "~/.toolrc"),
+    let locations = mainWindowConfigurationLocations(for: dossier) {
+        $0.replacingOccurrences(of: "$XDG_CONFIG_HOME", with: "/Users/me/.config")
+            .replacingOccurrences(of: "$HOME", with: "/Users/me")
+            .replacingOccurrences(of: "~", with: "/Users/me")
+    }
+
+    #expect(locations == [
+        MainWindowConfigurationLocation(path: "/Users/me/.config/tool/config"),
+        MainWindowConfigurationLocation(path: "/Users/me/.toolrc"),
         MainWindowConfigurationLocation(path: "/etc/toolrc"),
-        MainWindowConfigurationLocation(path: "~/Library/Application Support/Tool/credentials"),
-        MainWindowConfigurationLocation(path: "~/.tool-credentials"),
+        MainWindowConfigurationLocation(path: "/Users/me/Library/Application Support/Tool/credentials"),
+        MainWindowConfigurationLocation(path: "/Users/me/.tool-credentials"),
     ])
 }
 

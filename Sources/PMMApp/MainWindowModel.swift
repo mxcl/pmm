@@ -198,6 +198,7 @@ final class MainWindowModel: NSObject, ObservableObject {
     @Published private(set) var isLoadingSelectedPackageMetadata = false
     @Published private(set) var selectedPackageDossier: PackageDossierPage?
     @Published private(set) var selectedPackageDossierError: String?
+    @Published private(set) var selectedPackageConfigurationLocations: [MainWindowConfigurationLocation] = []
     @Published private(set) var uninstallingPackageName: String?
     @Published private(set) var updatingPackageName: String?
     @Published var searchText = ""
@@ -382,6 +383,7 @@ final class MainWindowModel: NSObject, ObservableObject {
         isLoadingSelectedPackageMetadata = false
         selectedPackageDossier = nil
         selectedPackageDossierError = nil
+        selectedPackageConfigurationLocations = []
     }
 
     private func loadDossier(for package: ManagedPackage) {
@@ -392,9 +394,11 @@ final class MainWindowModel: NSObject, ObservableObject {
         dossierTask = Task { [dossierClient] in
             do {
                 let dossier = try await dossierClient.dossier(for: package)
+                let configurationLocations = await mainWindowResolvedConfigurationLocations(for: dossier)
                 guard !Task.isCancelled else { return }
                 if selectedPackage?.id == packageID {
                     selectedPackageDossier = dossier
+                    selectedPackageConfigurationLocations = configurationLocations
                     selectedPackageDossierError = dossier == nil ? "No package page found." : nil
                     isLoadingSelectedPackageMetadata = false
                 }

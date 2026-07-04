@@ -173,7 +173,7 @@ struct MainWindowDossierView: View {
                             InfoRow(label: "Category", value: package.category ?? "uncategorized")
                         }
                         PackagePageSection(model: model)
-                        PackageConfigurationSection(dossier: model.selectedPackageDossier)
+                        PackageConfigurationSection(locations: model.selectedPackageConfigurationLocations)
                         InfoSection(title: "Location") {
                             InfoRow(label: "Install Root", value: mainWindowHomeRelativePath(package.installLocation))
                             InfoRow(label: "Binary", value: mainWindowHomeRelativePath(package.binaryPath))
@@ -269,15 +269,48 @@ struct MainWindowConfigurationLocation: Equatable, Identifiable {
     var id: String { path }
 }
 
-func mainWindowConfigurationLocations(for dossier: PackageDossierPage?) -> [MainWindowConfigurationLocation] {
+func mainWindowConfigurationLocations(for dossier: PackageDossierPage?, resolve: (String) -> String = { $0 }) -> [MainWindowConfigurationLocation] {
     guard let dossier else { return [] }
     let paths = [dossier.configFileLocations, dossier.credentialsFileLocations].flatMap { locations in
         ["macos", "unix"].flatMap { platform in
             locations[platform] ?? []
         }
-    }
+    }.map(resolve)
     var seen = Set<String>()
     return paths.filter { seen.insert($0).inserted }.map { MainWindowConfigurationLocation(path: $0) }
+}
+
+func mainWindowResolvedConfigurationLocations(for dossier: PackageDossierPage?) async -> [MainWindowConfigurationLocation] {
+    await Task.detached {
+        let rawLocations = mainWindowConfigurationLocations(for: dossier)
+        let resolvedPaths = mainWindowResolveShellPaths(rawLocations.map(\.path))
+        var seen = Set<String>()
+        return resolvedPaths.filter { seen.insert($0).inserted }.map { MainWindowConfigurationLocation(path: $0) }
+    }.value
+}
+
+private func mainWindowResolveShellPaths(_ paths: [String]) -> [String] {
+    guard !paths.isEmpty else { return [] }
+    let process = Process()
+    let output = Pipe()
+    process.executableURL = URL(fileURLWithPath: "/bin/zsh")
+    process.arguments = ["-lc", #"for p in "$@"; do print -r -- ${(e)p}; done"#, "--"] + paths.map(mainWindowShellExpandablePath)
+    process.standardOutput = output
+    guard (try? process.run()) != nil else { return paths.map(mainWindowExpandTilde) }
+    process.waitUntilExit()
+    guard process.terminationStatus == 0 else { return paths.map(mainWindowExpandTilde) }
+    let data = output.fileHandleForReading.readDataToEndOfFile()
+    let resolved = String(decoding: data, as: UTF8.self).split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+    return resolved.last == "" ? Array(resolved.dropLast()) : resolved
+}
+
+private func mainWindowShellExpandablePath(_ path: String) -> String {
+    let unsafe = CharacterSet(charactersIn: "`();&|<>\n\r")
+    return path.rangeOfCharacter(from: unsafe) == nil ? path : mainWindowExpandTilde(path)
+}
+
+private func mainWindowExpandTilde(_ path: String) -> String {
+    NSString(string: path).expandingTildeInPath
 }
 
 func mainWindowBrowserLinks(for package: ManagedPackage?) -> [MainWindowBrowserLink] {
@@ -405,10 +438,9 @@ private struct PackageLinkRow: View {
 }
 
 private struct PackageConfigurationSection: View {
-    let dossier: PackageDossierPage?
+    let locations: [MainWindowConfigurationLocation]
 
     var body: some View {
-        let locations = mainWindowConfigurationLocations(for: dossier)
         if !locations.isEmpty {
             InfoSection(title: "Configuration") {
                 VStack(spacing: 2) {
