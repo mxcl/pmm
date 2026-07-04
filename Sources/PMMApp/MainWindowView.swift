@@ -1,3 +1,4 @@
+import AppKit
 import PMMCore
 import Foundation
 import SwiftUI
@@ -173,6 +174,7 @@ struct MainWindowDossierView: View {
                             InfoRow(label: "Category", value: package.category ?? "uncategorized")
                         }
                         PackagePageSection(model: model)
+                        PackageConfigurationSection(dossier: model.selectedPackageDossier)
                         InfoSection(title: "Location") {
                             InfoRow(label: "Install Root", value: mainWindowHomeRelativePath(package.installLocation))
                             InfoRow(label: "Binary", value: mainWindowHomeRelativePath(package.binaryPath))
@@ -260,6 +262,27 @@ struct MainWindowBrowserLink: Equatable, Identifiable {
     let url: URL
 
     var id: String { tab?.rawValue ?? url.absoluteString }
+}
+
+struct MainWindowConfigurationLocation: Equatable, Identifiable {
+    let platform: String
+    let path: String
+
+    var id: String { "\(platform):\(path)" }
+    var title: String {
+        switch platform {
+        case "macos": "macOS"
+        case "unix": "Unix"
+        default: platform
+        }
+    }
+}
+
+func mainWindowConfigurationLocations(for dossier: PackageDossierPage?) -> [MainWindowConfigurationLocation] {
+    guard let locations = dossier?.configFileLocations else { return [] }
+    return ["macos", "unix"].flatMap { platform in
+        (locations[platform] ?? []).map { MainWindowConfigurationLocation(platform: platform, path: $0) }
+    }
 }
 
 func mainWindowBrowserLinks(for package: ManagedPackage?) -> [MainWindowBrowserLink] {
@@ -386,6 +409,58 @@ private struct PackageLinkRow: View {
     }
 }
 
+private struct PackageConfigurationSection: View {
+    let dossier: PackageDossierPage?
+
+    var body: some View {
+        let locations = mainWindowConfigurationLocations(for: dossier)
+        if !locations.isEmpty {
+            InfoSection(title: "Configuration") {
+                VStack(spacing: 2) {
+                    ForEach(locations) { location in
+                        ConfigurationLocationRow(location: location) {
+                            openConfigurationFile(at: location.path)
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+
+    private func openConfigurationFile(at path: String) {
+        let expandedPath = NSString(string: path).expandingTildeInPath
+        NSWorkspace.shared.open(URL(fileURLWithPath: expandedPath))
+    }
+}
+
+private struct ConfigurationLocationRow: View {
+    let location: MainWindowConfigurationLocation
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(location.title.uppercased())
+                    .font(.system(size: 9, weight: .medium))
+                    .tracking(1)
+                    .foregroundStyle(AVGlassPalette.quietText)
+                    .fixedSize(horizontal: true, vertical: false)
+                Text(location.path)
+                    .font(.system(size: 12))
+                    .foregroundStyle(AVGlassPalette.quietText)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 10)
+            .frame(maxWidth: .infinity, minHeight: 34, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 private struct PackagePageSection: View {
     @ObservedObject var model: MainWindowModel
 
@@ -410,17 +485,11 @@ private struct PackagePageSection: View {
                 if !dossier.buildDependencies.isEmpty {
                     InfoRow(label: "Build Dependencies", value: dossier.buildDependencies.prefix(12).joined(separator: ", "))
                 }
-                if !dossier.configFileLocations.isEmpty {
-                    InfoRow(label: "Config", value: formatMap(dossier.configFileLocations))
-                }
                 if !dossier.credentialsFileLocations.isEmpty {
                     InfoRow(label: "Credentials", value: formatMap(dossier.credentialsFileLocations))
                 }
                 if !dossier.alsoAvailableVia.isEmpty {
                     InfoRow(label: "Also Available", value: dossier.alsoAvailableVia.prefix(5).compactMap(formatRelatedPackage).joined(separator: "\n"))
-                }
-                if !dossier.externalPackageManagerMatches.isEmpty {
-                    InfoRow(label: "Other Managers", value: dossier.externalPackageManagerMatches.prefix(5).compactMap(formatExternalMatch).joined(separator: "\n"))
                 }
                 if let registry = dossier.registryInsights, let text = formatRegistryInsights(registry) {
                     InfoRow(label: "Registry", value: text)
@@ -438,9 +507,10 @@ private struct PackagePageSection: View {
         return value
     }
 
-    private func formatMap(_ values: [String: String]) -> String {
+    private func formatMap(_ values: [String: [String]]) -> String {
         values.keys.sorted().compactMap { key in
-            nonEmpty(values[key]).map { "\(key): \($0)" }
+            let value = values[key]?.joined(separator: ", ")
+            return nonEmpty(value).map { "\(key): \($0)" }
         }.joined(separator: "\n")
     }
 
@@ -448,11 +518,6 @@ private struct PackagePageSection: View {
         let label = nonEmpty(package.label) ?? nonEmpty(package.name)
         guard let label else { return nil }
         return [nonEmpty(package.provider), label].compactMap { $0 }.joined(separator: ": ")
-    }
-
-    private func formatExternalMatch(_ match: PackageDossierExternalMatch) -> String? {
-        if let command = nonEmpty(match.command) { return command }
-        return [nonEmpty(match.displayName), nonEmpty(match.platform)].compactMap { $0 }.joined(separator: " ")
     }
 
     private func formatRegistryInsights(_ registry: PackageDossierRegistryInsights) -> String? {

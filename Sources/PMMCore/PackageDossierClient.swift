@@ -12,8 +12,8 @@ public struct PackageDossierPage: Decodable, Equatable, Sendable {
     public let executables: [String]
     public let dependencies: [String]
     public let buildDependencies: [String]
-    public let configFileLocations: [String: String]
-    public let credentialsFileLocations: [String: String]
+    public let configFileLocations: [String: [String]]
+    public let credentialsFileLocations: [String: [String]]
     public let alsoAvailableVia: [PackageDossierRelatedPackage]
     public let externalPackageManagerMatches: [PackageDossierExternalMatch]
     public let registryInsights: PackageDossierRegistryInsights?
@@ -144,16 +144,16 @@ private struct PackageDossierExecutable: Codable {
 }
 
 private struct PackageDossierStringMap: Decodable {
-    let values: [String: String]
+    let values: [String: [String]]
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: PackageDossierDynamicKey.self)
-        var values = [String: String]()
+        var values = [String: [String]]()
         for key in container.allKeys {
             if let value = try? container.decode(String.self, forKey: key) {
-                values[key.stringValue] = value
+                values[key.stringValue] = [value]
             } else if let value = try? container.decode([String].self, forKey: key) {
-                values[key.stringValue] = value.joined(separator: ", ")
+                values[key.stringValue] = value
             }
         }
         self.values = values

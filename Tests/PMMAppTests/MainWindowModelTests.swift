@@ -340,6 +340,27 @@ import Testing
     #expect(mainWindowBrowserDisplayURL(URL(string: "http://example.com")!) == "example.com")
 }
 
+@Test func configurationLocationsShowOnlyMacOSAndUnixPaths() throws {
+    let dossier = try JSONDecoder().decode(PackageDossierPage.self, from: Data("""
+    {
+      "data": {
+        "configFileLocations": {
+          "macos": "~/Library/Application Support/Tool/config",
+          "unix": ["~/.toolrc", "/etc/toolrc"],
+          "linux": "/etc/linux-only",
+          "windows": "C:\\\\Users\\\\user\\\\toolrc"
+        }
+      }
+    }
+    """.utf8))
+
+    #expect(mainWindowConfigurationLocations(for: dossier) == [
+        MainWindowConfigurationLocation(platform: "macos", path: "~/Library/Application Support/Tool/config"),
+        MainWindowConfigurationLocation(platform: "unix", path: "~/.toolrc"),
+        MainWindowConfigurationLocation(platform: "unix", path: "/etc/toolrc"),
+    ])
+}
+
 @Test func outdatedGitHubPackageLoadsLatestReleaseNotes() {
     let url = mainWindowReleaseNotesURL(for: ManagedPackage(
         manager: .homebrew,
