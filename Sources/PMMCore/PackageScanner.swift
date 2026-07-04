@@ -51,9 +51,10 @@ public struct PackageScanner {
 
     public func scanRustup(database: PackageDatabase) throws -> [ManagedPackage] {
         guard let rustup = executable(named: "rustup", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"]) else { return [] }
+        let rustupPackage = rustupPackage(rustup)
         let result = try runner.run(rustup, ["toolchain", "list", "-v"])
-        guard result.status == 0 else { return [] }
-        return result.stdout.split(whereSeparator: \.isNewline).compactMap { line in
+        guard result.status == 0 else { return [rustupPackage] }
+        return [rustupPackage] + result.stdout.split(whereSeparator: \.isNewline).compactMap { line in
             rustupToolchain(String(line), rustup: rustup)
         }
     }
@@ -235,6 +236,23 @@ public struct PackageScanner {
         return (parts.dropLast().joined(separator: " "), String(version.dropFirst()))
     }
 
+    private func rustupPackage(_ rustup: String) -> ManagedPackage {
+        ManagedPackage(
+            manager: .rustup,
+            identifier: "rustup:rustup",
+            displayName: "rustup",
+            installedVersion: rustupVersion(rustup),
+            latestVersion: nil,
+            summary: "Rust toolchain installer",
+            category: "developer-tools",
+            homepage: "https://rustup.rs/",
+            docs: "https://rust-lang.github.io/rustup/",
+            repo: "https://github.com/rust-lang/rustup",
+            installLocation: URL(fileURLWithPath: rustup).deletingLastPathComponent().path,
+            binaryPath: rustup
+        )
+    }
+
     private func rustupToolchain(_ line: String, rustup: String) -> ManagedPackage? {
         let parts = line.split(separator: " ", omittingEmptySubsequences: true).map(String.init)
         guard let name = parts.first else { return nil }
@@ -261,6 +279,14 @@ public struct PackageScanner {
     private func rustcBinaryPath(in toolchainPath: String) -> String? {
         let path = "\(toolchainPath)/bin/rustc"
         return fileManager.fileExists(atPath: path) ? path : nil
+    }
+
+    private func rustupVersion(_ rustup: String) -> String? {
+        guard let result = try? runner.run(rustup, ["--version"]),
+              result.status == 0 else { return nil }
+        let parts = result.stdout.split(separator: " ", omittingEmptySubsequences: true).map(String.init)
+        guard parts.first == "rustup", parts.count > 1 else { return nil }
+        return parts[1]
     }
 
     private func rustupRustcVersion(rustup: String, toolchain: String) -> String? {
