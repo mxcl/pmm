@@ -92,7 +92,7 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
 
     var packageManagers: Set<PackageManagerKind> {
         switch self {
-        case .rust: [.cargoInstall]
+        case .rust: [.cargoInstall, .rustup]
         case .homebrew, .casks: [.homebrew]
         case .javascript: [.npm, .npx]
         case .python: [.uv, .uvx]
@@ -305,7 +305,7 @@ final class MainWindowModel: NSObject, ObservableObject {
     }
 
     func uninstall(_ package: ManagedPackage) {
-        guard package.installedVersion != nil, uninstallingPackageName == nil, updatingPackageName == nil else { return }
+        guard PackageUninstaller.supports(package), uninstallingPackageName == nil, updatingPackageName == nil else { return }
         PackageHostNotifications.postUninstallRequested(packageID: package.id)
     }
 
@@ -431,7 +431,7 @@ struct PackageIndex: Sendable {
             .installed: packages.sorted(by: Self.alphabetical),
             .outdated: packages.filter(\.isOutdated).sorted(by: Self.mostOutdatedFirst),
             .newUpdated: newUpdated,
-            .rust: packages.filter { $0.manager == .cargoInstall }.sorted(by: Self.alphabetical),
+            .rust: packages.filter { [.cargoInstall, .rustup].contains($0.manager) }.sorted(by: Self.alphabetical),
             .homebrew: packages.filter { $0.manager == .homebrew }.sorted(by: Self.alphabetical),
             .casks: packages.filter { $0.identifier.hasPrefix("brew:cask:") }.sorted(by: Self.alphabetical),
             .javascript: packages.filter { [.npm, .npx].contains($0.manager) }.sorted(by: Self.alphabetical),

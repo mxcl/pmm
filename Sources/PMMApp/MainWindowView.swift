@@ -152,7 +152,7 @@ struct MainWindowDossierView: View {
                 if let package = model.selectedPackage {
                     VStack(alignment: .leading, spacing: 20) {
                         DossierHeader(package: package)
-                        if package.installedVersion != nil {
+                        if PackageUninstaller.supports(package) {
                             Button { model.uninstall(package) } label: {
                                 Label("Uninstall", systemImage: "trash")
                                     .frame(maxWidth: .infinity)

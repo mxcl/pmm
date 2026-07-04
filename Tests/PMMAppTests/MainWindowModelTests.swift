@@ -155,6 +155,7 @@ import Testing
         package(.uvx, "ruff"),
         package(.uv, "python"),
         package(.cargoInstall, "ripgrep"),
+        package(.rustup, "rustup"),
         package(.homebrew, "git"),
         ManagedPackage(
             manager: .homebrew,
@@ -169,7 +170,7 @@ import Testing
     let index = PackageIndex(packages: packages, catalogPackages: [], newUpdatedLastClickedAt: nil)
 
     #expect(MainWindowSection.managerSections.map(\.title) == ["Casks", "Homebrew", "JavaScript", "Python", "Rust"])
-    #expect(index.packagesBySection[.rust]?.map(\.displayName) == ["ripgrep"])
+    #expect(index.packagesBySection[.rust]?.map(\.displayName) == ["ripgrep", "rustup"])
     #expect(index.packagesBySection[.homebrew]?.map(\.displayName) == ["git", "visual-studio-code"])
     #expect(index.packagesBySection[.casks]?.map(\.displayName) == ["visual-studio-code"])
     #expect(index.packagesBySection[.javascript]?.map(\.displayName) == ["acorn", "alpha", "beta", "zeta"])

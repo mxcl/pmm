@@ -20,6 +20,8 @@ public struct PackageUninstaller: Sendable {
         switch package.manager {
         case .cargoInstall:
             try run("cargo", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["uninstall", package.packageToken, "--color", "never"])
+        case .rustup:
+            throw PackageUninstallError.unsupportedManager(package.manager)
         case .homebrew:
             try run("brew", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin"], ["uninstall", package.packageToken])
         case .npm:
@@ -33,6 +35,15 @@ public struct PackageUninstaller: Sendable {
             try run("uv", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], arguments)
         case .uvx:
             try removeInstallLocation(package)
+        }
+    }
+
+    public static func supports(_ package: ManagedPackage) -> Bool {
+        switch package.manager {
+        case .cargoInstall, .homebrew, .npm, .npx, .uv, .uvx:
+            package.installedVersion != nil
+        case .rustup:
+            false
         }
     }
 
@@ -68,6 +79,7 @@ public struct PackageUninstaller: Sendable {
 
 public enum PackageUninstallError: LocalizedError, Equatable {
     case missingExecutable(String)
+    case unsupportedManager(PackageManagerKind)
     case missingInstallLocation(String)
     case failed(String, String)
 
@@ -75,6 +87,8 @@ public enum PackageUninstallError: LocalizedError, Equatable {
         switch self {
         case .missingExecutable(let executable):
             "Could not find \(executable)."
+        case .unsupportedManager(let manager):
+            "Uninstalling \(manager.title) packages is not supported."
         case .missingInstallLocation(let package):
             "No install location found for \(package)."
         case .failed(let command, let stderr):

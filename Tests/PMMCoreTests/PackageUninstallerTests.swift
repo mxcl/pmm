@@ -55,6 +55,15 @@ private final class RecordingRunner: CommandRunning, @unchecked Sendable {
     }
 }
 
+@Test func packageUninstallerDoesNotSupportRustup() throws {
+    let package = package(.rustup, "rustup:rustup")
+
+    #expect(!PackageUninstaller.supports(package))
+    #expect(throws: PackageUninstallError.unsupportedManager(.rustup)) {
+        try PackageUninstaller().uninstall(package)
+    }
+}
+
 private func package(
     _ manager: PackageManagerKind,
     _ name: String,

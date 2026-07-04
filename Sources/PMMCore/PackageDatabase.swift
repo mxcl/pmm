@@ -56,7 +56,7 @@ public struct PackageDatabase: Sendable {
 
     public func metadata(for manager: PackageManagerKind, name: String) -> PackageMetadata? {
         switch manager {
-        case .cargoInstall:
+        case .cargoInstall, .rustup:
             return nil
         case .homebrew:
             return formulas[name] ?? casks[name]

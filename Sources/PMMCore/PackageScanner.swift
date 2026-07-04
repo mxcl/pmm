@@ -26,6 +26,7 @@ public struct PackageScanner {
         var packages: [ManagedPackage] = []
 
         do { packages += try scanCargoInstall(database: database) } catch { errors.append(error.localizedDescription) }
+        do { packages += try scanRustup(database: database) } catch { errors.append(error.localizedDescription) }
         do { packages += try scanHomebrew(database: database) } catch { errors.append(error.localizedDescription) }
         do { packages += try scanNPM(database: database) } catch { errors.append(error.localizedDescription) }
         do { packages += try scanNPX(database: database) } catch { errors.append(error.localizedDescription) }
@@ -46,6 +47,26 @@ public struct PackageScanner {
         let result = try runner.run(cargo, ["install", "--list", "--color", "never"])
         guard result.status == 0 else { return [] }
         return parseCargoInstallList(result.stdout)
+    }
+
+    public func scanRustup(database: PackageDatabase) throws -> [ManagedPackage] {
+        guard let rustup = executable(named: "rustup", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"]) else { return [] }
+        let version = (try? runner.run(rustup, ["--version"]))
+            .flatMap { $0.status == 0 ? rustupVersion($0.stdout) : nil }
+        return [ManagedPackage(
+            manager: .rustup,
+            identifier: "rustup:rustup",
+            displayName: "rustup",
+            installedVersion: version,
+            latestVersion: nil,
+            summary: "Rust toolchain installer",
+            category: "developer-tools",
+            homepage: "https://rustup.rs/",
+            docs: "https://rust-lang.github.io/rustup/",
+            repo: "https://github.com/rust-lang/rustup",
+            installLocation: URL(fileURLWithPath: rustup).deletingLastPathComponent().path,
+            binaryPath: rustup
+        )]
     }
 
     public func scanHomebrew(database: PackageDatabase) throws -> [ManagedPackage] {
@@ -223,6 +244,12 @@ public struct PackageScanner {
         let parts = trimmed.dropLast().split(separator: " ", omittingEmptySubsequences: true).map(String.init)
         guard parts.count >= 2, let version = parts.last, version.hasPrefix("v") else { return nil }
         return (parts.dropLast().joined(separator: " "), String(version.dropFirst()))
+    }
+
+    private func rustupVersion(_ output: String) -> String? {
+        let parts = output.split(separator: " ", omittingEmptySubsequences: true).map(String.init)
+        guard parts.first == "rustup", parts.count > 1 else { return nil }
+        return parts[1]
     }
 
     private var cargoHome: URL {

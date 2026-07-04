@@ -68,7 +68,7 @@ func menuBarCommandPackage(id: String, kind: PackageHostActionKind, snapshot: Pa
     case .update:
         return PackageUpdater.supports(package) ? package : nil
     case .uninstall:
-        return package.installedVersion == nil ? nil : package
+        return PackageUninstaller.supports(package) ? package : nil
     }
 }
 

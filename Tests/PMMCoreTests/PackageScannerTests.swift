@@ -101,6 +101,32 @@ private final class EmptyNPMRegistryURLProtocol: URLProtocol, @unchecked Sendabl
     #expect(packages.last?.binaryPath == nil)
 }
 
+@Test func rustupScannerAddsRustupWhenExecutableExists() throws {
+    let runner = FakeRunner(responses: [
+        "/fake/rustup --version": CommandResult(stdout: "rustup 1.28.2 (e4f3ad6f8 2025-04-28)\n", stderr: "", status: 0),
+    ])
+    let scanner = PackageScanner(runner: runner, toolPaths: ["rustup": "/fake/rustup"])
+
+    let packages = try scanner.scanRustup(database: PackageDatabase())
+
+    #expect(packages == [
+        ManagedPackage(
+            manager: .rustup,
+            identifier: "rustup:rustup",
+            displayName: "rustup",
+            installedVersion: "1.28.2",
+            latestVersion: nil,
+            summary: "Rust toolchain installer",
+            category: "developer-tools",
+            homepage: "https://rustup.rs/",
+            docs: "https://rust-lang.github.io/rustup/",
+            repo: "https://github.com/rust-lang/rustup",
+            installLocation: "/fake",
+            binaryPath: "/fake/rustup"
+        )
+    ])
+}
+
 @Test func npmScannerUsesGlobalRootPrefixOutdatedAndPackageBinNames() throws {
     let temp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
     let root = temp.appendingPathComponent("lib/node_modules", isDirectory: true)

@@ -2,6 +2,7 @@ import Foundation
 
 public enum PackageManagerKind: String, Codable, CaseIterable, Sendable {
     case cargoInstall = "cargo-install"
+    case rustup
     case homebrew
     case npm
     case npx
@@ -11,6 +12,7 @@ public enum PackageManagerKind: String, Codable, CaseIterable, Sendable {
     public var title: String {
         switch self {
         case .cargoInstall: "cargo install"
+        case .rustup: "rustup"
         case .homebrew: "Homebrew"
         case .npm: "npm"
         case .npx: "npx"

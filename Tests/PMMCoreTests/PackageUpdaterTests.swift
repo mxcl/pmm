@@ -49,6 +49,9 @@ private final class RecordingRunner: CommandRunning, @unchecked Sendable {
 @Test func packageUpdaterThrowsOnUnsupportedManagers() throws {
     let updater = PackageUpdater()
 
+    #expect(throws: PackageUpdateError.unsupportedManager(.rustup)) {
+        try updater.update(package(.rustup, "rustup:rustup"))
+    }
     #expect(throws: PackageUpdateError.unsupportedManager(.uvx)) {
         try updater.update(package(.uvx, "ruff"))
     }
