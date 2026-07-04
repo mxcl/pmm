@@ -340,6 +340,22 @@ import Testing
     #expect(mainWindowBrowserDisplayURL(URL(string: "http://example.com")!) == "example.com")
 }
 
+@Test func packageLocationsUseInstallAndBinaryPaths() {
+    let package = ManagedPackage(
+        manager: .homebrew,
+        name: "pkg",
+        installedVersion: "1.0.0",
+        latestVersion: nil,
+        installLocation: "/opt/homebrew/Cellar/pkg/1.0.0",
+        binaryPath: "/opt/homebrew/bin/pkg"
+    )
+
+    #expect(mainWindowPackageLocations(for: package) == [
+        MainWindowPackageLocation(label: "Install Root", path: "/opt/homebrew/Cellar/pkg/1.0.0"),
+        MainWindowPackageLocation(label: "Binary", path: "/opt/homebrew/bin/pkg"),
+    ])
+}
+
 @Test func configurationLocationsShowOnlyMacOSAndUnixPaths() throws {
     let dossier = try JSONDecoder().decode(PackageDossierPage.self, from: Data("""
     {

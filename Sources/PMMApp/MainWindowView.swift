@@ -1,3 +1,4 @@
+import AppKit
 import PMMCore
 import Foundation
 import SwiftUI
@@ -174,10 +175,7 @@ struct MainWindowDossierView: View {
                         }
                         PackagePageSection(model: model)
                         PackageConfigurationSection(locations: model.selectedPackageConfigurationLocations)
-                        InfoSection(title: "Location") {
-                            InfoRow(label: "Install Root", value: mainWindowHomeRelativePath(package.installLocation))
-                            InfoRow(label: "Binary", value: mainWindowHomeRelativePath(package.binaryPath))
-                        }
+                        PackageLocationSection(package: package)
                         if package.installedVersion != nil {
                             Button { model.uninstall(package) } label: {
                                 Label("Uninstall", systemImage: "trash")
@@ -267,6 +265,21 @@ struct MainWindowConfigurationLocation: Equatable, Identifiable {
     let path: String
 
     var id: String { path }
+}
+
+struct MainWindowPackageLocation: Equatable, Identifiable {
+    let label: String
+    let path: String
+
+    var id: String { "\(label):\(path)" }
+    var displayValue: String { mainWindowHomeRelativePath(path) }
+}
+
+func mainWindowPackageLocations(for package: ManagedPackage) -> [MainWindowPackageLocation] {
+    [
+        package.installLocation.map { MainWindowPackageLocation(label: "Install Root", path: $0) },
+        package.binaryPath.map { MainWindowPackageLocation(label: "Binary", path: $0) },
+    ].compactMap { $0 }
 }
 
 func mainWindowConfigurationLocations(for dossier: PackageDossierPage?, resolve: (String) -> String = { $0 }) -> [MainWindowConfigurationLocation] {
@@ -444,6 +457,46 @@ private struct PackageLinkRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+}
+
+private struct PackageLocationSection: View {
+    let package: ManagedPackage
+
+    var body: some View {
+        InfoSection(title: "Location") {
+            if let installLocation = package.installLocation {
+                LocationButton(label: "Install Root", path: installLocation, action: revealInFinder)
+            } else {
+                InfoRow(label: "Install Root", value: "unknown")
+            }
+            if let binaryPath = package.binaryPath {
+                LocationButton(label: "Binary", path: binaryPath, action: revealInFinder)
+            } else {
+                InfoRow(label: "Binary", value: "unknown")
+            }
+        }
+    }
+
+    private func revealInFinder(_ path: String) {
+        let expandedPath = NSString(string: path).expandingTildeInPath
+        NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: expandedPath)])
+    }
+}
+
+private struct LocationButton: View {
+    let label: String
+    let path: String
+    let action: (String) -> Void
+
+    var body: some View {
+        Button {
+            action(path)
+        } label: {
+            InfoRow(label: label, value: mainWindowHomeRelativePath(path))
+        }
+        .buttonStyle(.plain)
+        .contentShape(Rectangle())
     }
 }
 
