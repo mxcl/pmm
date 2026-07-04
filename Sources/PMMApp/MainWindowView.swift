@@ -580,7 +580,7 @@ private struct ConfigurationLocationRow: View {
     var body: some View {
         Button(action: action) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(location.path)
+                Text(mainWindowHomeRelativePath(location.path))
                     .font(.system(size: 12))
                     .foregroundStyle(AVGlassPalette.quietText)
                     .lineLimit(1)
