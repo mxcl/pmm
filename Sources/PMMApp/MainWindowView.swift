@@ -270,23 +270,33 @@ struct MainWindowConfigurationLocation: Equatable, Identifiable {
 }
 
 func mainWindowConfigurationLocations(for dossier: PackageDossierPage?, resolve: (String) -> String = { $0 }) -> [MainWindowConfigurationLocation] {
-    guard let dossier else { return [] }
-    let paths = [dossier.configFileLocations, dossier.credentialsFileLocations].flatMap { locations in
-        ["macos", "unix"].flatMap { platform in
-            locations[platform] ?? []
-        }
-    }.map(resolve)
+    let paths = mainWindowRawConfigurationPaths(for: dossier)
+        .map(resolve)
+        .filter(mainWindowIsAbsolutePath)
     var seen = Set<String>()
     return paths.filter { seen.insert($0).inserted }.map { MainWindowConfigurationLocation(path: $0) }
 }
 
 func mainWindowResolvedConfigurationLocations(for dossier: PackageDossierPage?) async -> [MainWindowConfigurationLocation] {
     await Task.detached {
-        let rawLocations = mainWindowConfigurationLocations(for: dossier)
-        let resolvedPaths = mainWindowResolveShellPaths(rawLocations.map(\.path))
+        let resolvedPaths = mainWindowResolveShellPaths(mainWindowRawConfigurationPaths(for: dossier))
+            .filter(mainWindowIsAbsolutePath)
         var seen = Set<String>()
         return resolvedPaths.filter { seen.insert($0).inserted }.map { MainWindowConfigurationLocation(path: $0) }
     }.value
+}
+
+private func mainWindowRawConfigurationPaths(for dossier: PackageDossierPage?) -> [String] {
+    guard let dossier else { return [] }
+    return [dossier.configFileLocations, dossier.credentialsFileLocations].flatMap { locations in
+        ["macos", "unix"].flatMap { platform in
+            locations[platform] ?? []
+        }
+    }
+}
+
+private func mainWindowIsAbsolutePath(_ path: String) -> Bool {
+    path.hasPrefix("/")
 }
 
 private func mainWindowResolveShellPaths(_ paths: [String]) -> [String] {

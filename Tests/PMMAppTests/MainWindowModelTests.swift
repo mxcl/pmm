@@ -346,7 +346,7 @@ import Testing
       "data": {
         "configFileLocations": {
           "macos": "$XDG_CONFIG_HOME/tool/config",
-          "unix": ["~/.toolrc", "$HOME/.toolrc", "/etc/toolrc"],
+          "unix": ["~/.toolrc", "$HOME/.toolrc", "/etc/toolrc", ".envrc"],
           "linux": "/etc/linux-only",
           "windows": "C:\\\\Users\\\\user\\\\toolrc"
         },
