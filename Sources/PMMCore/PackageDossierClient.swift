@@ -62,8 +62,8 @@ public struct PackageDossierPage: Decodable, Equatable, Sendable {
         executables = try container.decodeIfPresent([PackageDossierExecutable].self, forKey: .executablesDetailed)?.map(\.name) ?? []
         dependencies = try container.decodeIfPresent([String].self, forKey: .dependencies) ?? []
         buildDependencies = try container.decodeIfPresent([String].self, forKey: .buildDependencies) ?? []
-        configFileLocations = try container.decodeIfPresent([String: String].self, forKey: .configFileLocations) ?? [:]
-        credentialsFileLocations = try container.decodeIfPresent([String: String].self, forKey: .credentialsFileLocations) ?? [:]
+        configFileLocations = try container.decodeIfPresent(PackageDossierStringMap.self, forKey: .configFileLocations)?.values ?? [:]
+        credentialsFileLocations = try container.decodeIfPresent(PackageDossierStringMap.self, forKey: .credentialsFileLocations)?.values ?? [:]
         alsoAvailableVia = try container.decodeIfPresent([PackageDossierRelatedPackage].self, forKey: .alsoAvailableVia) ?? []
         externalPackageManagerMatches = try container.decodeIfPresent([PackageDossierExternalMatch].self, forKey: .externalPackageManagerMatches) ?? []
         let extra = try? container.nestedContainer(keyedBy: ExtraKeys.self, forKey: .extra)
@@ -141,4 +141,34 @@ public struct PackageDossierClient: Sendable {
 
 private struct PackageDossierExecutable: Codable {
     let name: String
+}
+
+private struct PackageDossierStringMap: Decodable {
+    let values: [String: String]
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: PackageDossierDynamicKey.self)
+        var values = [String: String]()
+        for key in container.allKeys {
+            if let value = try? container.decode(String.self, forKey: key) {
+                values[key.stringValue] = value
+            } else if let value = try? container.decode([String].self, forKey: key) {
+                values[key.stringValue] = value.joined(separator: ", ")
+            }
+        }
+        self.values = values
+    }
+}
+
+private struct PackageDossierDynamicKey: CodingKey {
+    let stringValue: String
+    let intValue: Int? = nil
+
+    init?(stringValue: String) {
+        self.stringValue = stringValue
+    }
+
+    init?(intValue: Int) {
+        nil
+    }
 }

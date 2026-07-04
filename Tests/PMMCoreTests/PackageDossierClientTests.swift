@@ -27,7 +27,7 @@ import Testing
         "executablesDetailed": [{ "name": "caddy", "kind": "cli" }],
         "dependencies": ["go"],
         "buildDependencies": ["make"],
-        "configFileLocations": { "unix": "Caddyfile" },
+        "configFileLocations": { "unix": ["~/.ackrc", "/etc/ackrc"] },
         "credentialsFileLocations": { "macos": "~/Library/Application Support/Caddy" },
         "alsoAvailableVia": [{ "provider": "npm", "name": "caddy", "label": "caddy" }],
         "externalPackageManagerMatches": [{ "displayName": "Nix", "command": "nix profile install nixpkgs#caddy", "platform": "linux" }],
@@ -51,7 +51,7 @@ import Testing
     #expect(dossier.version == "2.11.4")
     #expect(dossier.license == "Apache-2.0")
     #expect(dossier.executables == ["caddy"])
-    #expect(dossier.configFileLocations["unix"] == "Caddyfile")
+    #expect(dossier.configFileLocations["unix"] == "~/.ackrc, /etc/ackrc")
     #expect(dossier.alsoAvailableVia.first?.provider == "npm")
     #expect(dossier.externalPackageManagerMatches.first?.command == "nix profile install nixpkgs#caddy")
     #expect(dossier.registryInsights?.versionCount == 118)
