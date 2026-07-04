@@ -30,7 +30,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             defer: false
         )
         window.contentViewController = controller
-        window.title = "Package Middle Manager"
+        window.title = "Package (Middle) Manager"
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
         window.titlebarSeparatorStyle = .none
@@ -67,8 +67,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func makeAppMenuItem() -> NSMenuItem {
         let appItem = NSMenuItem()
-        let appMenu = NSMenu(title: L10n.string("Package Middle Manager"))
-        let appName = L10n.string("Package Middle Manager")
+        let appMenu = NSMenu(title: L10n.string("Package (Middle) Manager"))
+        let appName = L10n.string("Package (Middle) Manager")
 
         appMenu.addItem(withTitle: L10n.format("About %@", appName), action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
         appMenu.addItem(.separator())
