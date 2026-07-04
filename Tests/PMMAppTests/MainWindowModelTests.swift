@@ -399,6 +399,15 @@ import Testing
     #expect(!mainWindowReferencesUnsetEnvironmentVariable("${XDG_CONFIG_HOME:-$HOME/.config}/direnv/direnv.toml", environment: environment))
 }
 
+@Test func shellPathResolutionKeepsTildeFallbackWhenSimpleVariableIsUnset() {
+    let home = NSHomeDirectory()
+
+    #expect(mainWindowResolveShellPaths([
+        "$PMM_UNSET_CONFIG_HOME_DO_NOT_SET/direnv/direnv.toml",
+        "~/.config/direnv/direnv.toml",
+    ]) == ["\(home)/.config/direnv/direnv.toml"])
+}
+
 @Test func outdatedGitHubPackageLoadsLatestReleaseNotes() {
     let url = mainWindowReleaseNotesURL(for: ManagedPackage(
         manager: .homebrew,

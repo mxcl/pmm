@@ -312,7 +312,7 @@ private func mainWindowIsAbsolutePath(_ path: String) -> Bool {
     path.hasPrefix("/")
 }
 
-private func mainWindowResolveShellPaths(_ paths: [String]) -> [String] {
+func mainWindowResolveShellPaths(_ paths: [String]) -> [String] {
     let paths = paths.filter { !mainWindowReferencesUnsetEnvironmentVariable($0) }
     guard !paths.isEmpty else { return [] }
     let process = Process()
@@ -325,7 +325,8 @@ private func mainWindowResolveShellPaths(_ paths: [String]) -> [String] {
     guard process.terminationStatus == 0 else { return paths.map(mainWindowExpandTilde) }
     let data = output.fileHandleForReading.readDataToEndOfFile()
     let resolved = String(decoding: data, as: UTF8.self).split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
-    return resolved.last == "" ? Array(resolved.dropLast()) : resolved
+    let resolvedPaths = resolved.last == "" ? Array(resolved.dropLast()) : resolved
+    return resolvedPaths.map(mainWindowExpandTilde)
 }
 
 private func mainWindowShellExpandablePath(_ path: String) -> String {
