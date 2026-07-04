@@ -616,9 +616,6 @@ private struct PackagePageSection: View {
                 if !dossier.dependencies.isEmpty {
                     InfoRow(label: "Dependencies", value: dossier.dependencies.prefix(12).joined(separator: ", "))
                 }
-                if !dossier.buildDependencies.isEmpty {
-                    InfoRow(label: "Build Dependencies", value: dossier.buildDependencies.prefix(12).joined(separator: ", "))
-                }
                 if !dossier.alsoAvailableVia.isEmpty {
                     InfoRow(label: "Also Available", value: dossier.alsoAvailableVia.prefix(5).compactMap(formatRelatedPackage).joined(separator: "\n"))
                 }
