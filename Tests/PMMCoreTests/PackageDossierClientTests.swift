@@ -24,7 +24,8 @@ import Testing
         "homepage": "https://caddyserver.com/",
         "repository": "https://github.com/caddyserver/caddy",
         "upstreamDocs": "https://caddyserver.com/docs/",
-        "executablesDetailed": [{ "name": "caddy", "kind": "cli" }],
+        "binaries": ["caddy", "xcaddy"],
+        "executablesDetailed": [{ "name": "caddy", "kind": "cli" }, { "name": "caddy-fmt", "kind": "cli" }],
         "dependencies": ["go"],
         "buildDependencies": ["make"],
         "configFileLocations": { "unix": ["~/.ackrc", "/etc/ackrc"] },
@@ -50,7 +51,7 @@ import Testing
     #expect(dossier.category == "networking")
     #expect(dossier.version == "2.11.4")
     #expect(dossier.license == "Apache-2.0")
-    #expect(dossier.executables == ["caddy"])
+    #expect(dossier.executables == ["caddy", "xcaddy", "caddy-fmt"])
     #expect(dossier.configFileLocations["unix"] == ["~/.ackrc", "/etc/ackrc"])
     #expect(dossier.credentialsFileLocations["macos"] == ["~/Library/Application Support/Caddy"])
     #expect(dossier.alsoAvailableVia.first?.provider == "npm")

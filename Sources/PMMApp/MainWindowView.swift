@@ -511,7 +511,7 @@ private struct PackagePageSection: View {
                     InfoRow(label: "License", value: license)
                 }
                 if !dossier.executables.isEmpty {
-                    InfoRow(label: "Executables", value: dossier.executables.joined(separator: ", "))
+                    InfoRow(label: "Executables", value: dossier.executables.joined(separator: "\n"), valueLineLimit: nil)
                 }
                 if !dossier.dependencies.isEmpty {
                     InfoRow(label: "Dependencies", value: dossier.dependencies.prefix(12).joined(separator: ", "))
@@ -721,6 +721,8 @@ private struct InfoSection<Content: View>: View {
 private struct InfoRow: View {
     let label: String
     let value: String
+    var valueLineLimit: Int? = 5
+
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(label)
@@ -729,7 +731,7 @@ private struct InfoRow: View {
             Text(value)
                 .font(.system(size: 12))
                 .foregroundStyle(AVGlassPalette.secondaryText)
-                .lineLimit(5)
+                .lineLimit(valueLineLimit)
                 .textSelection(.enabled)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

@@ -32,6 +32,7 @@ public struct PackageDossierPage: Decodable, Equatable, Sendable {
         case homepage
         case repository
         case upstreamDocs
+        case binaries
         case executablesDetailed
         case dependencies
         case buildDependencies
@@ -59,7 +60,9 @@ public struct PackageDossierPage: Decodable, Equatable, Sendable {
         homepage = try container.decodeIfPresent(String.self, forKey: .homepage)
         repository = try container.decodeIfPresent(String.self, forKey: .repository)
         upstreamDocs = try container.decodeIfPresent(String.self, forKey: .upstreamDocs)
-        executables = try container.decodeIfPresent([PackageDossierExecutable].self, forKey: .executablesDetailed)?.map(\.name) ?? []
+        let binaryNames = try container.decodeIfPresent([String].self, forKey: .binaries) ?? []
+        let executableNames = try container.decodeIfPresent([PackageDossierExecutable].self, forKey: .executablesDetailed)?.map(\.name) ?? []
+        executables = (binaryNames + executableNames).deduped()
         dependencies = try container.decodeIfPresent([String].self, forKey: .dependencies) ?? []
         buildDependencies = try container.decodeIfPresent([String].self, forKey: .buildDependencies) ?? []
         configFileLocations = try container.decodeIfPresent(PackageDossierStringMap.self, forKey: .configFileLocations)?.values ?? [:]
@@ -170,5 +173,12 @@ private struct PackageDossierDynamicKey: CodingKey {
 
     init?(intValue: Int) {
         nil
+    }
+}
+
+private extension Array where Element == String {
+    func deduped() -> [String] {
+        var seen = Set<String>()
+        return filter { !$0.isEmpty && seen.insert($0).inserted }
     }
 }
