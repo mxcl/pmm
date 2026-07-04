@@ -313,6 +313,7 @@ private func mainWindowIsAbsolutePath(_ path: String) -> Bool {
 }
 
 private func mainWindowResolveShellPaths(_ paths: [String]) -> [String] {
+    let paths = paths.filter { !mainWindowReferencesUnsetEnvironmentVariable($0) }
     guard !paths.isEmpty else { return [] }
     let process = Process()
     let output = Pipe()
@@ -334,6 +335,51 @@ private func mainWindowShellExpandablePath(_ path: String) -> String {
 
 private func mainWindowExpandTilde(_ path: String) -> String {
     NSString(string: path).expandingTildeInPath
+}
+
+func mainWindowReferencesUnsetEnvironmentVariable(_ path: String, environment: [String: String] = ProcessInfo.processInfo.environment) -> Bool {
+    var index = path.startIndex
+    while index < path.endIndex {
+        guard path[index] == "$" else {
+            index = path.index(after: index)
+            continue
+        }
+
+        let next = path.index(after: index)
+        guard next < path.endIndex else { return false }
+
+        if path[next] == "{" {
+            guard let close = path[next...].firstIndex(of: "}") else { return false }
+            let nameStart = path.index(after: next)
+            let name = String(path[nameStart..<close])
+            if mainWindowIsEnvironmentName(name), environment[name]?.isEmpty != false { return true }
+            index = path.index(after: close)
+        } else if mainWindowIsEnvironmentNameStart(path[next]) {
+            var end = next
+            while end < path.endIndex, mainWindowIsEnvironmentNameCharacter(path[end]) {
+                end = path.index(after: end)
+            }
+            let name = String(path[next..<end])
+            if environment[name]?.isEmpty != false { return true }
+            index = end
+        } else {
+            index = next
+        }
+    }
+    return false
+}
+
+private func mainWindowIsEnvironmentName(_ name: String) -> Bool {
+    guard let first = name.first, mainWindowIsEnvironmentNameStart(first) else { return false }
+    return name.allSatisfy(mainWindowIsEnvironmentNameCharacter)
+}
+
+private func mainWindowIsEnvironmentNameStart(_ character: Character) -> Bool {
+    character == "_" || character.isLetter
+}
+
+private func mainWindowIsEnvironmentNameCharacter(_ character: Character) -> Bool {
+    character == "_" || character.isLetter || character.isNumber
 }
 
 func mainWindowBrowserLinks(for package: ManagedPackage?) -> [MainWindowBrowserLink] {

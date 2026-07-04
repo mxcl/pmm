@@ -390,6 +390,15 @@ import Testing
     ])
 }
 
+@Test func configurationPathVariablesSkipUnsetSimpleReferences() {
+    let environment = ["HOME": "/Users/me"]
+
+    #expect(mainWindowReferencesUnsetEnvironmentVariable("$XDG_CONFIG_HOME/direnv/direnv.toml", environment: environment))
+    #expect(mainWindowReferencesUnsetEnvironmentVariable("${XDG_CONFIG_HOME}/direnv/direnv.toml", environment: environment))
+    #expect(!mainWindowReferencesUnsetEnvironmentVariable("$HOME/.config/direnv/direnv.toml", environment: environment))
+    #expect(!mainWindowReferencesUnsetEnvironmentVariable("${XDG_CONFIG_HOME:-$HOME/.config}/direnv/direnv.toml", environment: environment))
+}
+
 @Test func outdatedGitHubPackageLoadsLatestReleaseNotes() {
     let url = mainWindowReleaseNotesURL(for: ManagedPackage(
         manager: .homebrew,
