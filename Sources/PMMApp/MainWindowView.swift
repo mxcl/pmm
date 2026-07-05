@@ -979,6 +979,7 @@ enum AVGlassPalette {
     static let linkSelectedFill = Color(red: 0.14, green: 0.16, blue: 0.16)
     static let controlFill = Color.white.opacity(0.07)
     static let cardFill = Color.white.opacity(0.055)
+    static let cardTint = Color(red: 0.05, green: 0.06, blue: 0.07).opacity(0.24)
     static let searchFill = Color.white.opacity(0.11)
     static let controlBorder = Color.white.opacity(0.18)
     static let orange = Color(red: 0.95, green: 0.72, blue: 0.20)

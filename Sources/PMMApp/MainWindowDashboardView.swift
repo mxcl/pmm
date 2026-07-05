@@ -22,7 +22,6 @@ struct MainWindowDashboardView: View {
         }
         .scrollEdgeEffectStyle(.soft, for: .top)
         .ignoresSafeArea(.container, edges: .top)
-        .background(LiquidGlassSurface(material: .ultraThinMaterial, tint: AVGlassPalette.windowTint).ignoresSafeArea())
     }
 
     private var dashboardStats: some View {
@@ -67,7 +66,11 @@ private struct DashboardCard<Content: View>: View {
             content
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(AVGlassPalette.cardFill, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .background {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .overlay(AVGlassPalette.cardTint)
+        }
         .overlay {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .stroke(AVGlassPalette.controlBorder, lineWidth: 1)
