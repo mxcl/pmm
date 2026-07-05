@@ -261,7 +261,7 @@ private struct DashboardRecommendationSection: View {
                         DashboardRecommendationCard(package: package)
                     }
                 }
-                .padding(.horizontal, 14)
+                // .padding(.horizontal, 14)
                 .padding(.bottom, 14)
             }
         }

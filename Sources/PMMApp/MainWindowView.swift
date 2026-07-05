@@ -25,8 +25,6 @@ struct MainWindowSidebarView: View {
                     Spacer(minLength: 18)
                     Section("Categories") {
                         ForEach(model.visibleCategorySections) { sidebarRow($0) }
-                        Spacer(minLength: 8)
-                        ForEach(MainWindowSection.categoryShortcutSections) { sidebarRow($0) }
                     }
                     .font(.caption2)
                     .foregroundStyle(.secondary)
