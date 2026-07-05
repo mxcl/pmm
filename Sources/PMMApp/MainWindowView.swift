@@ -804,6 +804,7 @@ private struct PackageUpdateAction: View {
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
             .tint(AVGlassPalette.orange)
+            .fixedSize(horizontal: true, vertical: false)
             .disabled(isDisabled)
         }
         .padding(12)
