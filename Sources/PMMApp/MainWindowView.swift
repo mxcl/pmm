@@ -136,12 +136,12 @@ struct MainWindowPackageListView: View {
         }
         .safeAreaBar(edge: .top, alignment: .leading, spacing: 0) {
             HStack {
-                Text("Package (Middle) Manager")
+                Text(model.activeSidebarSection?.title ?? "")
                 Spacer()
                 if model.isReloading { ProgressView().controlSize(.small) }
             }
             .font(.system(size: 13, weight: .bold))
-            .foregroundStyle(.white)
+            .foregroundStyle(Color.secondary)
             .padding(.horizontal, 12)
             .frame(maxWidth: .infinity, minHeight: 42)
         }
