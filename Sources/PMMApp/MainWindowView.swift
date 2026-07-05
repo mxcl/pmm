@@ -795,9 +795,11 @@ private struct PackageUpdateAction: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
             }
-            Spacer(minLength: 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .layoutPriority(1)
             Button(action: action) {
                 Label("Update", systemImage: "arrow.down.circle")
+                    .padding(.trailing, 6)
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
