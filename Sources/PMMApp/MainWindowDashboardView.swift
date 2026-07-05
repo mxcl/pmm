@@ -20,31 +20,6 @@ struct MainWindowDashboardView: View {
             .padding(.top, 16)
             .padding(.bottom, 18)
         }
-        .safeAreaBar(edge: .top, alignment: .leading, spacing: 0) {
-            HStack(spacing: 10) {
-                Text("Dashboard")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(AVGlassPalette.primaryText)
-                Spacer()
-                if model.dashboardIsLoadingData {
-                    ProgressView()
-                        .controlSize(.small)
-                } else if let lastUpdated = model.dashboardLastUpdatedText {
-                    Text(lastUpdated)
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(AVGlassPalette.quietText)
-                }
-                Button { model.reload() } label: {
-                    Image(systemName: "arrow.clockwise")
-                        .frame(width: 18, height: 18)
-                }
-                .buttonStyle(.borderless)
-                .help("Refresh packages")
-            }
-            .padding(.horizontal, 16)
-            .frame(maxWidth: .infinity, minHeight: 54)
-            .background(LiquidGlassSurface(material: .ultraThinMaterial, tint: AVGlassPalette.windowTint))
-        }
         .scrollEdgeEffectStyle(.soft, for: .top)
         .ignoresSafeArea(.container, edges: .top)
         .background(LiquidGlassSurface(material: .ultraThinMaterial, tint: AVGlassPalette.windowTint).ignoresSafeArea())
