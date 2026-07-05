@@ -317,6 +317,12 @@ final class MainWindowModel: NSObject, ObservableObject {
         loadDossier(for: package)
     }
 
+    func openDashboardPackage(_ package: ManagedPackage) {
+        let section = MainWindowSection.categorySections.first { $0.categoryIdentifier == package.category } ?? .newUpdated
+        selectSection(section)
+        select(packageIndex.packagesBySection[section]?.first { $0.id == package.id } ?? package)
+    }
+
     func selectAdjacentPackage(offset: Int) -> Bool {
         guard offset != 0, let selectedPackage else { return false }
         let packages = displayedPackages

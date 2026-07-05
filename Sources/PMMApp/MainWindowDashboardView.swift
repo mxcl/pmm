@@ -41,7 +41,9 @@ struct MainWindowDashboardView: View {
                 packages: model.dashboardWhatsNewPackages,
                 isLoading: model.dashboardIsLoadingData,
                 emptyText: "No new packages yet"
-            )
+            ) {
+                model.openDashboardPackage($0)
+            }
             DashboardRecommendationSection(
                 packages: model.dashboardRecommendedPackages,
                 isLoading: model.dashboardIsLoadingData
@@ -119,6 +121,7 @@ private struct DashboardPackageSection: View {
     let packages: [ManagedPackage]
     let isLoading: Bool
     let emptyText: String
+    let action: (ManagedPackage) -> Void
 
     var body: some View {
         DashboardCard {
@@ -135,7 +138,9 @@ private struct DashboardPackageSection: View {
             } else {
                 LazyVStack(spacing: 0) {
                     ForEach(packages) { package in
-                        DashboardPackageRow(package: package)
+                        DashboardPackageRow(package: package) {
+                            action(package)
+                        }
                         if package.id != packages.last?.id {
                             Divider().overlay(AVGlassPalette.hairline)
                         }
@@ -177,6 +182,7 @@ private struct DashboardSectionHeader: View {
 
 private struct DashboardPackageRow: View {
     let package: ManagedPackage
+    let action: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
@@ -216,10 +222,11 @@ private struct DashboardPackageRow: View {
                 .foregroundStyle(AVGlassPalette.quietText)
             }
             Spacer(minLength: 8)
-            Text("Install")
+            Button("View Package", action: action)
+                .buttonStyle(.plain)
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(Color.accentColor)
-                .frame(width: 72, height: 30)
+                .frame(width: 98, height: 30)
                 .background(AVGlassPalette.controlFill, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
                 .overlay {
                     RoundedRectangle(cornerRadius: 6, style: .continuous)

@@ -106,25 +106,34 @@ struct MainWindowPackageListView: View {
     @ObservedObject var model: MainWindowModel
 
     var body: some View {
-        ScrollView {
-            let displayedPackages = model.displayedPackages
-            if model.isReloading && displayedPackages.isEmpty {
-                ProgressView()
-                    .controlSize(.small)
-                    .frame(maxWidth: .infinity, minHeight: 180)
-            } else {
-                LazyVStack(spacing: 0) {
-                    ForEach(displayedPackages) { package in
-                        PackageRow(
-                            package: package,
-                            selected: model.selectedPackage?.id == package.id,
-                            showsManager: model.activeSidebarSection == .outdated || (model.activeSidebarSection?.packageManagers.count ?? 0) > 1,
-                            versionText: mainWindowVersionText(package, section: model.activeSidebarSection)
-                        ) {
-                            model.select(package)
+        ScrollViewReader { proxy in
+            ScrollView {
+                let displayedPackages = model.displayedPackages
+                if model.isReloading && displayedPackages.isEmpty {
+                    ProgressView()
+                        .controlSize(.small)
+                        .frame(maxWidth: .infinity, minHeight: 180)
+                } else {
+                    LazyVStack(spacing: 0) {
+                        ForEach(displayedPackages) { package in
+                            PackageRow(
+                                package: package,
+                                selected: model.selectedPackage?.id == package.id,
+                                showsManager: model.activeSidebarSection == .outdated || (model.activeSidebarSection?.packageManagers.count ?? 0) > 1,
+                                versionText: mainWindowVersionText(package, section: model.activeSidebarSection)
+                            ) {
+                                model.select(package)
+                            }
+                            .id(package.id)
                         }
                     }
                 }
+            }
+            .onChange(of: model.selectedPackage?.id) { _, id in
+                scrollToSelectedPackage(id, proxy: proxy)
+            }
+            .onChange(of: model.selectedSection) { _, _ in
+                scrollToSelectedPackage(model.selectedPackage?.id, proxy: proxy)
             }
         }
         .safeAreaBar(edge: .top, alignment: .leading, spacing: 0) {
@@ -140,6 +149,15 @@ struct MainWindowPackageListView: View {
         }
         .scrollEdgeEffectStyle(.soft, for: .top)
         .ignoresSafeArea(.container, edges: .top)
+    }
+
+    private func scrollToSelectedPackage(_ id: String?, proxy: ScrollViewProxy) {
+        guard let id else { return }
+        DispatchQueue.main.async {
+            withAnimation {
+                proxy.scrollTo(id, anchor: .center)
+            }
+        }
     }
 }
 

@@ -268,6 +268,32 @@ import Testing
 }
 
 @MainActor
+@Test func dashboardPackageOpensItsCategoryAndSelectsPackage() {
+    let model = MainWindowModel(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
+    let package = ManagedPackage(
+        manager: .homebrew,
+        name: "diskwatch",
+        installedVersion: nil,
+        latestVersion: "1",
+        category: "developer-tools",
+        lastUpdatedAt: "2026-06-03T00:00:00Z",
+        pulseKind: "new"
+    )
+
+    model.apply(snapshot: PackageHostSnapshot(
+        inventory: PackageInventory(packages: []),
+        catalogPackages: [package],
+        isRefreshing: false
+    ))
+
+    model.openDashboardPackage(package)
+
+    #expect(model.selectedSection == .developerTools)
+    #expect(model.selectedPackage == package)
+    #expect(model.displayedPackages == [package])
+}
+
+@MainActor
 @Test func dashboardDataIsLoadingSafeWithoutInventory() {
     let root = FileManager.default.temporaryDirectory
         .appendingPathComponent(UUID().uuidString, isDirectory: true)
