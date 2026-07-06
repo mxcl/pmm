@@ -13,23 +13,46 @@ version="${MARKETING_VERSION:-0.1.0}"
 build="${CURRENT_PROJECT_VERSION:-1}"
 app="${APP_PATH:-$root/dist/$app_name.app}"
 helper_app="$root/dist/$helper_app_name.app"
+dmg_path="${DMG_PATH:-$root/dist/$app_name-$version.dmg}"
 icon="$root/Sources/PMMApp/Resources/AppIcon.icon"
 run=false
 install=false
+dmg=false
+notarize=false
+mount=""
 
 usage() {
-  printf 'Usage: %s [--install] [--run]\n' "${0##*/}"
+  printf 'Usage: %s [--install] [--run] [--dmg] [--notarize]\n' "${0##*/}"
 }
 
 while (($#)); do
   case "$1" in
     --install) install=true ;;
     --run) run=true ;;
+    --dmg) dmg=true ;;
+    --notarize) dmg=true; notarize=true ;;
     -h|--help) usage; exit 0 ;;
     *) usage >&2; exit 64 ;;
   esac
   shift
 done
+
+sign_identity="${CODESIGN_IDENTITY:--}"
+if $notarize; then
+  export APPLE_TEAM_ID="${APPLE_TEAM_ID:-${DEVELOPMENT_TEAM:-}}"
+  if [[ -z "$APPLE_TEAM_ID" ]]; then
+    printf '%s\n' 'APPLE_TEAM_ID or DEVELOPMENT_TEAM is required for --notarize' >&2
+    exit 64
+  fi
+  if [[ "$sign_identity" == "-" ]]; then
+    printf '%s\n' 'CODESIGN_IDENTITY is required for --notarize' >&2
+    exit 64
+  fi
+fi
+codesign_args=(--force --sign "$sign_identity")
+if [[ "$sign_identity" != "-" ]]; then
+  codesign_args+=(--options runtime --timestamp)
+fi
 
 kill_existing() {
   pkill -x "$executable" 2>/dev/null || true
@@ -40,6 +63,13 @@ kill_existing() {
   done
   pkill -9 -x "$executable" 2>/dev/null || true
   pkill -9 -x "$helper_executable" 2>/dev/null || true
+}
+
+cleanup() {
+  if [[ -n "$mount" ]]; then
+    hdiutil detach "$mount" -quiet 2>/dev/null || true
+  fi
+  rm -rf "$work"
 }
 
 swift build -c "$configuration" --product "$executable"
@@ -54,7 +84,7 @@ cp "$bin_dir/$executable" "$app/Contents/MacOS/$executable"
 cp "$bin_dir/$helper_executable" "$helper_app/Contents/MacOS/$helper_executable"
 
 work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+trap cleanup EXIT
 mkdir -p "$work/assets"
 
 xcrun actool "$icon" \
@@ -149,20 +179,47 @@ cat > "$work/HelperInfo.plist.xml" <<EOF
 EOF
 
 plutil -convert binary1 -o "$helper_app/Contents/Info.plist" "$work/HelperInfo.plist.xml"
-codesign --force --sign - "$helper_app" >/dev/null
+codesign "${codesign_args[@]}" "$helper_app" >/dev/null
 mv "$helper_app" "$app/Contents/Library/LoginItems/$helper_app_name.app"
-codesign --force --sign - "$app" >/dev/null
+codesign "${codesign_args[@]}" "$app" >/dev/null
+
+if $dmg; then
+  dmg_root="$work/dmg"
+  rm -rf "$dmg_path" "$dmg_root"
+  mkdir -p "$dmg_root"
+  cp -R "$app" "$dmg_root/$app_name.app"
+  ln -s /Applications "$dmg_root/Applications"
+  hdiutil create -volname "$app_name" -srcfolder "$dmg_root" -ov -format UDZO "$dmg_path" >/dev/null
+fi
+
+if $notarize; then
+  "$root/scripts/build-notarize-dmg.sh" "$dmg_path"
+  xcrun stapler staple "$dmg_path"
+fi
 
 final_app="$app"
 if $install; then
   final_app="/Applications/$app_name.app"
   kill_existing
   rm -rf "$final_app"
-  mv "$app" "$final_app"
+  if $notarize; then
+    mount="$work/mount"
+    mkdir -p "$mount"
+    hdiutil attach "$dmg_path" -nobrowse -quiet -mountpoint "$mount"
+    ditto "$mount/$app_name.app" "$final_app"
+    hdiutil detach "$mount" -quiet
+    mount=""
+    rm -rf "$app"
+  else
+    mv "$app" "$final_app"
+  fi
   rmdir "$root/dist" 2>/dev/null || true
 fi
 
 printf '%s\n' "Built $final_app"
+if $dmg; then
+  printf '%s\n' "Created $dmg_path"
+fi
 
 if $run; then
   kill_existing
