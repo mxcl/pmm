@@ -38,7 +38,7 @@ struct MainWindowSidebarView: View {
     private func sidebarHeader(_ text: String) -> some View {
         Text(text)
             .font(.system(size: 11, weight: .medium))
-            .foregroundStyle(AVGlassPalette.quietText)
+            .foregroundStyle(SystemColor.quietText)
             .tracking(0.5)
             .padding(.horizontal, 8)
             .padding(.bottom, 6)
@@ -178,7 +178,7 @@ struct MainWindowDossierView: View {
                                 }
                                 .buttonStyle(.borderedProminent)
                                 .controlSize(.large)
-                                .tint(AVGlassPalette.orange)
+                                .tint(SystemColor.orange)
                                 .disabled(isPackageActionRunning)
                             }
                         }
@@ -210,7 +210,7 @@ struct MainWindowDossierView: View {
         }
         .ignoresSafeArea(.container, edges: .top)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(LiquidGlassSurface(material: .ultraThinMaterial, tint: AVGlassPalette.windowTint).ignoresSafeArea())
+        .background(LiquidGlassSurface(material: .ultraThinMaterial, tint: SystemColor.windowTint).ignoresSafeArea())
         .sheet(isPresented: uninstallModalBinding) {
             PackageProgressView(title: "Uninstalling \(model.uninstallingPackageName ?? "package")")
                 .interactiveDismissDisabled(true)
@@ -253,7 +253,7 @@ struct MainWindowLinksView: View {
             }
         }
         .ignoresSafeArea(.container, edges: .top)
-        .background(LiquidGlassSurface(material: .ultraThinMaterial, tint: AVGlassPalette.windowTint).ignoresSafeArea())
+        .background(LiquidGlassSurface(material: .ultraThinMaterial, tint: SystemColor.windowTint).ignoresSafeArea())
         .onChange(of: links) { _, links in
             if let selectedTab = model.selectedLinkTab, !links.contains(where: { $0.tab == selectedTab }) {
                 model.selectedLinkTab = nil
@@ -467,10 +467,10 @@ private extension MainWindowSidebarView {
                 .textFieldStyle(.plain)
         }
         .font(.system(size: 13))
-        .foregroundStyle(AVGlassPalette.secondaryText)
+        .foregroundStyle(SystemColor.secondaryText)
         .padding(.horizontal, 12)
         .frame(height: 34)
-        .background(AVGlassPalette.searchFill, in: Capsule(style: .continuous))
+        .background(SystemColor.searchFill, in: Capsule(style: .continuous))
     }
 }
 
@@ -508,11 +508,11 @@ private struct PackageLinkRow: View {
                 Text(link.title.uppercased())
                     .font(.system(size: 9, weight: .medium))
                     .tracking(1)
-                    .foregroundStyle(selected ? AVGlassPalette.primaryText : AVGlassPalette.quietText)
+                    .foregroundStyle(selected ? SystemColor.primaryText : SystemColor.quietText)
                     .fixedSize(horizontal: true, vertical: false)
                 Text(mainWindowBrowserDisplayURL(link.url))
                     .font(.system(size: 12))
-                    .foregroundStyle(selected ? AVGlassPalette.secondaryText : AVGlassPalette.quietText)
+                    .foregroundStyle(selected ? SystemColor.secondaryText : SystemColor.quietText)
                     .lineLimit(1)
                     .truncationMode(.middle)
                 Spacer(minLength: 0)
@@ -521,7 +521,7 @@ private struct PackageLinkRow: View {
             .frame(maxWidth: .infinity, minHeight: 34, alignment: .leading)
             .background {
                 if selected {
-                    RoundedRectangle(cornerRadius: 7, style: .continuous).fill(AVGlassPalette.linkSelectedFill)
+                    RoundedRectangle(cornerRadius: 7, style: .continuous).fill(SystemColor.linkSelectedFill)
                 }
             }
             .contentShape(Rectangle())
@@ -615,7 +615,7 @@ private struct ConfigurationLocationRow: View {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(mainWindowHomeRelativePath(location.path))
                     .font(.system(size: 12))
-                    .foregroundStyle(AVGlassPalette.quietText)
+                    .foregroundStyle(SystemColor.quietText)
                     .lineLimit(1)
                     .truncationMode(.middle)
                 Spacer(minLength: 0)
@@ -697,20 +697,20 @@ private struct PackageRow: View {
                 HStack(alignment: .firstTextBaseline, spacing: 3) {
                     Text(package.displayName)
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(AVGlassPalette.primaryText)
+                        .foregroundStyle(SystemColor.primaryText)
                         .lineLimit(1)
                         .truncationMode(.middle)
-                    if package.isOutdated && !showsManager { PackageBadgePill(text: "Outdated", color: AVGlassPalette.orange) }
+                    if package.isOutdated && !showsManager { PackageBadgePill(text: "Outdated", color: SystemColor.orange) }
                     Spacer(minLength: 8)
                     Text(versionText)
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(AVGlassPalette.secondaryText)
+                        .foregroundStyle(SystemColor.secondaryText)
                         .lineLimit(1)
                         .fixedSize(horizontal: true, vertical: false)
                 }
                 Text(subtitle)
                     .font(.system(size: 12))
-                    .foregroundStyle(AVGlassPalette.quietText)
+                    .foregroundStyle(SystemColor.quietText)
                     .lineLimit(2)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -719,7 +719,7 @@ private struct PackageRow: View {
             .frame(height: 66, alignment: .topLeading)
             .background {
                 if selected {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous).fill(AVGlassPalette.packageSelectedFill)
+                    RoundedRectangle(cornerRadius: 8, style: .continuous).fill(SystemColor.packageSelectedFill)
                 }
             }
             .padding(.horizontal, 3)
@@ -748,7 +748,7 @@ private struct SidebarCountText: View {
     var body: some View {
         Text(count.formatted())
             .font(.system(size: 11, weight: .regular))
-            .foregroundStyle(AVGlassPalette.quietText)
+            .foregroundStyle(SystemColor.quietText)
             .monospacedDigit()
             .lineLimit(1)
             .frame(minWidth: SidebarCountMetrics.columnWidth, alignment: .trailing)
@@ -761,11 +761,11 @@ private struct CountPill: View {
     var body: some View {
         Text(count.formatted())
             .font(.system(size: 11, weight: .medium))
-            .foregroundStyle(AVGlassPalette.secondaryText)
+            .foregroundStyle(SystemColor.secondaryText)
             .monospacedDigit()
             .padding(.horizontal, SidebarCountMetrics.pillHorizontalPadding)
             .frame(height: 20)
-            .background(AVGlassPalette.controlFill, in: Capsule())
+            .background(SystemColor.controlFill, in: Capsule())
             .padding(.trailing, -SidebarCountMetrics.pillHorizontalPadding)
     }
 }
@@ -794,14 +794,14 @@ private struct DossierHeader: View {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(package.displayName)
                     .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(AVGlassPalette.primaryText)
+                    .foregroundStyle(SystemColor.primaryText)
                     .lineLimit(1)
                     .truncationMode(.tail)
                     .layoutPriority(1)
                 if let version = package.installedVersion ?? package.latestVersion {
                     Text(version)
                         .font(.system(size: 14, weight: .thin))
-                        .foregroundStyle(AVGlassPalette.secondaryText)
+                        .foregroundStyle(SystemColor.secondaryText)
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }
@@ -809,7 +809,7 @@ private struct DossierHeader: View {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(package.manager.title.uppercased())
                     .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(AVGlassPalette.quietText)
+                    .foregroundStyle(SystemColor.quietText)
                     .tracking(0.8)
                 if let category = mainWindowCategoryTitle(package.category) {
                     Text("·")
@@ -823,7 +823,7 @@ private struct DossierHeader: View {
             if let summary = package.summary {
                 Text(summary)
                     .font(.system(size: 13))
-                    .foregroundStyle(AVGlassPalette.secondaryText)
+                    .foregroundStyle(SystemColor.secondaryText)
                     .lineSpacing(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -839,10 +839,10 @@ private struct InfoSection<Content: View>: View {
             VStack(alignment: .leading, spacing: 7) {
                 Text(title.uppercased())
                     .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(AVGlassPalette.quietText)
+                    .foregroundStyle(SystemColor.quietText)
                     .tracking(0.8)
                 Rectangle()
-                    .fill(AVGlassPalette.hairline)
+                    .fill(SystemColor.hairline)
                     .frame(height: 1)
             }
             content
@@ -859,10 +859,10 @@ private struct InfoRow: View {
         VStack(alignment: .leading, spacing: 3) {
             Text(label)
                 .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(AVGlassPalette.quietText)
+                .foregroundStyle(SystemColor.quietText)
             Text(value)
                 .font(.system(size: 12))
-                .foregroundStyle(AVGlassPalette.secondaryText)
+                .foregroundStyle(SystemColor.secondaryText)
                 .lineLimit(valueLineLimit)
                 .textSelection(.enabled)
         }
@@ -879,13 +879,13 @@ private struct PackageProgressView: View {
                 .controlSize(.large)
             Text(title)
                 .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(AVGlassPalette.primaryText)
+                .foregroundStyle(SystemColor.primaryText)
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
         }
         .padding(28)
         .frame(width: 260)
-        .background(LiquidGlassSurface(material: .ultraThinMaterial, tint: AVGlassPalette.windowTint))
+        .background(LiquidGlassSurface(material: .ultraThinMaterial, tint: SystemColor.windowTint))
     }
 }
 
@@ -954,23 +954,19 @@ struct LiquidGlassSurface: View {
     }
 }
 
-enum AVGlassPalette {
-    static let windowTint = Color(red: 0.05, green: 0.06, blue: 0.07).opacity(0.50)
-    static let sidebarTint = Color(red: 0.06, green: 0.07, blue: 0.07).opacity(0.72)
-    static let primaryText = Color.white.opacity(0.92)
-    static let secondaryText = Color.white.opacity(0.72)
-    static let quietText = Color.white.opacity(0.42)
-    static let hairline = Color.white.opacity(0.07)
-    static let sidebarBorder = Color.white.opacity(0.14)
-    static let sidebarSelectedFill = Color(red: 0.00, green: 0.38, blue: 0.86)
-    static let packageSelectedFill = Color.white.opacity(0.08)
-    static let linkSelectedFill = Color(red: 0.14, green: 0.16, blue: 0.16)
-    static let controlFill = Color.white.opacity(0.07)
-    static let cardFill = Color.white.opacity(0.055)
-    static let cardTint = Color(red: 0.05, green: 0.06, blue: 0.07).opacity(0.24)
-    static let searchFill = Color.white.opacity(0.11)
-    static let controlBorder = Color.white.opacity(0.18)
-    static let orange = Color(red: 0.95, green: 0.72, blue: 0.20)
+enum SystemColor {
+    static let windowTint = Color(nsColor: .windowBackgroundColor).opacity(0.08)
+    static let primaryText = Color.primary
+    static let secondaryText = Color.secondary
+    static let quietText = Color(nsColor: .tertiaryLabelColor)
+    static let hairline = Color(nsColor: .separatorColor)
+    static let packageSelectedFill = Color(nsColor: .selectedContentBackgroundColor).opacity(0.14)
+    static let linkSelectedFill = Color(nsColor: .selectedContentBackgroundColor).opacity(0.10)
+    static let controlFill = Color(nsColor: .controlBackgroundColor)
+    static let cardTint = Color(nsColor: .windowBackgroundColor).opacity(0.28)
+    static let searchFill = Color(nsColor: .controlBackgroundColor)
+    static let controlBorder = Color(nsColor: .separatorColor)
+    static let orange = Color.orange
 }
 
 #Preview("MainWindowSidebarView.sidebarRow") {

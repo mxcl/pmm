@@ -32,7 +32,7 @@ struct MainWindowDashboardView: View {
             DashboardMetricCard(title: "Outdated", value: model.dashboardOutdatedCount, detail: "View updates", isLoading: model.dashboardIsLoadingData, tint: Color.accentColor) {
                 model.selectSection(.outdated)
             }
-            DashboardMetricCard(title: "Ecosystems", value: model.dashboardActiveEcosystemCount, detail: "Active", isLoading: model.dashboardIsLoadingData, tint: AVGlassPalette.secondaryText) {
+            DashboardMetricCard(title: "Ecosystems", value: model.dashboardActiveEcosystemCount, detail: "Active", isLoading: model.dashboardIsLoadingData, tint: SystemColor.secondaryText) {
                 if let section = model.visibleManagerSections.first {
                     model.selectSection(section)
                 }
@@ -79,11 +79,11 @@ private struct DashboardCard<Content: View>: View {
         .background {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(.ultraThinMaterial)
-                .overlay(AVGlassPalette.cardTint)
+                .overlay(SystemColor.cardTint)
         }
         .overlay {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(AVGlassPalette.controlBorder, lineWidth: 1)
+                .stroke(SystemColor.controlBorder, lineWidth: 1)
         }
     }
 }
@@ -118,12 +118,12 @@ private struct DashboardMetricCard: View {
                 } else {
                     Text((value ?? 0).formatted())
                         .font(.system(size: 24, weight: .semibold))
-                        .foregroundStyle(AVGlassPalette.primaryText)
+                        .foregroundStyle(SystemColor.primaryText)
                         .monospacedDigit()
                 }
                 Text(title)
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(AVGlassPalette.secondaryText)
+                    .foregroundStyle(SystemColor.secondaryText)
                     .lineLimit(1)
                 Text(detail)
                     .font(.system(size: 11, weight: .medium))
@@ -155,7 +155,7 @@ private struct DashboardPackageSection: View {
             } else if packages.isEmpty {
                 Text(emptyText)
                     .font(.system(size: 13))
-                    .foregroundStyle(AVGlassPalette.quietText)
+                    .foregroundStyle(SystemColor.quietText)
                     .frame(maxWidth: .infinity, minHeight: 120)
             } else {
                 LazyVStack(spacing: 0) {
@@ -164,7 +164,7 @@ private struct DashboardPackageSection: View {
                             action(package)
                         }
                         if package.id != packages.last?.id {
-                            Divider().overlay(AVGlassPalette.hairline)
+                            Divider().overlay(SystemColor.hairline)
                         }
                     }
                 }
@@ -191,7 +191,7 @@ private struct DashboardSectionHeader: View {
             }
             Text(title)
                 .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(AVGlassPalette.primaryText)
+                .foregroundStyle(SystemColor.primaryText)
             Spacer()
             Text("View all")
                 .font(.system(size: 12, weight: .medium))
@@ -210,10 +210,10 @@ private struct DashboardPackageRow: View {
         HStack(spacing: 12) {
             ZStack {
                 Circle()
-                    .fill(AVGlassPalette.controlFill)
+                    .fill(SystemColor.controlFill)
                 Image(systemName: package.manager.dashboardSymbol)
                     .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(AVGlassPalette.primaryText)
+                    .foregroundStyle(SystemColor.primaryText)
             }
             .frame(width: 40, height: 40)
 
@@ -221,19 +221,19 @@ private struct DashboardPackageRow: View {
                 HStack(spacing: 6) {
                     Text(package.displayName)
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(AVGlassPalette.primaryText)
+                        .foregroundStyle(SystemColor.primaryText)
                         .lineLimit(1)
                     if package.pulseKind == "new" {
                         PackageBadgePill(text: "New", color: Color.accentColor)
                     }
                     Text(package.manager.title)
                         .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(AVGlassPalette.quietText)
+                        .foregroundStyle(SystemColor.quietText)
                         .lineLimit(1)
                 }
                 Text(package.summary ?? mainWindowCategoryTitle(package.category) ?? "Package")
                     .font(.system(size: 12))
-                    .foregroundStyle(AVGlassPalette.secondaryText)
+                    .foregroundStyle(SystemColor.secondaryText)
                     .lineLimit(1)
                 HStack(spacing: 5) {
                     Image(systemName: "arrow.down.right")
@@ -241,7 +241,7 @@ private struct DashboardPackageRow: View {
                     Text(package.dashboardFooter)
                         .font(.system(size: 11))
                 }
-                .foregroundStyle(AVGlassPalette.quietText)
+                .foregroundStyle(SystemColor.quietText)
             }
             Spacer(minLength: 8)
             Button("View Package", action: action)
@@ -249,10 +249,10 @@ private struct DashboardPackageRow: View {
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(Color.accentColor)
                 .frame(width: 98, height: 30)
-                .background(AVGlassPalette.controlFill, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                .background(SystemColor.controlFill, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
                 .overlay {
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .stroke(AVGlassPalette.controlBorder, lineWidth: 1)
+                        .stroke(SystemColor.controlBorder, lineWidth: 1)
                 }
         }
         .padding(.horizontal, 14)
@@ -275,7 +275,7 @@ private struct DashboardRecommendationSection: View {
             } else if packages.isEmpty {
                 Text("No recommendations yet")
                     .font(.system(size: 13))
-                    .foregroundStyle(AVGlassPalette.quietText)
+                    .foregroundStyle(SystemColor.quietText)
                     .frame(maxWidth: .infinity, minHeight: 120)
             } else {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 130), spacing: 12), count: 3), spacing: 12) {
@@ -297,19 +297,19 @@ private struct DashboardRecommendationCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
             ZStack {
-                Circle().fill(AVGlassPalette.controlFill)
+                Circle().fill(SystemColor.controlFill)
                 Image(systemName: package.manager.dashboardSymbol)
                     .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(AVGlassPalette.primaryText)
+                    .foregroundStyle(SystemColor.primaryText)
             }
             .frame(width: 38, height: 38)
             Text(package.displayName)
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(AVGlassPalette.primaryText)
+                .foregroundStyle(SystemColor.primaryText)
                 .lineLimit(1)
             Text(package.summary ?? package.manager.title)
                 .font(.system(size: 11))
-                .foregroundStyle(AVGlassPalette.secondaryText)
+                .foregroundStyle(SystemColor.secondaryText)
                 .lineLimit(2)
                 .frame(minHeight: 28, alignment: .topLeading)
             Spacer(minLength: 0)
@@ -317,14 +317,14 @@ private struct DashboardRecommendationCard: View {
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(Color.accentColor)
                 .frame(maxWidth: .infinity, minHeight: 30)
-                .background(AVGlassPalette.controlFill, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                .background(SystemColor.controlFill, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
         }
         .padding(12)
         .frame(minHeight: 150, alignment: .topLeading)
-        .background(AVGlassPalette.controlFill, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .background(SystemColor.controlFill, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(AVGlassPalette.controlBorder, lineWidth: 1)
+                .stroke(SystemColor.controlBorder, lineWidth: 1)
         }
     }
 }
@@ -372,7 +372,7 @@ private struct DashboardSponsoredCard: View {
             }
             .overlay {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .stroke(AVGlassPalette.controlBorder, lineWidth: 1)
+                    .stroke(SystemColor.controlBorder, lineWidth: 1)
             }
         }
         .buttonStyle(.plain)
@@ -394,21 +394,21 @@ private struct DashboardUpdatesCard: View {
                     HStack(spacing: 12) {
                         Image(systemName: update.3)
                             .font(.system(size: 20, weight: .medium))
-                            .foregroundStyle(AVGlassPalette.primaryText)
+                            .foregroundStyle(SystemColor.primaryText)
                             .frame(width: 48, height: 48)
-                            .background(AVGlassPalette.controlFill, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                            .background(SystemColor.controlFill, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
                         VStack(alignment: .leading, spacing: 3) {
                             Text(update.0)
                                 .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(AVGlassPalette.primaryText)
+                                .foregroundStyle(SystemColor.primaryText)
                                 .lineLimit(1)
                             Text(update.1)
                                 .font(.system(size: 11))
-                                .foregroundStyle(AVGlassPalette.secondaryText)
+                                .foregroundStyle(SystemColor.secondaryText)
                                 .lineLimit(1)
                             Text(update.2)
                                 .font(.system(size: 11))
-                                .foregroundStyle(AVGlassPalette.quietText)
+                                .foregroundStyle(SystemColor.quietText)
                         }
                         Spacer(minLength: 0)
                     }
@@ -441,11 +441,11 @@ private struct DashboardInstallPacksCard: View {
                         VStack(alignment: .leading, spacing: 3) {
                             Text(pack.0)
                                 .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(AVGlassPalette.primaryText)
+                                .foregroundStyle(SystemColor.primaryText)
                                 .lineLimit(1)
                             Text(pack.1)
                                 .font(.system(size: 11))
-                                .foregroundStyle(AVGlassPalette.secondaryText)
+                                .foregroundStyle(SystemColor.secondaryText)
                                 .lineLimit(1)
                         }
                         Spacer(minLength: 8)
@@ -453,12 +453,12 @@ private struct DashboardInstallPacksCard: View {
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(Color.accentColor)
                             .frame(width: 58, height: 30)
-                            .background(AVGlassPalette.controlFill, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                            .background(SystemColor.controlFill, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
                     if pack.0 != packs.last?.0 {
-                        Divider().overlay(AVGlassPalette.hairline)
+                        Divider().overlay(SystemColor.hairline)
                     }
                 }
             }
@@ -475,7 +475,7 @@ private struct DashboardProBanner: View {
                     .foregroundStyle(Color(red: 0.70, green: 0.42, blue: 1.00))
                 Text("Get advanced security scanning, private packages, and team features.")
                     .font(.system(size: 12))
-                    .foregroundStyle(AVGlassPalette.secondaryText)
+                    .foregroundStyle(SystemColor.secondaryText)
                     .lineLimit(2)
             }
             Spacer(minLength: 8)
@@ -512,7 +512,7 @@ private struct DashboardCheckmarkText: View {
             Text(text)
                 .font(.system(size: 11))
         }
-        .foregroundStyle(AVGlassPalette.secondaryText)
+        .foregroundStyle(SystemColor.secondaryText)
     }
 }
 
