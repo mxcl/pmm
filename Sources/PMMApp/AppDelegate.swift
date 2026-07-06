@@ -1,8 +1,16 @@
 import AppKit
+import AppUpdater
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private let appUpdater = AppUpdater(owner: "mxcl", repo: "pmm")
+    private var checkForUpdatesItem: NSMenuItem?
     private var window: NSWindow?
+    private var isCheckingForUpdates = false {
+        didSet {
+            checkForUpdatesItem?.isEnabled = !isCheckingForUpdates
+        }
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.mainMenu = makeMainMenu()
@@ -72,6 +80,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         appMenu.addItem(withTitle: L10n.format("About %@", appName), action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
         appMenu.addItem(.separator())
+        checkForUpdatesItem = appMenu.addItem(withTitle: L10n.string("Check for Updates…"), action: #selector(checkForUpdates(_:)), keyEquivalent: "")
+        checkForUpdatesItem?.target = self
+        appMenu.addItem(.separator())
         appMenu.addItem(withTitle: L10n.format("Hide %@", appName), action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
         let hideOthers = appMenu.addItem(withTitle: L10n.string("Hide Others"), action: #selector(NSApplication.hideOtherApplications(_:)), keyEquivalent: "h")
         hideOthers.keyEquivalentModifierMask = [.command, .option]
@@ -116,6 +127,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func refreshPackages(_ sender: Any?) {
         (window?.contentViewController as? MainWindowController)?.refresh(sender)
+    }
+
+    @objc private func checkForUpdates(_ sender: Any?) {
+        guard !isCheckingForUpdates else { return }
+        isCheckingForUpdates = true
+        Task { @MainActor in
+            do {
+                if let update = try await appUpdater.check() {
+                    try await update.installAndRelaunch()
+                } else {
+                    showUpdateAlert(message: "PM² is up to date.")
+                }
+            } catch {
+                showUpdateAlert(message: "Unable to check for updates.", informativeText: error.localizedDescription)
+            }
+            isCheckingForUpdates = false
+        }
+    }
+
+    private func showUpdateAlert(message: String, informativeText: String = "") {
+        let alert = NSAlert()
+        alert.messageText = message
+        alert.informativeText = informativeText
+        alert.runModal()
     }
 }
 
