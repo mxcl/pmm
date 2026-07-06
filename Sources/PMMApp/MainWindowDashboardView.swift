@@ -26,9 +26,17 @@ struct MainWindowDashboardView: View {
 
     private var dashboardStats: some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 110), spacing: 14), count: 4), spacing: 14) {
-            DashboardMetricCard(title: "Installed packages", value: model.dashboardInstalledCount, detail: "+12 this week", isLoading: model.dashboardIsLoadingData, tint: .green)
-            DashboardMetricCard(title: "Outdated", value: model.dashboardOutdatedCount, detail: "View updates", isLoading: model.dashboardIsLoadingData, tint: Color.accentColor)
-            DashboardMetricCard(title: "Ecosystems", value: model.dashboardActiveEcosystemCount, detail: "Active", isLoading: model.dashboardIsLoadingData, tint: AVGlassPalette.secondaryText)
+            DashboardMetricCard(title: "Installed packages", value: model.dashboardInstalledCount, detail: "+12 this week", isLoading: model.dashboardIsLoadingData, tint: .green) {
+                model.selectSection(.installed)
+            }
+            DashboardMetricCard(title: "Outdated", value: model.dashboardOutdatedCount, detail: "View updates", isLoading: model.dashboardIsLoadingData, tint: Color.accentColor) {
+                model.selectSection(.outdated)
+            }
+            DashboardMetricCard(title: "Ecosystems", value: model.dashboardActiveEcosystemCount, detail: "Active", isLoading: model.dashboardIsLoadingData, tint: AVGlassPalette.secondaryText) {
+                if let section = model.visibleManagerSections.first {
+                    model.selectSection(section)
+                }
+            }
             DashboardMetricCard(title: "Install packs", value: 3, detail: "1 update available", isLoading: false, tint: Color.accentColor)
         }
     }
@@ -86,8 +94,21 @@ private struct DashboardMetricCard: View {
     let detail: String
     let isLoading: Bool
     let tint: Color
+    var action: (() -> Void)?
 
+    @ViewBuilder
     var body: some View {
+        if let action {
+            Button(action: action) {
+                card
+            }
+            .buttonStyle(.plain)
+        } else {
+            card
+        }
+    }
+
+    private var card: some View {
         DashboardCard {
             VStack(alignment: .leading, spacing: 8) {
                 if isLoading {
@@ -111,6 +132,7 @@ private struct DashboardMetricCard: View {
             }
             .padding(14)
             .frame(maxWidth: .infinity, minHeight: 104, alignment: .leading)
+            .contentShape(Rectangle())
         }
     }
 }
