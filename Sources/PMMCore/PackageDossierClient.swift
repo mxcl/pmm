@@ -112,7 +112,7 @@ public struct PackageDossierClient: Sendable {
     public func dossier(for package: ManagedPackage) async throws -> PackageDossierPage? {
         guard let url = Self.url(for: package, baseURL: baseURL) else { return nil }
         var request = URLRequest(url: url)
-        request.setValue("PMM/1.0", forHTTPHeaderField: "User-Agent")
+        request.setValue("PM2/1.0", forHTTPHeaderField: "User-Agent")
         let (data, response) = try await session.data(for: request)
         guard (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
         return try JSONDecoder().decode(PackageDossierPage.self, from: data)

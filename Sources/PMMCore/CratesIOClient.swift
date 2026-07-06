@@ -14,7 +14,7 @@ public struct CratesIOClient: Sendable {
 
     public func metadata(for name: String) async throws -> PackageMetadata? {
         var request = URLRequest(url: baseURL.appending(path: "crates").appending(path: name))
-        request.setValue("PMM/1.0", forHTTPHeaderField: "User-Agent")
+        request.setValue("PM2/1.0", forHTTPHeaderField: "User-Agent")
         let (data, response) = try await session.data(for: request)
         guard (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
         return try Self.metadata(from: data)

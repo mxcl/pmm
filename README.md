@@ -1,6 +1,6 @@
-![Package Middle Manager screenshot](docs/pmm-promo.png)
+![Package Manager Manager screenshot](docs/pmm-promo.png)
 
-# Package (Middle) Manager
+# Package Manager Manager
 
 A macOS app for seeing the packages you installed with all the other package managers.
 
@@ -11,7 +11,7 @@ A macOS app for seeing the packages you installed with all the other package man
 
 ```sh
 $ scripts/build.sh --run
-Built /Users/you/src/pmm/dist/Package Middle Manager.app
+Built /Users/you/src/pmm/dist/Package Manager Manager.app
 # ^^ builds the app, signs it ad-hoc, then opens it
 ```
 
@@ -19,7 +19,7 @@ Install it into `/Applications`:
 
 ```sh
 $ scripts/build.sh --install --run
-Built /Applications/Package Middle Manager.app
+Built /Applications/Package Manager Manager.app
 ```
 
 The app bundles a menu bar helper. The helper does the slow work in the
@@ -29,7 +29,7 @@ things.
 
 ## What It Finds
 
-P(m)M currently inventories:
+PM² currently inventories:
 
 - Homebrew formulae and casks
 - global npm packages
@@ -45,7 +45,7 @@ shows up. It just looks less informed. Fair.
 
 ## Updating and Removing
 
-The detail pane offers update and uninstall actions when P(m)M knows the native
+The detail pane offers update and uninstall actions when PM² knows the native
 command to run.
 
 Supported update paths:
@@ -68,7 +68,7 @@ Supported uninstall paths:
 - `cargo uninstall`
 
 > [!IMPORTANT]
-> `rustup` is inventory-only for now. P(m)M will show `rustup` and toolchains,
+> `rustup` is inventory-only for now. PM² will show `rustup` and toolchains,
 > but it will not update or uninstall them.
 
 ## CLI
@@ -99,7 +99,7 @@ The package exports three products:
 
 ## Caveats
 
-P(m)M shells out to your package managers. It does not replace them, normalize
+PM² shells out to your package managers. It does not replace them, normalize
 their data perfectly, or pretend their caches are a coherent database.
 
 Homebrew metadata requires `brew update` in the helper refresh path. Network
