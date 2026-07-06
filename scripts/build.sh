@@ -32,7 +32,7 @@ while (($#)); do
     --run) run=true ;;
     --dmg) dmg=true ;;
     --notarize) dmg=true; notarize=true ;;
-    --publish) dmg=true; publish=true ;;
+    --publish) dmg=true; notarize=true; publish=true ;;
     -h|--help) usage; exit 0 ;;
     *) usage >&2; exit 64 ;;
   esac
