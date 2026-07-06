@@ -200,6 +200,12 @@ push_current_branch() {
 
   branch="$(git -C "$root" rev-parse --abbrev-ref HEAD)"
   [[ "$branch" != "HEAD" ]] || die "Cannot push release commit from detached HEAD"
+  if ! git -C "$root" rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' >/dev/null 2>&1; then
+    git -C "$root" remote get-url origin >/dev/null 2>&1 ||
+      die "Current branch has no upstream and no origin remote"
+    git -C "$root" push --set-upstream origin "$branch" >&2
+    return
+  fi
   git -C "$root" push >&2
 }
 
