@@ -208,7 +208,7 @@ struct MainWindowDossierView: View {
         }
         .ignoresSafeArea(.container, edges: .top)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(LiquidGlassSurface(material: .ultraThinMaterial, tint: SystemColor.windowTint).ignoresSafeArea())
+        .background(.ultraThinMaterial)
         .sheet(isPresented: uninstallModalBinding) {
             PackageProgressView(title: "Uninstalling \(model.uninstallingPackageName ?? "package")")
                 .interactiveDismissDisabled(true)
@@ -953,7 +953,7 @@ struct LiquidGlassSurface: View {
 }
 
 enum SystemColor {
-    static let windowTint = Color(nsColor: .windowBackgroundColor).opacity(0.08)
+    static let windowTint = Color.clear
     static let primaryText = Color.primary
     static let secondaryText = Color.secondary
     static let quietText = Color(nsColor: .tertiaryLabelColor)
