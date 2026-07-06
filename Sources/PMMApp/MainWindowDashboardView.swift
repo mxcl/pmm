@@ -308,47 +308,52 @@ private struct DashboardRecommendationCard: View {
 }
 
 private struct DashboardSponsoredCard: View {
+    private let url = URL(string: "https://automicvault.com")!
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Spacer(minLength: 0)
-            Image(systemName: "lock.shield")
-                .font(.system(size: 34, weight: .semibold))
-                .foregroundStyle(.white)
-            Text("Secure every install.")
-                .font(.system(size: 24, weight: .bold))
-                .foregroundStyle(.white)
-                .lineLimit(2)
-            Text("Zero-trust for the tools you use every day.")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(.white.opacity(0.78))
-                .lineLimit(2)
-            Text("Learn more")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.black.opacity(0.86))
-                .padding(.horizontal, 18)
-                .frame(height: 32)
-                .background(.white.opacity(0.9), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-            HStack {
-                Spacer()
-                Text("SPONSORED")
-                    .font(.system(size: 8, weight: .bold))
-                    .foregroundStyle(.white.opacity(0.7))
+        Link(destination: url) {
+            VStack(alignment: .leading, spacing: 12) {
+                Spacer(minLength: 0)
+                Image(systemName: "lock.shield")
+                    .font(.system(size: 34, weight: .semibold))
+                    .foregroundStyle(.white)
+                Text("Secure every install.")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(.white)
+                    .lineLimit(2)
+                Text("Zero-trust for the tools you use every day.")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.78))
+                    .lineLimit(2)
+                Text("Learn more")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.black.opacity(0.86))
+                    .padding(.horizontal, 18)
+                    .frame(height: 32)
+                    .background(.white.opacity(0.9), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                HStack {
+                    Spacer()
+                    Text("SPONSORED")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(.white.opacity(0.7))
+                }
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, minHeight: 200, alignment: .leading)
+            .background {
+                LinearGradient(
+                    colors: [Color(red: 0.35, green: 0.16, blue: 0.62), Color(red: 0.98, green: 0.44, blue: 0.25), Color(red: 0.05, green: 0.06, blue: 0.10)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(AVGlassPalette.controlBorder, lineWidth: 1)
             }
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, minHeight: 200, alignment: .leading)
-        .background {
-            LinearGradient(
-                colors: [Color(red: 0.35, green: 0.16, blue: 0.62), Color(red: 0.98, green: 0.44, blue: 0.25), Color(red: 0.05, green: 0.06, blue: 0.10)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(AVGlassPalette.controlBorder, lineWidth: 1)
-        }
+        .buttonStyle(.plain)
     }
 }
 
