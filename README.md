@@ -2,10 +2,15 @@
 
 # Package Manager Manager
 
-A macOS app for seeing the packages you installed with all the other package managers.
+The time when one package manager was all you needed is long gone. PM²
+inventories your package managers and their packages, so you can see what you
+have, what’s outdated, and what’s taking up space.
 
-> [!WARNING]
-> Requires macOS 26. This is a SwiftUI/Liquid Glass app, not a portable dashboard. Yet.
+Use whatever you want without compromising visibility into what’s going on.
+
+> [!TIP]
+> We even manage `npx foo`—no longer must you remember to do `npx foo@latest`
+> every no and again to get the latest version of `foo`.
 
 ## Quickstart
 
