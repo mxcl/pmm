@@ -2,29 +2,30 @@ import PMMCore
 import SwiftUI
 
 private let dashboardItemCornerRadius: CGFloat = 18
+private let dashboardCardSpacing: CGFloat = 9.5
 
 struct MainWindowDashboardView: View {
     @ObservedObject var model: MainWindowModel
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: dashboardCardSpacing) {
                 dashboardStats
-                HStack(alignment: .top, spacing: 16) {
+                HStack(alignment: .top, spacing: dashboardCardSpacing) {
                     dashboardMainColumn
                         .frame(minWidth: 0, maxWidth: .infinity)
                     dashboardSideColumn
                         .frame(width: 310)
                 }
             }
-            .padding(8.5)
+            .padding(dashboardCardSpacing)
         }
         .scrollEdgeEffectStyle(.soft, for: .top)
         .ignoresSafeArea(.container, edges: .top)
     }
 
     private var dashboardStats: some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 110), spacing: 14), count: 4), spacing: 14) {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 110), spacing: dashboardCardSpacing), count: 4), spacing: dashboardCardSpacing) {
             DashboardMetricCard(title: "Installed packages", value: model.dashboardInstalledCount, detail: model.dashboardInstalledThisWeekText, isLoading: model.dashboardIsLoadingData, tint: AnyShapeStyle(.tertiary)) {
                 model.selectSection(.installed)
             }
@@ -41,7 +42,7 @@ struct MainWindowDashboardView: View {
     }
 
     private var dashboardMainColumn: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: dashboardCardSpacing) {
             DashboardPackageSection(
                 title: "What's New",
                 systemImage: "sparkle",
@@ -63,7 +64,7 @@ struct MainWindowDashboardView: View {
     }
 
     private var dashboardSideColumn: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: dashboardCardSpacing) {
             DashboardSponsoredCard()
             DashboardUpdatesCard()
             DashboardInstallPacksCard()
@@ -295,7 +296,7 @@ private struct DashboardRecommendationSection: View {
                     .foregroundStyle(SystemColor.quietText)
                     .frame(maxWidth: .infinity, minHeight: 120)
             } else {
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 130), spacing: 12), count: 3), spacing: 12) {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 130), spacing: dashboardCardSpacing), count: 3), spacing: dashboardCardSpacing) {
                     ForEach(packages) { package in
                         DashboardRecommendationCard(package: package) {
                             action(package)
