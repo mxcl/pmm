@@ -983,7 +983,11 @@ struct LiquidGlassSurface: View {
 }
 
 enum SystemColor {
-    static let packageBrown = Color(red: 0.97, green: 0.75, blue: 0.50)
+    static let packageBrown = Color(nsColor: NSColor(name: nil) { appearance in
+        appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+            ? NSColor(red: 0.97, green: 0.75, blue: 0.50, alpha: 1)
+            : NSColor(red: 0.85, green: 0.54, blue: 0.25, alpha: 1)
+    })
     static let windowTint = Color.clear
     static let primaryText = Color.primary
     static let secondaryText = Color.secondary
