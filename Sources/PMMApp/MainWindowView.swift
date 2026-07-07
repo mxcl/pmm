@@ -520,7 +520,12 @@ private struct PackageLinkRow: View {
             .frame(maxWidth: .infinity, minHeight: 34, alignment: .leading)
             .background {
                 if selected {
-                    RoundedRectangle(cornerRadius: 7, style: .continuous).fill(SystemColor.linkSelectedFill)
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(.selection.opacity(0.22))
+                        .background {
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(.ultraThinMaterial)
+                        }
                 }
             }
             .contentShape(Rectangle())
@@ -718,7 +723,12 @@ private struct PackageRow: View {
             .frame(height: 66, alignment: .topLeading)
             .background {
                 if selected {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous).fill(SystemColor.packageSelectedFill)
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(.selection.opacity(0.22))
+                        .background {
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(.ultraThinMaterial)
+                        }
                 }
             }
             .padding(.horizontal, 3)
@@ -960,8 +970,6 @@ enum SystemColor {
     static let secondaryText = Color.secondary
     static let quietText = Color(nsColor: .tertiaryLabelColor)
     static let hairline = Color(nsColor: .separatorColor)
-    static let packageSelectedFill = Color(nsColor: .selectedContentBackgroundColor).opacity(0.14)
-    static let linkSelectedFill = Color(nsColor: .selectedContentBackgroundColor).opacity(0.10)
     static let controlFill = Color(nsColor: .controlBackgroundColor)
     static let cardTint = Color(nsColor: .controlBackgroundColor).opacity(0.28)
     static let searchFill = Color(nsColor: .controlBackgroundColor)
