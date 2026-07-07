@@ -36,7 +36,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate {
             return
         }
 
-        let initialContentSize = NSSize(width: 1378, height: 827)
+        let initialContentSize = NSSize(width: 1378, height: 828)
         let controller = MainWindowController()
         let window = PMMWindow(
             contentRect: NSRect(origin: .zero, size: initialContentSize),
