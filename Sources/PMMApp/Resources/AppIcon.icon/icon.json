@@ -5,24 +5,8 @@
     {
       "layers" : [
         {
-          "glass" : true,
           "image-name" : "boxes.png",
-          "name" : "boxes",
-          "position" : {
-            "scale" : 0.92,
-            "translation-in-points" : [
-              0,
-              -18
-            ]
-          }
-        },
-        {
-          "image-name" : "underlay.png",
-          "name" : "underlay"
-        },
-        {
-          "image-name" : "background.png",
-          "name" : "background"
+          "name" : "boxes"
         }
       ],
       "specular" : true,
