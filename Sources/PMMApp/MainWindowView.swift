@@ -159,6 +159,7 @@ struct MainWindowPackageListView: View {
 
 struct MainWindowDossierView: View {
     @ObservedObject var model: MainWindowModel
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         ZStack {
@@ -208,7 +209,7 @@ struct MainWindowDossierView: View {
         }
         .ignoresSafeArea(.container, edges: .top)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(.ultraThinMaterial)
+        .background((colorScheme == .dark ? Color.black.opacity(0.06) : Color.white.opacity(0.1)))
         .sheet(isPresented: uninstallModalBinding) {
             PackageProgressView(title: "Uninstalling \(model.uninstallingPackageName ?? "package")")
                 .interactiveDismissDisabled(true)
@@ -971,3 +972,4 @@ enum SystemColor {
     // We need MainWindowModel and MainWindowSection to construct the view.
     // Please provide these types or accessible fixtures/mocks to proceed.
 }
+

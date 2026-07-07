@@ -83,6 +83,10 @@ private struct MainWindowContentColumnsView: View {
             HStack(spacing: 0) {
                 MainWindowPackageListView(model: model)
                     .frame(width: 252)
+                Rectangle()
+                    .fill(SystemColor.hairline)
+                    .frame(width: 1)
+                    .ignoresSafeArea(.container, edges: .vertical)
                 MainWindowDossierView(model: model)
                     .frame(width: 252)
                 MainWindowLinksView(model: model)
