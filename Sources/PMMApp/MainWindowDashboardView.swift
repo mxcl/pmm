@@ -28,7 +28,7 @@ struct MainWindowDashboardView: View {
             DashboardMetricCard(title: "Installed packages", value: model.dashboardInstalledCount, detail: model.dashboardInstalledThisWeekText, isLoading: model.dashboardIsLoadingData, tint: AnyShapeStyle(.tertiary)) {
                 model.selectSection(.installed)
             }
-            DashboardMetricCard(title: "Outdated", value: model.dashboardOutdatedCount, detail: "View updates", isLoading: model.dashboardIsLoadingData, tint: AnyShapeStyle(Color.accentColor)) {
+            DashboardMetricCard(title: "Outdated", value: model.dashboardOutdatedCount, detail: (model.dashboardOutdatedCount ?? 0) > 0 ? "View updates" : nil, isLoading: model.dashboardIsLoadingData, tint: AnyShapeStyle(Color.accentColor)) {
                 model.selectSection(.outdated)
             }
             DashboardMetricCard(title: "Ecosystems", value: model.dashboardActiveEcosystemCount, detail: "Active", isLoading: model.dashboardIsLoadingData, tint: AnyShapeStyle(.tertiary)) {
