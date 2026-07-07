@@ -48,7 +48,9 @@ final class MainWindowController: NSSplitViewController {
     }
 
     private func sidebarItem() -> NSSplitViewItem {
-        let controller = NSHostingController(rootView: MainWindowSidebarView(model: model))
+        let controller = NSHostingController(rootView: MainWindowSidebarView(model: model)
+            .accentColor(SystemColor.packageBrown)
+            .tint(SystemColor.packageBrown))
         let item = NSSplitViewItem(sidebarWithViewController: controller)
         item.minimumThickness = 250
         item.maximumThickness = 250
@@ -57,7 +59,9 @@ final class MainWindowController: NSSplitViewController {
     }
 
     private func contentItem<Content: View>(_ rootView: Content, width: CGFloat, minimumWidth: CGFloat, maximumWidth: CGFloat? = nil) -> NSSplitViewItem {
-        let controller = NSHostingController(rootView: rootView)
+        let controller = NSHostingController(rootView: rootView
+            .accentColor(SystemColor.packageBrown)
+            .tint(SystemColor.packageBrown))
         let item = NSSplitViewItem(viewController: controller)
         item.minimumThickness = minimumWidth
         if let maximumWidth {

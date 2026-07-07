@@ -954,6 +954,7 @@ struct LiquidGlassSurface: View {
 }
 
 enum SystemColor {
+    static let packageBrown = Color(red: 0.66, green: 0.38, blue: 0.17)
     static let windowTint = Color.clear
     static let primaryText = Color.primary
     static let secondaryText = Color.secondary
@@ -972,4 +973,3 @@ enum SystemColor {
     // We need MainWindowModel and MainWindowSection to construct the view.
     // Please provide these types or accessible fixtures/mocks to proceed.
 }
-
