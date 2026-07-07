@@ -176,6 +176,52 @@ import Testing
     #expect(model.displayedPackages.map(\.identifier) == ["npm:@scope/tool"])
 }
 
+@MainActor
+@Test func packageSearchUpdatesSidebarCounts() {
+    let model = MainWindowModel(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
+    let ripgrep = ManagedPackage(manager: .cargoInstall, name: "ripgrep", installedVersion: "1", latestVersion: "1", summary: "fast search")
+    let git = ManagedPackage(manager: .homebrew, name: "git", installedVersion: "1", latestVersion: "2", summary: "fast search")
+    let ruff = ManagedPackage(manager: .uv, name: "ruff", installedVersion: "1", latestVersion: "1", summary: "lint")
+    let newPackage = ManagedPackage(
+        manager: .homebrew,
+        name: "fd",
+        installedVersion: nil,
+        latestVersion: "1",
+        summary: "fast search",
+        category: "developer-tools",
+        lastUpdatedAt: "2026-06-01T00:00:00Z",
+        pulseKind: "new"
+    )
+    let recommended = ManagedPackage(
+        manager: .homebrew,
+        name: "curl",
+        installedVersion: nil,
+        latestVersion: "1",
+        summary: "transfer tool",
+        category: "networking",
+        lastUpdatedAt: "2026-06-01T00:00:00Z",
+        pulseKind: "updated"
+    )
+
+    model.apply(snapshot: PackageHostSnapshot(
+        inventory: PackageInventory(packages: [ripgrep, git, ruff]),
+        catalogPackages: [newPackage, recommended],
+        isRefreshing: false
+    ))
+    model.selectSection(.installed)
+    model.searchText = "search"
+
+    #expect(model.displayedPackages.map(\.displayName) == ["git", "ripgrep"])
+    #expect(model.count(for: .installed) == 2)
+    #expect(model.count(for: .outdated) == 1)
+    #expect(model.count(for: .rust) == 1)
+    #expect(model.count(for: .homebrew) == 1)
+    #expect(model.count(for: .python) == 0)
+    #expect(model.count(for: .developerTools) == 1)
+    #expect(model.count(for: .networking) == 0)
+    #expect(model.count(for: .newUpdated) == 1)
+}
+
 @Test func languageSectionsGroupManagersAndSortPackagesAlphabetically() {
     let packages = [
         package(.npm, "zeta"),

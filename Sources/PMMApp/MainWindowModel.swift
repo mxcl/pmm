@@ -295,14 +295,7 @@ final class MainWindowModel: NSObject, ObservableObject {
     }
 
     var displayedPackages: [ManagedPackage] {
-        let base = packageIndex.packagesBySection[selectedSection] ?? []
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return base }
-        return base.filter {
-            $0.displayName.localizedCaseInsensitiveContains(query)
-                || $0.identifier.localizedCaseInsensitiveContains(query)
-                || ($0.summary?.localizedCaseInsensitiveContains(query) == true)
-        }
+        packages(in: selectedSection)
     }
 
     func reload() {
@@ -355,7 +348,8 @@ final class MainWindowModel: NSObject, ObservableObject {
     }
 
     func count(for section: MainWindowSection) -> Int? {
-        switch section {
+        if let count = filteredCount(for: section) { return count }
+        return switch section {
         case .home, .about: nil
         case .newUpdated: newUpdatedSelectionDisplayCount ?? newUpdatedUnreadCount
         default: packageIndex.countsBySection[section]
@@ -378,6 +372,31 @@ final class MainWindowModel: NSObject, ObservableObject {
 
     private var newUpdatedUnreadCount: Int? {
         packageIndex.newUpdatedUnreadCount
+    }
+
+    private var searchQuery: String {
+        searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func packages(in section: MainWindowSection) -> [ManagedPackage] {
+        let packages = packageIndex.packagesBySection[section] ?? []
+        let query = searchQuery
+        guard !query.isEmpty else { return packages }
+        return packages.filter { matchesSearch($0, query: query) }
+    }
+
+    private func filteredCount(for section: MainWindowSection) -> Int? {
+        let query = searchQuery
+        guard !query.isEmpty else { return nil }
+        return packageIndex.packagesBySection[section].map { packages in
+            packages.filter { matchesSearch($0, query: query) }.count
+        }
+    }
+
+    private func matchesSearch(_ package: ManagedPackage, query: String) -> Bool {
+        package.displayName.localizedCaseInsensitiveContains(query)
+            || package.identifier.localizedCaseInsensitiveContains(query)
+            || (package.summary?.localizedCaseInsensitiveContains(query) == true)
     }
 
     private func recordNewUpdatedSidebarClick() {
