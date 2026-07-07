@@ -185,10 +185,12 @@ private struct DashboardSectionHeader: View {
     let title: String
     let systemImage: String?
     let viewAllAction: (() -> Void)?
+    let showsViewAll: Bool
 
-    init(title: String, systemImage: String? = nil, viewAllAction: (() -> Void)? = nil) {
+    init(title: String, systemImage: String? = nil, showsViewAll: Bool = true, viewAllAction: (() -> Void)? = nil) {
         self.title = title
         self.systemImage = systemImage
+        self.showsViewAll = showsViewAll
         self.viewAllAction = viewAllAction
     }
 
@@ -208,7 +210,7 @@ private struct DashboardSectionHeader: View {
                     .buttonStyle(.plain)
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(Color.accentColor)
-            } else {
+            } else if showsViewAll {
                 Text("View all")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(Color.accentColor)
@@ -285,7 +287,7 @@ private struct DashboardRecommendationSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            DashboardSectionHeader(title: "Recommended for You")
+            DashboardSectionHeader(title: "Recommended for You", showsViewAll: false)
             if isLoading {
                 ProgressView()
                     .controlSize(.small)
