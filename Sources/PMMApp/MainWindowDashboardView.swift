@@ -80,7 +80,10 @@ private struct DashboardCard<Content: View>: View {
         .background {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .fill(.ultraThinMaterial)
-                .overlay(SystemColor.cardTint)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(SystemColor.cardTint)
+                }
         }
         .overlay {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
