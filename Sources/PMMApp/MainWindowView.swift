@@ -209,7 +209,7 @@ struct MainWindowDossierView: View {
         }
         .ignoresSafeArea(.container, edges: .top)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background((colorScheme == .dark ? Color.black.opacity(0.06) : Color.white.opacity(0.1)))
+        .background((colorScheme == .dark ? Color.black.opacity(0.08) : Color.white.opacity(0.1)))
         .sheet(isPresented: uninstallModalBinding) {
             PackageProgressView(title: "Uninstalling \(model.uninstallingPackageName ?? "package")")
                 .interactiveDismissDisabled(true)
@@ -963,7 +963,7 @@ enum SystemColor {
     static let packageSelectedFill = Color(nsColor: .selectedContentBackgroundColor).opacity(0.14)
     static let linkSelectedFill = Color(nsColor: .selectedContentBackgroundColor).opacity(0.10)
     static let controlFill = Color(nsColor: .controlBackgroundColor)
-    static let cardTint = Color(nsColor: .windowBackgroundColor).opacity(0.28)
+    static let cardTint = Color(nsColor: .controlBackgroundColor).opacity(0.28)
     static let searchFill = Color(nsColor: .controlBackgroundColor)
     static let controlBorder = Color(nsColor: .separatorColor)
     static let orange = Color.orange
