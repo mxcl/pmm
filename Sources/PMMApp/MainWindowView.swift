@@ -954,7 +954,7 @@ struct LiquidGlassSurface: View {
 }
 
 enum SystemColor {
-    static let packageBrown = Color(red: 0.66, green: 0.38, blue: 0.17)
+    static let packageBrown = Color(red: 0.97, green: 0.75, blue: 0.50)
     static let windowTint = Color.clear
     static let primaryText = Color.primary
     static let secondaryText = Color.secondary
