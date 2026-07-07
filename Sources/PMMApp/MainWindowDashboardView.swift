@@ -31,7 +31,7 @@ struct MainWindowDashboardView: View {
             DashboardMetricCard(title: "Outdated", value: model.dashboardOutdatedCount, detail: "View updates", isLoading: model.dashboardIsLoadingData, tint: AnyShapeStyle(Color.accentColor)) {
                 model.selectSection(.outdated)
             }
-            DashboardMetricCard(title: "Ecosystems", value: model.dashboardActiveEcosystemCount, detail: "Active", isLoading: model.dashboardIsLoadingData, tint: AnyShapeStyle(SystemColor.secondaryText)) {
+            DashboardMetricCard(title: "Ecosystems", value: model.dashboardActiveEcosystemCount, detail: "Active", isLoading: model.dashboardIsLoadingData, tint: AnyShapeStyle(.tertiary)) {
                 if let section = model.visibleManagerSections.first {
                     model.selectSection(section)
                 }
