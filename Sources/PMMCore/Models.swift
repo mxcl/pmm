@@ -98,7 +98,7 @@ public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
     ) {
         self.manager = manager
         self.identifier = identifier
-        self.displayName = displayName ?? identifier
+        self.displayName = Self.normalizedDisplayName(displayName ?? identifier, manager: manager, identifier: identifier)
         self.installedVersion = installedVersion
         self.installedVersions = Self.normalizedVersions(installedVersions, including: installedVersion)
         self.latestVersion = latestVersion
@@ -227,6 +227,14 @@ public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
     private static func normalizedVersions(_ versions: [String], including installedVersion: String?) -> [String] {
         Array(Set(versions + [installedVersion].compactMap { $0 }.filter { !$0.isEmpty }))
             .sorted { $0.localizedStandardCompare($1) == .orderedDescending }
+    }
+
+    private static func normalizedDisplayName(_ displayName: String, manager: PackageManagerKind, identifier: String) -> String {
+        guard manager == .rustup, identifier.hasPrefix("rustup:toolchain:") else { return displayName }
+        let toolchain = identifier.dropFirst("rustup:toolchain:".count)
+        let suffix = "-aarch64-apple-darwin"
+        guard toolchain.hasSuffix(suffix) else { return "rust \(toolchain)" }
+        return "rust \(toolchain.dropLast(suffix.count)) ²"
     }
 
     private enum CodingKeys: String, CodingKey {

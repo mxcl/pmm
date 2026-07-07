@@ -36,6 +36,13 @@ import Testing
     #expect(encoded?["displayName"] as? String == "typescript")
 }
 
+@Test func packageNormalizesRustupToolchainDisplayNamesFromCachedJSON() throws {
+    let data = #"{"manager":"rustup","identifier":"rustup:toolchain:1.92.0-aarch64-apple-darwin","displayName":"1.92.0-aarch64-apple-darwin","installedVersion":"1.92.0","latestVersion":null}"#.data(using: .utf8)!
+    let decoded = try JSONDecoder().decode(ManagedPackage.self, from: data)
+
+    #expect(decoded.displayName == "rust 1.92.0 ²")
+}
+
 @Test func packageConsolidationGroupsByIdentifierAndPreservesDisplayName() {
     let packages = ManagedPackage.consolidatingInstalledVersions(in: [
         ManagedPackage(manager: .uv, identifier: "uv:cpython:3.13", displayName: "uv Managed Python 3.13", installedVersion: "3.13.10", latestVersion: "3.13.14"),

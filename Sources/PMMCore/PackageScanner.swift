@@ -263,7 +263,7 @@ public struct PackageScanner {
         return ManagedPackage(
             manager: .rustup,
             identifier: "rustup:toolchain:\(name)",
-            displayName: rustupToolchainDisplayName(name),
+            displayName: name,
             installedVersion: rustc,
             latestVersion: nil,
             summary: "Rust toolchain\(state)",
@@ -274,12 +274,6 @@ public struct PackageScanner {
             installLocation: installLocation,
             binaryPath: installLocation.flatMap { rustcBinaryPath(in: $0) }
         )
-    }
-
-    private func rustupToolchainDisplayName(_ name: String) -> String {
-        let suffix = "-aarch64-apple-darwin"
-        guard name.hasSuffix(suffix) else { return "rust \(name)" }
-        return "rust \(name.dropLast(suffix.count)) ²"
     }
 
     private func rustcBinaryPath(in toolchainPath: String) -> String? {
