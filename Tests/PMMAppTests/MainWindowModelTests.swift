@@ -51,8 +51,27 @@ import Testing
     #expect(model.packages == [package])
     #expect(model.isReloading)
     #expect(model.updatingPackageName == "git")
+    #expect(model.installingPackageName == nil)
     #expect(model.count(for: .outdated) == 1)
     #expect(model.count(for: .newUpdated) == 1)
+}
+
+@MainActor
+@Test func modelCanInstallOnlyCatalogPackagesNotAlreadyInstalled() {
+    let model = MainWindowModel(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
+    let installed = ManagedPackage(manager: .homebrew, name: "git", installedVersion: "1", latestVersion: "1")
+    let missing = ManagedPackage(manager: .homebrew, name: "curl", installedVersion: nil, latestVersion: "8")
+    let alreadyInstalledCatalog = ManagedPackage(manager: .homebrew, name: "git", installedVersion: nil, latestVersion: "2")
+
+    model.apply(snapshot: PackageHostSnapshot(
+        inventory: PackageInventory(packages: [installed]),
+        catalogPackages: [missing, alreadyInstalledCatalog],
+        runningAction: PackageHostRunningAction(kind: .install, packageID: missing.id, displayName: "curl")
+    ))
+
+    #expect(model.canInstall(missing))
+    #expect(!model.canInstall(alreadyInstalledCatalog))
+    #expect(model.installingPackageName == "curl")
 }
 
 @MainActor

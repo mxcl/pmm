@@ -94,6 +94,8 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
             let result = await Task.detached(priority: .background) {
                 Result {
                     switch kind {
+                    case .install:
+                        try PackageInstaller().install(package)
                     case .update:
                         try PackageUpdater().update(package)
                     case .uninstall:
@@ -151,6 +153,7 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
 
     private func observeCommands() {
         notificationCenter.addObserver(self, selector: #selector(refreshRequested(_:)), name: PackageHostNotifications.refreshRequested, object: nil)
+        notificationCenter.addObserver(self, selector: #selector(installRequested(_:)), name: PackageHostNotifications.installRequested, object: nil)
         notificationCenter.addObserver(self, selector: #selector(updateRequested(_:)), name: PackageHostNotifications.updateRequested, object: nil)
         notificationCenter.addObserver(self, selector: #selector(uninstallRequested(_:)), name: PackageHostNotifications.uninstallRequested, object: nil)
     }
@@ -234,6 +237,11 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func refreshRequested(_ notification: Notification) {
         refresh()
+    }
+
+    @objc private func installRequested(_ notification: Notification) {
+        guard let packageID = PackageHostNotifications.packageID(from: notification) else { return }
+        runAction(kind: .install, packageID: packageID)
     }
 
     @objc private func updateRequested(_ notification: Notification) {

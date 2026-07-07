@@ -1,6 +1,7 @@
 import Foundation
 
 public enum PackageHostActionKind: String, Codable, Sendable {
+    case install
     case update
     case uninstall
 }
@@ -88,6 +89,7 @@ public struct PackageHostStore: Sendable {
 public enum PackageHostNotifications {
     public static let snapshotChanged = Notification.Name("dev.mxcl.pmm.packageHost.snapshotChanged")
     public static let refreshRequested = Notification.Name("dev.mxcl.pmm.packageHost.refreshRequested")
+    public static let installRequested = Notification.Name("dev.mxcl.pmm.packageHost.installRequested")
     public static let updateRequested = Notification.Name("dev.mxcl.pmm.packageHost.updateRequested")
     public static let uninstallRequested = Notification.Name("dev.mxcl.pmm.packageHost.uninstallRequested")
 
@@ -99,6 +101,10 @@ public enum PackageHostNotifications {
 
     public static func postRefreshRequested() {
         DistributedNotificationCenter.default().postNotificationName(refreshRequested, object: nil, deliverImmediately: true)
+    }
+
+    public static func postInstallRequested(packageID: String) {
+        postPackageCommand(installRequested, packageID: packageID)
     }
 
     public static func postUpdateRequested(packageID: String) {

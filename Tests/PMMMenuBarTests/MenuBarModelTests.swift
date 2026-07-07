@@ -36,8 +36,10 @@ import Testing
 
 @Test func menuBarCommandValidationAcceptsSupportedActions() throws {
     let outdated = ManagedPackage(manager: .homebrew, name: "git", installedVersion: "1.0.0", latestVersion: "2.0.0")
-    let snapshot = PackageHostSnapshot(inventory: PackageInventory(packages: [outdated]))
+    let catalogOnly = ManagedPackage(manager: .npm, name: "eslint", installedVersion: nil, latestVersion: "9.0.0")
+    let snapshot = PackageHostSnapshot(inventory: PackageInventory(packages: [outdated]), catalogPackages: [catalogOnly])
 
+    #expect(menuBarCommandPackage(id: catalogOnly.id, kind: .install, snapshot: snapshot) == catalogOnly)
     #expect(menuBarCommandPackage(id: outdated.id, kind: .update, snapshot: snapshot) == outdated)
     #expect(menuBarCommandPackage(id: outdated.id, kind: .uninstall, snapshot: snapshot) == outdated)
 }
@@ -52,6 +54,7 @@ import Testing
     let snapshot = PackageHostSnapshot(inventory: PackageInventory(packages: [current, catalogOnly]))
 
     #expect(menuBarCommandPackage(id: current.id, kind: .update, snapshot: snapshot) == nil)
+    #expect(menuBarCommandPackage(id: catalogOnly.id, kind: .install, snapshot: snapshot) == nil)
     #expect(menuBarCommandPackage(id: catalogOnly.id, kind: .uninstall, snapshot: snapshot) == nil)
     #expect(menuBarCommandPackage(id: current.id, kind: .uninstall, snapshot: busy) == nil)
 }

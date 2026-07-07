@@ -167,6 +167,17 @@ struct MainWindowDossierView: View {
                 if let package = model.selectedPackage {
                     VStack(alignment: .leading, spacing: 20) {
                         DossierHeader(package: package)
+                        if model.canInstall(package) {
+                            Button {
+                                model.install(package)
+                            } label: {
+                                Label("Install", systemImage: "square.and.arrow.down")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.large)
+                            .disabled(isPackageActionRunning)
+                        }
                         if package.isOutdated {
                             if PackageUpdater.supports(package) {
                                 Button {
@@ -210,6 +221,10 @@ struct MainWindowDossierView: View {
         .ignoresSafeArea(.container, edges: .top)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background((colorScheme == .dark ? Color.black.opacity(0.08) : Color.white.opacity(0.1)))
+        .sheet(isPresented: installModalBinding) {
+            PackageProgressView(title: "Installing \(model.installingPackageName ?? "package")")
+                .interactiveDismissDisabled(true)
+        }
         .sheet(isPresented: uninstallModalBinding) {
             PackageProgressView(title: "Uninstalling \(model.uninstallingPackageName ?? "package")")
                 .interactiveDismissDisabled(true)
@@ -221,7 +236,11 @@ struct MainWindowDossierView: View {
     }
 
     private var isPackageActionRunning: Bool {
-        model.uninstallingPackageName != nil || model.updatingPackageName != nil
+        model.installingPackageName != nil || model.uninstallingPackageName != nil || model.updatingPackageName != nil
+    }
+
+    private var installModalBinding: Binding<Bool> {
+        Binding(get: { model.installingPackageName != nil }, set: { _ in })
     }
 
     private var uninstallModalBinding: Binding<Bool> {

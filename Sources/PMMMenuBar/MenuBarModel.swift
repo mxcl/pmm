@@ -62,12 +62,19 @@ struct MenuBarMenuState: Equatable {
 }
 
 func menuBarCommandPackage(id: String, kind: PackageHostActionKind, snapshot: PackageHostSnapshot) -> ManagedPackage? {
-    guard snapshot.runningAction == nil,
-          let package = snapshot.inventory?.packages.first(where: { $0.id == id }) else { return nil }
+    guard snapshot.runningAction == nil else { return nil }
+    let installedPackage = snapshot.inventory?.packages.first { $0.id == id }
+    let catalogPackage = snapshot.catalogPackages.first { $0.id == id }
     switch kind {
+    case .install:
+        guard let package = catalogPackage else { return nil }
+        let isInstalled = snapshot.inventory?.packages.contains { $0.identifier == package.identifier } == true
+        return !isInstalled && PackageInstaller.supports(package) ? package : nil
     case .update:
+        guard let package = installedPackage else { return nil }
         return PackageUpdater.supports(package) ? package : nil
     case .uninstall:
+        guard let package = installedPackage else { return nil }
         return PackageUninstaller.supports(package) ? package : nil
     }
 }

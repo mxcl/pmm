@@ -205,6 +205,7 @@ final class MainWindowModel: NSObject, ObservableObject {
     @Published private(set) var selectedPackageDossier: PackageDossierPage?
     @Published private(set) var selectedPackageDossierError: String?
     @Published private(set) var selectedPackageConfigurationLocations: [MainWindowConfigurationLocation] = []
+    @Published private(set) var installingPackageName: String?
     @Published private(set) var uninstallingPackageName: String?
     @Published private(set) var updatingPackageName: String?
     @Published private(set) var packageIDToScrollIntoView: String?
@@ -360,14 +361,27 @@ final class MainWindowModel: NSObject, ObservableObject {
         !section.packageManagers.isDisjoint(with: loadingManagers)
     }
 
+    func install(_ package: ManagedPackage) {
+        guard canInstall(package), !isPackageActionRunning else { return }
+        PackageHostNotifications.postInstallRequested(packageID: package.id)
+    }
+
     func uninstall(_ package: ManagedPackage) {
-        guard PackageUninstaller.supports(package), uninstallingPackageName == nil, updatingPackageName == nil else { return }
+        guard PackageUninstaller.supports(package), !isPackageActionRunning else { return }
         PackageHostNotifications.postUninstallRequested(packageID: package.id)
     }
 
     func update(_ package: ManagedPackage) {
-        guard PackageUpdater.supports(package), uninstallingPackageName == nil, updatingPackageName == nil else { return }
+        guard PackageUpdater.supports(package), !isPackageActionRunning else { return }
         PackageHostNotifications.postUpdateRequested(packageID: package.id)
+    }
+
+    func canInstall(_ package: ManagedPackage) -> Bool {
+        PackageInstaller.supports(package) && !packages.contains { $0.identifier == package.identifier }
+    }
+
+    private var isPackageActionRunning: Bool {
+        installingPackageName != nil || uninstallingPackageName != nil || updatingPackageName != nil
     }
 
     private var newUpdatedUnreadCount: Int? {
@@ -433,6 +447,7 @@ final class MainWindowModel: NSObject, ObservableObject {
             installedPackageFirstSeenAtByID = nil
             isReloading = true
             loadingManagers = Set(PackageManagerKind.allCases)
+            installingPackageName = nil
             uninstallingPackageName = nil
             updatingPackageName = nil
             return
@@ -457,6 +472,7 @@ final class MainWindowModel: NSObject, ObservableObject {
             ),
             installedPackageFirstSeenAtByID: snapshot.installedPackageFirstSeenAtByID
         )
+        installingPackageName = snapshot.runningAction?.kind == .install ? snapshot.runningAction?.displayName : nil
         uninstallingPackageName = snapshot.runningAction?.kind == .uninstall ? snapshot.runningAction?.displayName : nil
         updatingPackageName = snapshot.runningAction?.kind == .update ? snapshot.runningAction?.displayName : nil
     }
