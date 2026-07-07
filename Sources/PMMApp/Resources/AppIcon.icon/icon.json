@@ -17,8 +17,8 @@
           }
         },
         {
-          "image-name" : "shadow.png",
-          "name" : "shadow"
+          "image-name" : "underlay.png",
+          "name" : "underlay"
         },
         {
           "image-name" : "background.png",
