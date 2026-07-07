@@ -27,7 +27,7 @@
       ],
       "shadow" : {
         "kind" : "layer-color",
-        "opacity" : 0.45
+        "opacity" : 0.22
       },
       "specular" : true,
       "translucency" : {
