@@ -141,7 +141,7 @@ private final class EmptyNPMRegistryURLProtocol: URLProtocol, @unchecked Sendabl
         ManagedPackage(
             manager: .rustup,
             identifier: "rustup:toolchain:stable-aarch64-apple-darwin",
-            displayName: "stable-aarch64-apple-darwin",
+            displayName: "rust stable ²",
             installedVersion: "1.96.1",
             latestVersion: nil,
             summary: "Rust toolchain (active, default)",
@@ -155,7 +155,7 @@ private final class EmptyNPMRegistryURLProtocol: URLProtocol, @unchecked Sendabl
         ManagedPackage(
             manager: .rustup,
             identifier: "rustup:toolchain:1.92.0-aarch64-apple-darwin",
-            displayName: "1.92.0-aarch64-apple-darwin",
+            displayName: "rust 1.92.0 ²",
             installedVersion: "1.92.0",
             latestVersion: nil,
             summary: "Rust toolchain",
