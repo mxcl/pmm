@@ -11,11 +11,14 @@ Use whatever you want without compromising visibility into what’s going on.
 > [!TIP]
 > No need to remember to `npx ***@latest` anymore. We update `npx`’d stuff too.
 
-![Package Manager Manager screenshot](docs/pmm-promo-2.png)
-
 ## Quickstart
 
-[Download the .DMG](https://github.com/mxcl/pmm/releases/latest).
+[`.dmg` Download](https://github.com/mxcl/pmm/releases/latest).
+
+![Package Manager Manager screenshot](docs/pmm-promo-2.png)
+
+&nbsp;
+
 
 ## What It Finds
 
