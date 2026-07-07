@@ -14,7 +14,6 @@ struct MainWindowDashboardView: View {
                     dashboardSideColumn
                         .frame(width: 310)
                 }
-                DashboardProBanner()
             }
             .padding(.horizontal, 16)
             .padding(.top, 16)
