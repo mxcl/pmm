@@ -23,7 +23,7 @@ let package = Package(
         ),
         .executableTarget(
             name: "PMMMenuBar",
-            dependencies: ["PMMCore", "AppUpdater"]
+            dependencies: ["PMMCore"]
         ),
         .executableTarget(
             name: "pmmctl",

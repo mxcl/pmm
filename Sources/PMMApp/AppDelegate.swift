@@ -5,6 +5,14 @@ import AppUpdater
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let appUpdater = AppUpdater(owner: "mxcl", repo: "package-manager-manager")
     private var checkForUpdatesItem: NSMenuItem?
+    private var updateButton: NSButton?
+    private var availableUpdate: Update? {
+        didSet {
+            let isHidden = availableUpdate == nil
+            updateButton?.isHidden = isHidden
+            updateButton?.superview?.isHidden = isHidden
+        }
+    }
     private var window: NSWindow?
     private var isCheckingForUpdates = false {
         didSet {
@@ -16,6 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.mainMenu = makeMainMenu()
         showMainWindow()
         launchMenuBarApp()
+        checkForUpdates(reportCurrent: false)
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -46,6 +55,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let toolbar = NSToolbar(identifier: "PMMToolbar")
         toolbar.displayMode = .iconOnly
         window.toolbar = toolbar
+        addUpdateButton(to: window)
         window.isMovableByWindowBackground = true
         window.minSize = NSSize(width: 1104, height: 680)
         window.setContentSize(initialContentSize)
@@ -130,19 +140,56 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func checkForUpdates(_ sender: Any?) {
+        checkForUpdates(reportCurrent: true)
+    }
+
+    private func checkForUpdates(reportCurrent: Bool) {
         guard !isCheckingForUpdates else { return }
         isCheckingForUpdates = true
         Task { @MainActor in
             do {
-                if let update = try await appUpdater.check() {
-                    try await update.installAndRelaunch()
-                } else {
+                availableUpdate = try await appUpdater.check()
+                if availableUpdate == nil, reportCurrent {
                     showUpdateAlert(message: "PM² is up to date.")
                 }
             } catch {
-                showUpdateAlert(message: "Unable to check for updates.", informativeText: error.localizedDescription)
+                if reportCurrent {
+                    showUpdateAlert(message: "Unable to check for updates.", informativeText: error.localizedDescription)
+                }
             }
             isCheckingForUpdates = false
+        }
+    }
+
+    private func addUpdateButton(to window: NSWindow) {
+        let button = NSButton(title: "Update PM²", target: self, action: #selector(updatePMM(_:)))
+        button.bezelStyle = .rounded
+        button.controlSize = .small
+        button.isHidden = availableUpdate == nil
+        let controller = NSTitlebarAccessoryViewController()
+        controller.layoutAttribute = .right
+        controller.view = TitlebarAccessoryView(size: NSSize(width: 96, height: 28))
+        controller.view.isHidden = availableUpdate == nil
+        controller.view.addSubview(button)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            button.centerYAnchor.constraint(equalTo: controller.view.centerYAnchor),
+            button.trailingAnchor.constraint(equalTo: controller.view.trailingAnchor),
+        ])
+        window.addTitlebarAccessoryViewController(controller)
+        updateButton = button
+    }
+
+    @objc private func updatePMM(_ sender: Any?) {
+        guard let update = availableUpdate else { return }
+        updateButton?.isEnabled = false
+        Task { @MainActor in
+            do {
+                try await update.installAndRelaunch()
+            } catch {
+                updateButton?.isEnabled = true
+                showUpdateAlert(message: "Unable to install update.", informativeText: error.localizedDescription)
+            }
         }
     }
 
