@@ -125,6 +125,7 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
 
 enum MainWindowLinkTab: String, CaseIterable, Identifiable {
     case homepage
+    case registry
     case repo
     case docs
     case releases
@@ -133,6 +134,7 @@ enum MainWindowLinkTab: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .homepage: "Home"
+        case .registry: "Registry"
         case .docs: "Docs"
         case .repo: "Repo"
         case .releases: "Releases"
@@ -142,6 +144,7 @@ enum MainWindowLinkTab: String, CaseIterable, Identifiable {
     func urlString(in package: ManagedPackage) -> String? {
         switch self {
         case .homepage: package.homepage
+        case .registry: mainWindowRegistryURLString(for: package)
         case .docs: package.docs
         case .repo: package.repo
         case .releases: nil
@@ -221,6 +224,23 @@ func mainWindowLinks(for package: ManagedPackage?) -> [MainWindowPackageLink] {
     }
     let specificURLs = Set(links.filter { $0.tab != .homepage }.map(\.url))
     return links.filter { $0.tab != .homepage || !specificURLs.contains($0.url) }
+}
+
+func mainWindowRegistryURLString(for package: ManagedPackage) -> String? {
+    switch package.manager {
+    case .homebrew:
+        let kind = package.identifier.hasPrefix("brew:cask:") ? "cask" : "formula"
+        return "https://brew.sh/\(kind)/\(package.packageToken)"
+    case .npm, .npx:
+        return "https://www.npmjs.com/package/\(package.packageToken)"
+    case .cargoInstall:
+        return "https://crates.io/crates/\(package.packageToken)"
+    case .uv, .uvx:
+        guard package.identifier.hasPrefix("uv:tool:") || package.manager == .uvx else { return nil }
+        return "https://pypi.org/project/\(package.packageToken)/"
+    case .rustup:
+        return nil
+    }
 }
 
 func mainWindowReleaseNotesURL(for package: ManagedPackage?) -> URL? {

@@ -531,8 +531,8 @@ import Testing
         repo: "https://github.com/git/git"
     ))
 
-    #expect(links.map(\.tab) == [.homepage, .repo, .docs])
-    #expect(links.map(\.url.absoluteString) == ["https://git-scm.com/", "https://github.com/git/git", "https://git-scm.com/docs"])
+    #expect(links.map(\.tab) == [.homepage, .registry, .repo, .docs])
+    #expect(links.map(\.url.absoluteString) == ["https://git-scm.com/", "https://brew.sh/formula/git", "https://github.com/git/git", "https://git-scm.com/docs"])
 }
 
 @Test func packageLinksFallBackToRepoThenDocsWhenHomepageIsMissing() {
@@ -545,7 +545,7 @@ import Testing
         repo: "https://example.com/repo"
     ))
 
-    #expect(links.first?.tab == .repo)
+    #expect(links.first?.tab == .registry)
 }
 
 @Test func packageLinksPreferRepoAndDocsOverDuplicateHomepage() {
@@ -568,8 +568,8 @@ import Testing
         repo: "https://example.com/repo"
     ))
 
-    #expect(repoLinks.map(\.tab) == [.repo, .docs])
-    #expect(docsLinks.map(\.tab) == [.repo, .docs])
+    #expect(repoLinks.map(\.tab) == [.registry, .repo, .docs])
+    #expect(docsLinks.map(\.tab) == [.registry, .repo, .docs])
 }
 
 @Test func packageLinksSkipInvalidURLs() {
@@ -583,7 +583,16 @@ import Testing
         repo: "https://example.com/repo"
     ))
 
-    #expect(links.map(\.tab) == [.repo, .docs])
+    #expect(links.map(\.tab) == [.registry, .repo, .docs])
+}
+
+@Test func packageRegistryLinksUseKnownPackageRegistryPages() {
+    #expect(mainWindowRegistryURLString(for: ManagedPackage(manager: .homebrew, identifier: "brew:git", installedVersion: nil, latestVersion: nil)) == "https://brew.sh/formula/git")
+    #expect(mainWindowRegistryURLString(for: ManagedPackage(manager: .homebrew, identifier: "brew:cask:visual-studio-code", installedVersion: nil, latestVersion: nil)) == "https://brew.sh/cask/visual-studio-code")
+    #expect(mainWindowRegistryURLString(for: ManagedPackage(manager: .npm, identifier: "npm:@scope/tool", installedVersion: nil, latestVersion: nil)) == "https://www.npmjs.com/package/@scope/tool")
+    #expect(mainWindowRegistryURLString(for: ManagedPackage(manager: .cargoInstall, identifier: "cargo:ripgrep", installedVersion: nil, latestVersion: nil)) == "https://crates.io/crates/ripgrep")
+    #expect(mainWindowRegistryURLString(for: ManagedPackage(manager: .uv, identifier: "uv:tool:ruff", installedVersion: nil, latestVersion: nil)) == "https://pypi.org/project/ruff/")
+    #expect(mainWindowRegistryURLString(for: ManagedPackage(manager: .uv, identifier: "uv:cpython:3.13", installedVersion: nil, latestVersion: nil)) == nil)
 }
 
 @Test func selectedBrowserLinkUsesFirstLinkWhenNoTabIsSelected() {
@@ -596,7 +605,7 @@ import Testing
         repo: "https://example.com/repo"
     ))
 
-    #expect(mainWindowSelectedBrowserLink(in: links, selectedTab: nil)?.tab == .repo)
+    #expect(mainWindowSelectedBrowserLink(in: links, selectedTab: nil)?.tab == .registry)
 }
 
 @Test func outdatedBrowserLinksShowReleasesAfterExternalURLs() {
@@ -610,7 +619,7 @@ import Testing
         repo: "https://github.com/foo/bar"
     ))
 
-    #expect(links.map(\.title) == ["Home", "Repo", "Docs", "Releases"])
+    #expect(links.map(\.title) == ["Home", "Registry", "Repo", "Docs", "Releases"])
     #expect(mainWindowSelectedBrowserLink(in: links, selectedTab: .releases)?.title == "Releases")
 }
 
@@ -623,7 +632,7 @@ import Testing
         repo: "https://example.com/repo"
     ))
 
-    #expect(mainWindowSelectedBrowserLink(in: links, selectedTab: .docs)?.tab == .repo)
+    #expect(mainWindowSelectedBrowserLink(in: links, selectedTab: .docs)?.tab == .registry)
 }
 
 @Test func browserDisplayURLDropsSchemeAndTrailingSlash() {
