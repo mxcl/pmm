@@ -531,8 +531,8 @@ import Testing
         repo: "https://github.com/git/git"
     ))
 
-    #expect(links.map(\.tab) == [.homepage, .registry, .repo, .docs])
-    #expect(links.map(\.url.absoluteString) == ["https://git-scm.com/", "https://brew.sh/formula/git", "https://github.com/git/git", "https://git-scm.com/docs"])
+    #expect(links.map(\.tab) == [.homepage, .repo, .docs, .registry])
+    #expect(links.map(\.url.absoluteString) == ["https://git-scm.com/", "https://github.com/git/git", "https://git-scm.com/docs", "https://brew.sh/formula/git"])
 }
 
 @Test func packageLinksFallBackToRepoThenDocsWhenHomepageIsMissing() {
@@ -545,7 +545,7 @@ import Testing
         repo: "https://example.com/repo"
     ))
 
-    #expect(links.first?.tab == .registry)
+    #expect(links.first?.tab == .repo)
 }
 
 @Test func packageLinksPreferRepoAndDocsOverDuplicateHomepage() {
@@ -568,8 +568,8 @@ import Testing
         repo: "https://example.com/repo"
     ))
 
-    #expect(repoLinks.map(\.tab) == [.registry, .repo, .docs])
-    #expect(docsLinks.map(\.tab) == [.registry, .repo, .docs])
+    #expect(repoLinks.map(\.tab) == [.repo, .docs, .registry])
+    #expect(docsLinks.map(\.tab) == [.repo, .docs, .registry])
 }
 
 @Test func packageLinksSkipInvalidURLs() {
@@ -583,7 +583,7 @@ import Testing
         repo: "https://example.com/repo"
     ))
 
-    #expect(links.map(\.tab) == [.registry, .repo, .docs])
+    #expect(links.map(\.tab) == [.repo, .docs, .registry])
 }
 
 @Test func packageRegistryLinksUseKnownPackageRegistryPages() {
@@ -605,7 +605,7 @@ import Testing
         repo: "https://example.com/repo"
     ))
 
-    #expect(mainWindowSelectedBrowserLink(in: links, selectedTab: nil)?.tab == .registry)
+    #expect(mainWindowSelectedBrowserLink(in: links, selectedTab: nil)?.tab == .repo)
 }
 
 @Test func outdatedBrowserLinksShowReleasesAfterExternalURLs() {
@@ -619,7 +619,7 @@ import Testing
         repo: "https://github.com/foo/bar"
     ))
 
-    #expect(links.map(\.title) == ["Home", "Registry", "Repo", "Docs", "Releases"])
+    #expect(links.map(\.title) == ["Home", "Repo", "Docs", "Registry", "Releases"])
     #expect(mainWindowSelectedBrowserLink(in: links, selectedTab: .releases)?.title == "Releases")
 }
 
@@ -632,7 +632,7 @@ import Testing
         repo: "https://example.com/repo"
     ))
 
-    #expect(mainWindowSelectedBrowserLink(in: links, selectedTab: .docs)?.tab == .registry)
+    #expect(mainWindowSelectedBrowserLink(in: links, selectedTab: .docs)?.tab == .repo)
 }
 
 @Test func browserDisplayURLDropsSchemeAndTrailingSlash() {
