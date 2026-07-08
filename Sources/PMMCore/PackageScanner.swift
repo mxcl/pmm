@@ -263,15 +263,13 @@ public struct PackageScanner {
         guard let name = parts.first else { return nil }
         let installLocation = parts.last?.hasPrefix("/") == true ? parts.last : nil
         let rustc = rustupRustcVersion(rustup: rustup, toolchain: name)
-        let states = ["active", "default"].filter { line.contains("(\($0)") || line.contains(", \($0)") }
-        let state = states.isEmpty ? "" : " (\(states.joined(separator: ", ")))"
         return ManagedPackage(
             manager: .rustup,
             identifier: "rustup:toolchain:\(name)",
             displayName: name,
             installedVersion: rustc,
             latestVersion: nil,
-            summary: "Rust toolchain\(state)",
+            summary: "rustup managed Rust toolchain",
             category: "language-runtime",
             homepage: "https://rustup.rs/",
             docs: "https://rust-lang.github.io/rustup/",

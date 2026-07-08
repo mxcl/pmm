@@ -106,7 +106,7 @@ public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
         self.installedVersion = installedVersion
         self.installedVersions = Self.normalizedVersions(installedVersions, including: installedVersion)
         self.latestVersion = latestVersion
-        self.summary = summary
+        self.summary = Self.normalizedSummary(summary, manager: manager, identifier: identifier)
         self.category = category
         self.homepage = homepage
         self.docs = docs
@@ -252,6 +252,11 @@ public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
         let suffix = "-aarch64-apple-darwin"
         guard toolchain.hasSuffix(suffix) else { return "rust \(toolchain)" }
         return "rust \(toolchain.dropLast(suffix.count)) ²"
+    }
+
+    private static func normalizedSummary(_ summary: String?, manager: PackageManagerKind, identifier: String) -> String? {
+        guard manager == .rustup, identifier.hasPrefix("rustup:toolchain:") else { return summary }
+        return "rustup managed Rust toolchain"
     }
 
     private enum CodingKeys: String, CodingKey {

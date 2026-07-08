@@ -36,11 +36,12 @@ import Testing
     #expect(encoded?["displayName"] as? String == "typescript")
 }
 
-@Test func packageNormalizesRustupToolchainDisplayNamesFromCachedJSON() throws {
+@Test func packageNormalizesRustupToolchainFieldsFromCachedJSON() throws {
     let data = #"{"manager":"rustup","identifier":"rustup:toolchain:1.92.0-aarch64-apple-darwin","displayName":"1.92.0-aarch64-apple-darwin","installedVersion":"1.92.0","latestVersion":null}"#.data(using: .utf8)!
     let decoded = try JSONDecoder().decode(ManagedPackage.self, from: data)
 
     #expect(decoded.displayName == "rust 1.92.0 ²")
+    #expect(decoded.summary == "rustup managed Rust toolchain")
 }
 
 @Test func packageConsolidationGroupsByIdentifierAndPreservesDisplayName() {
