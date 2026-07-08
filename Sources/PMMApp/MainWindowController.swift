@@ -80,6 +80,7 @@ struct MainWindowRootView: View {
                         .navigationSplitViewColumnWidth(min: 602, ideal: 1128)
                 }
                 .searchable(text: $model.searchText, placement: .sidebar, prompt: "Search")
+                .toolbar(removing: .title)
             } else {
                 NavigationSplitView {
                     sidebar
@@ -96,10 +97,11 @@ struct MainWindowRootView: View {
                     .navigationSplitViewColumnWidth(min: 602, ideal: 876)
                 }
                 .searchable(text: $model.searchText, placement: .sidebar, prompt: "Search")
+                .toolbar(removing: .title)
             }
         }
-        .accentColor(SystemColor.packageBrown)
-        .tint(SystemColor.packageBrown)
+//        .accentColor(SystemColor.packageBrown)
+//        .tint(SystemColor.packageBrown)
     }
 
     private var sidebar: some View {
