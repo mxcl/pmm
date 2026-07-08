@@ -24,7 +24,6 @@ struct MainWindowSidebarView: View {
             }
         }
         .listStyle(.sidebar)
-        .searchable(text: $model.searchText, prompt: "Search")
     }
 
     private var sidebarSelection: Binding<MainWindowSection?> {

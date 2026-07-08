@@ -88,5 +88,6 @@ struct MainWindowRootView: View {
         }
         .accentColor(SystemColor.packageBrown)
         .tint(SystemColor.packageBrown)
+        .searchable(text: $model.searchText, placement: .sidebar, prompt: "Search")
     }
 }
