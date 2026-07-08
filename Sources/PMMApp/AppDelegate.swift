@@ -79,6 +79,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate {
     private func makeMainMenu() -> NSMenu {
         let menu = NSMenu(title: L10n.string("Main Menu"))
         menu.addItem(makeAppMenuItem())
+        menu.addItem(makePackageMenuItem())
         menu.addItem(makeEditMenuItem())
         menu.addItem(makeWindowMenuItem())
         return menu
@@ -114,6 +115,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate {
         return appItem
     }
 
+    private func makePackageMenuItem() -> NSMenuItem {
+        let packageItem = NSMenuItem()
+        let packageMenu = NSMenu(title: L10n.string("Package"))
+
+        let refreshItem = packageMenu.addItem(withTitle: L10n.string("Refresh"), action: #selector(refreshPackages(_:)), keyEquivalent: "r")
+        refreshItem.target = self
+        packageItem.submenu = packageMenu
+        return packageItem
+    }
+
     private func makeEditMenuItem() -> NSMenuItem {
         let editItem = NSMenuItem()
         let editMenu = NSMenu(title: L10n.string("Edit"))
@@ -135,9 +146,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate {
         let windowItem = NSMenuItem()
         let windowMenu = NSMenu(title: L10n.string("Window"))
 
-        let refreshItem = windowMenu.addItem(withTitle: L10n.string("Refresh"), action: #selector(refreshPackages(_:)), keyEquivalent: "r")
-        refreshItem.target = self
-        windowMenu.addItem(.separator())
         windowMenu.addItem(withTitle: L10n.string("Close"), action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
         windowMenu.addItem(withTitle: L10n.string("Minimize"), action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m")
         windowMenu.addItem(withTitle: L10n.string("Zoom"), action: #selector(NSWindow.performZoom(_:)), keyEquivalent: "")
