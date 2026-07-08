@@ -64,9 +64,9 @@ public struct PackageScanner {
         let outdated = try homebrewOutdated(brew)
         let requestedFormulae = homebrewRequestedFormulae(brew)
         let prefix = successfulLine(brew, ["--prefix"])
-        let installedMetadata = homebrewInstalledMetadata(brew, prefix: prefix)
-        let formulae = try homebrewList(brew, kindFlag: "--formula", names: requestedFormulae, outdated: outdated.formulae, metadata: installedMetadata.formulae, prefix: prefix, database: database)
-        let casks = try homebrewList(brew, kindFlag: "--cask", outdated: outdated.casks, metadata: installedMetadata.casks, prefix: prefix, database: database)
+        let installedFormulae = homebrewInstalledFormulaMetadata(brew, prefix: prefix)
+        let formulae = try homebrewList(brew, kindFlag: "--formula", names: requestedFormulae, outdated: outdated.formulae, metadata: installedFormulae, prefix: prefix, database: database)
+        let casks = try homebrewInstalledCasks(brew, outdated: outdated.casks, prefix: prefix, database: database)
         return formulae + casks
     }
 
@@ -357,15 +357,48 @@ public struct PackageScanner {
         }
     }
 
-    private func homebrewInstalledMetadata(_ brew: String, prefix: String?) -> (formulae: [String: HomebrewPackageInfo], casks: [String: HomebrewPackageInfo]) {
+    private func homebrewInstalledFormulaMetadata(_ brew: String, prefix: String?) -> [String: HomebrewPackageInfo] {
         guard let result = try? runner.run(brew, ["info", "--json=v2", "--installed"]),
               result.status == 0,
               let data = result.stdout.data(using: .utf8),
-              let raw = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return ([:], [:]) }
-        return (
-            homebrewMetadataMap(raw["formulae"], prefix: prefix, kind: "formula"),
-            homebrewMetadataMap(raw["casks"], prefix: prefix, kind: "cask")
-        )
+              let raw = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return [:] }
+        return homebrewMetadataMap(raw["formulae"], prefix: prefix, kind: "formula")
+    }
+
+    private func homebrewInstalledCasks(
+        _ brew: String,
+        outdated: [String: String],
+        prefix: String?,
+        database: PackageDatabase
+    ) throws -> [ManagedPackage] {
+        let result = try runner.run(brew, ["info", "--installed", "--cask", "--json=v2"])
+        guard result.status == 0,
+              let data = result.stdout.data(using: .utf8),
+              let raw = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let casks = raw["casks"] as? [[String: Any]] else { return [] }
+        return casks.compactMap { item in
+            guard let name = item["token"] as? String ?? item["name"] as? String else { return nil }
+            let infoMetadata = homebrewMetadata(from: item)
+            let cachedMetadata = homebrewCachedMetadata(name: name, kindFlag: "--cask")
+            let curation = database.metadata(for: .homebrew, name: name)
+            let version = infoMetadata.version ?? cachedMetadata?.version
+            return ManagedPackage(
+                manager: .homebrew,
+                identifier: "brew:cask:\(name)",
+                displayName: name,
+                installedVersion: version,
+                latestVersion: outdated[name] ?? (cachedMetadata?.version == version ? cachedMetadata?.version : infoMetadata.version),
+                summary: infoMetadata.summary ?? cachedMetadata?.summary,
+                category: curation?.category,
+                homepage: infoMetadata.homepage ?? cachedMetadata?.homepage,
+                docs: infoMetadata.docs ?? cachedMetadata?.docs,
+                repo: curation?.repo ?? infoMetadata.repo ?? cachedMetadata?.repo,
+                lastUpdatedAt: curation?.lastUpdatedAt,
+                pulseKind: curation?.pulseKind,
+                installLocation: homebrewInstallLocation(prefix: prefix, kindFlag: "--cask", name: name, version: version),
+                binaryPath: homebrewCaskBinaryPath(item) ?? homebrewBinaryPath(prefix: prefix, name: name)
+            )
+        }
     }
 
     private func homebrewMetadataMap(_ value: Any?, prefix: String?, kind: String) -> [String: HomebrewPackageInfo] {

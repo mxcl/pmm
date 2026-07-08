@@ -230,7 +230,15 @@ private final class EmptyNPMRegistryURLProtocol: URLProtocol, @unchecked Sendabl
         "/fake/brew leaves --installed-on-request": CommandResult(stdout: "git\n", stderr: "", status: 0),
         "/fake/brew outdated --json=v2": CommandResult(stdout: #"{"formulae":[],"casks":[]}"#, stderr: "", status: 0),
         "/fake/brew list --versions --formula": CommandResult(stdout: "git 2.51.0\n", stderr: "", status: 0),
-        "/fake/brew list --versions --cask": CommandResult(stdout: "visual-studio-code 1.102.0\n", stderr: "", status: 0),
+        "/fake/brew info --installed --cask --json=v2": CommandResult(stdout: #"""
+        {
+          "formulae": [],
+          "casks": [{
+            "token": "visual-studio-code",
+            "version": "1.102.0"
+          }]
+        }
+        """#, stderr: "", status: 0),
     ])
     let scanner = PackageScanner(runner: runner, toolPaths: ["brew": "/fake/brew"], environment: ["HOMEBREW_CACHE": temp.path])
 
@@ -336,8 +344,20 @@ private final class EmptyNPMRegistryURLProtocol: URLProtocol, @unchecked Sendabl
           }]
         }
         """#, stderr: "", status: 0),
+        "/fake/brew info --installed --cask --json=v2": CommandResult(stdout: #"""
+        {
+          "formulae": [],
+          "casks": [{
+            "token": "codex",
+            "desc": "OpenAI's coding agent",
+            "homepage": "https://github.com/openai/codex",
+            "version": "0.142.5",
+            "installed": "0.142.5",
+            "artifacts": [{ "binary": ["codex-aarch64-apple-darwin", { "target": "codex" }], "target": "/fake/homebrew/bin/codex" }]
+          }]
+        }
+        """#, stderr: "", status: 0),
         "/fake/brew list --versions --formula": CommandResult(stdout: "", stderr: "", status: 0),
-        "/fake/brew list --versions --cask": CommandResult(stdout: "codex 0.142.5\n", stderr: "", status: 0),
     ])
     let scanner = PackageScanner(runner: runner, toolPaths: ["brew": "/fake/brew"])
 
@@ -380,7 +400,16 @@ private final class EmptyNPMRegistryURLProtocol: URLProtocol, @unchecked Sendabl
         "/fake/brew leaves --installed-on-request": CommandResult(stdout: "git\n", stderr: "", status: 0),
         "/fake/brew outdated --json=v2": CommandResult(stdout: #"{"formulae":[],"casks":[]}"#, stderr: "", status: 0),
         "/fake/brew list --versions --formula": CommandResult(stdout: "git 2.50.0\nopenssl@3 3.5.0\n", stderr: "", status: 0),
-        "/fake/brew list --versions --cask": CommandResult(stdout: "visual-studio-code 1.101.2\n", stderr: "", status: 0),
+        "/fake/brew info --installed --cask --json=v2": CommandResult(stdout: #"""
+        {
+          "formulae": [],
+          "casks": [{
+            "token": "visual-studio-code",
+            "version": "1.101.2"
+          }]
+        }
+        """#, stderr: "", status: 0),
+        "/fake/brew list --versions --cask": CommandResult(stdout: "", stderr: "Error: Cask 'visual-studio-code' is not installed.\n", status: 1),
     ])
     let scanner = PackageScanner(runner: runner, toolPaths: ["brew": "/fake/brew"])
 
