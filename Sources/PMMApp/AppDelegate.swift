@@ -63,7 +63,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate {
         window.titlebarSeparatorStyle = .none
         window.toolbarStyle = .automatic
         let toolbar = NSToolbar(identifier: "PMMToolbar")
-        toolbar.displayMode = .iconOnly
+        toolbar.displayMode = .iconAndLabel
         toolbar.delegate = self
         window.toolbar = toolbar
         window.isMovableByWindowBackground = true

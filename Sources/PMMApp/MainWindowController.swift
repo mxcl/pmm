@@ -116,9 +116,13 @@ struct MainWindowRootView: View {
     @ToolbarContentBuilder
     private var appUpdateToolbarItem: some ToolbarContent {
         if showsAppUpdateButton {
+            ToolbarSpacer(.flexible)
             ToolbarItem(placement: .primaryAction) {
                 Button(action: updateApp) {
-                    Label("Update pkg⋅mgr²", systemImage: "arrow.down.app")
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.down.app")
+                        Text("Update pkg⋅mgr²")
+                    }
                 }
             }
         }
