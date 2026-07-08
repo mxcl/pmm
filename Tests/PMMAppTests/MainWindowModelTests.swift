@@ -532,7 +532,7 @@ import Testing
     ))
 
     #expect(links.map(\.tab) == [.homepage, .repo, .docs, .registry])
-    #expect(links.map(\.url.absoluteString) == ["https://git-scm.com/", "https://github.com/git/git", "https://git-scm.com/docs", "https://brew.sh/formula/git"])
+    #expect(links.map(\.url.absoluteString) == ["https://git-scm.com/", "https://github.com/git/git", "https://git-scm.com/docs", "https://formulae.brew.sh/formula/git"])
 }
 
 @Test func packageLinksFallBackToRepoThenDocsWhenHomepageIsMissing() {
@@ -587,8 +587,8 @@ import Testing
 }
 
 @Test func packageRegistryLinksUseKnownPackageRegistryPages() {
-    #expect(mainWindowRegistryURLString(for: ManagedPackage(manager: .homebrew, identifier: "brew:git", installedVersion: nil, latestVersion: nil)) == "https://brew.sh/formula/git")
-    #expect(mainWindowRegistryURLString(for: ManagedPackage(manager: .homebrew, identifier: "brew:cask:visual-studio-code", installedVersion: nil, latestVersion: nil)) == "https://brew.sh/cask/visual-studio-code")
+    #expect(mainWindowRegistryURLString(for: ManagedPackage(manager: .homebrew, identifier: "brew:git", installedVersion: nil, latestVersion: nil)) == "https://formulae.brew.sh/formula/git")
+    #expect(mainWindowRegistryURLString(for: ManagedPackage(manager: .homebrew, identifier: "brew:cask:visual-studio-code", installedVersion: nil, latestVersion: nil)) == "https://formulae.brew.sh/cask/visual-studio-code")
     #expect(mainWindowRegistryURLString(for: ManagedPackage(manager: .npm, identifier: "npm:@scope/tool", installedVersion: nil, latestVersion: nil)) == "https://www.npmjs.com/package/@scope/tool")
     #expect(mainWindowRegistryURLString(for: ManagedPackage(manager: .cargoInstall, identifier: "cargo:ripgrep", installedVersion: nil, latestVersion: nil)) == "https://crates.io/crates/ripgrep")
     #expect(mainWindowRegistryURLString(for: ManagedPackage(manager: .uv, identifier: "uv:tool:ruff", installedVersion: nil, latestVersion: nil)) == "https://pypi.org/project/ruff/")

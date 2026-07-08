@@ -230,7 +230,7 @@ func mainWindowRegistryURLString(for package: ManagedPackage) -> String? {
     switch package.manager {
     case .homebrew:
         let kind = package.identifier.hasPrefix("brew:cask:") ? "cask" : "formula"
-        return "https://brew.sh/\(kind)/\(package.packageToken)"
+        return "https://formulae.brew.sh/\(kind)/\(package.packageToken)"
     case .npm, .npx:
         return "https://www.npmjs.com/package/\(package.packageToken)"
     case .cargoInstall:
