@@ -78,11 +78,17 @@ struct MainWindowRootView: View {
             MainWindowPackageListView(model: model)
                 .navigationSplitViewColumnWidth(min: 252, ideal: 252, max: 252)
         } detail: {
-            HStack(spacing: 0) {
-                MainWindowDossierView(model: model)
-                    .frame(width: 252)
-                MainWindowLinksView(model: model)
-                    .frame(minWidth: 350, maxWidth: .infinity)
+            Group {
+                if model.selectedSection == .home {
+                    MainWindowDashboardView(model: model)
+                } else {
+                    HStack(spacing: 0) {
+                        MainWindowDossierView(model: model)
+                            .frame(width: 252)
+                        MainWindowLinksView(model: model)
+                            .frame(minWidth: 350, maxWidth: .infinity)
+                    }
+                }
             }
             .navigationSplitViewColumnWidth(min: 602, ideal: 876)
         }
