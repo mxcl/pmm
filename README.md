@@ -2,7 +2,7 @@
 
 # Package Manager Manager
 
-The time when one package manager was all you needed is long gone. PM²
+The time when one package manager was all you needed is long gone. pkg⋅mgr²
 inventories your package managers and their packages, so you can see what you
 have, what’s outdated, and what’s taking up space.
 
@@ -22,7 +22,7 @@ Use whatever you want without compromising visibility into what’s going on.
 
 ## What It Finds
 
-PM² currently inventories:
+pkg⋅mgr² currently inventories:
 
 - Homebrew formulae and casks
 - global npm packages
@@ -38,7 +38,7 @@ shows up. It just looks less informed. Fair.
 
 ## Supported Package Managers
 
-The detail pane offers update and uninstall actions when PM² knows the native
+The detail pane offers update and uninstall actions when pkg⋅mgr² knows the native
 command to run.
 
 Supported update paths:
@@ -61,7 +61,7 @@ Supported uninstall paths:
 - `cargo uninstall`
 
 > [!IMPORTANT]
-> `rustup` is inventory-only for now. PM² will show `rustup` and toolchains,
+> `rustup` is inventory-only for now. pkg⋅mgr² will show `rustup` and toolchains,
 > but it will not update or uninstall them.
 
 ### Adding New Package Managers
@@ -96,7 +96,7 @@ Checklist:
 
 ## Caveats
 
-PM² shells out to your package managers. It does not replace them, normalize
+pkg⋅mgr² shells out to your package managers. It does not replace them, normalize
 their data perfectly, or pretend their caches are a coherent database.
 
 Homebrew metadata requires `brew update` in the helper refresh path. Network

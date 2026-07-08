@@ -164,14 +164,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate {
             return item
         }
         guard itemIdentifier == .updatePMM else { return nil }
-        let button = NSButton(title: "Update PM²", target: self, action: #selector(updatePMM(_:)))
+        let button = NSButton(title: "Update pkg⋅mgr²", target: self, action: #selector(updatePMM(_:)))
         button.bezelStyle = .toolbar
         button.controlSize = .small
-        button.image = NSImage(systemSymbolName: "arrow.down.app", accessibilityDescription: "Update PM²")
+        button.image = NSImage(systemSymbolName: "arrow.down.app", accessibilityDescription: "Update pkg⋅mgr²")
         button.imagePosition = .imageLeading
         let item = NSToolbarItem(itemIdentifier: itemIdentifier)
-        item.label = "Update PM²"
-        item.paletteLabel = "Update PM²"
+        item.label = "Update pkg⋅mgr²"
+        item.paletteLabel = "Update pkg⋅mgr²"
         item.view = button
         updateButton = button
         return item
@@ -197,7 +197,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate {
             do {
                 availableUpdate = try await appUpdater.check()
                 if availableUpdate == nil, reportCurrent {
-                    showUpdateAlert(message: "PM² is up to date.")
+                    showUpdateAlert(message: "pkg⋅mgr² is up to date.")
                 }
             } catch {
                 if reportCurrent {
