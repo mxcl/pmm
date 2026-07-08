@@ -222,7 +222,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate {
         Task { @MainActor in
             do {
                 availableUpdate = try await appUpdater.check()
-                if availableUpdate == nil, reportCurrent {
+                if let update = availableUpdate, reportCurrent {
+                    showUpdateAvailableAlert(update)
+                } else if availableUpdate == nil, reportCurrent {
                     showUpdateAlert(message: "pkg⋅mgr² is up to date.")
                 }
             } catch {
@@ -278,6 +280,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate {
                 updateButton?.isEnabled = true
                 showUpdateAlert(message: "Unable to install update.", informativeText: error.localizedDescription)
             }
+        }
+    }
+
+    private func showUpdateAvailableAlert(_ update: Update) {
+        let alert = NSAlert()
+        alert.messageText = "A pkg⋅mgr² update is available."
+        alert.informativeText = "Install it now?"
+        alert.addButton(withTitle: "Update")
+        alert.addButton(withTitle: "Later")
+        if alert.runModal() == .alertFirstButtonReturn {
+            availableUpdate = update
+            updatePMM(nil)
         }
     }
 
