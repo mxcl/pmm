@@ -95,7 +95,9 @@ struct MainWindowRootView: View {
     private var updateAllToolbarItem: some ToolbarContent {
         if model.showsUpdateAllOutdatedPackages {
             ToolbarItem(placement: .primaryAction) {
-                Button(action: model.updateAllOutdatedPackages) {
+                Button {
+                    model.updateAllOutdatedPackages()
+                } label: {
                     Label("Update All", systemImage: "arrow.down.circle")
                 }
                 .disabled(!model.canUpdateAllOutdatedPackages)
