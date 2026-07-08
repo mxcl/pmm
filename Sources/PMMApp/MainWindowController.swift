@@ -1,14 +1,11 @@
 import AppKit
-import Combine
 import PMMCore
 import SwiftUI
 
 @MainActor
 final class MainWindowController: NSHostingController<MainWindowRootView> {
     private let model = MainWindowModel(dossierClient: PackageDossierClient())
-    private var toolbarStateCancellable: AnyCancellable?
     private var showsAppUpdateButton = false
-    var onToolbarStateChanged: (() -> Void)?
 
     init() {
         super.init(rootView: MainWindowRootView(model: model, showsAppUpdateButton: false, updateApp: {}))
@@ -16,15 +13,6 @@ final class MainWindowController: NSHostingController<MainWindowRootView> {
 
     @MainActor @preconcurrency required dynamic init?(coder: NSCoder) {
         super.init(coder: coder)
-    }
-
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        toolbarStateCancellable = model.objectWillChange.sink { [weak self] _ in
-            DispatchQueue.main.async {
-                self?.onToolbarStateChanged?()
-            }
-        }
     }
 
     override func viewDidAppear() {
@@ -43,22 +31,10 @@ final class MainWindowController: NSHostingController<MainWindowRootView> {
         model.openPackageURL(url)
     }
 
-    var showsUpdateAllToolbarButton: Bool {
-        model.showsUpdateAllOutdatedPackages
-    }
-
-    var canUpdateAllPackages: Bool {
-        model.canUpdateAllOutdatedPackages
-    }
-
     func setAppUpdateButtonVisible(_ isVisible: Bool, updateApp: @escaping () -> Void) {
         guard showsAppUpdateButton != isVisible else { return }
         showsAppUpdateButton = isVisible
         rootView = MainWindowRootView(model: model, showsAppUpdateButton: isVisible, updateApp: updateApp)
-    }
-
-    @objc func updateAllPackages(_ sender: Any?) {
-        model.updateAllOutdatedPackages()
     }
 
     override func moveUp(_ sender: Any?) {
@@ -98,6 +74,7 @@ struct MainWindowRootView: View {
                 } content: {
                     MainWindowPackageListView(model: model)
                         .navigationSplitViewColumnWidth(min: 252, ideal: 252, max: 252)
+                        .toolbar { updateAllToolbarItem }
                 } detail: {
                     HStack(spacing: 0) {
                         MainWindowDossierView(model: model)
@@ -110,6 +87,18 @@ struct MainWindowRootView: View {
                 }
                 .searchable(text: $model.searchText, placement: .sidebar, prompt: "Search")
                 .toolbar(removing: .title)
+            }
+        }
+    }
+
+    @ToolbarContentBuilder
+    private var updateAllToolbarItem: some ToolbarContent {
+        if model.showsUpdateAllOutdatedPackages {
+            ToolbarItem(placement: .primaryAction) {
+                Button(action: model.updateAllOutdatedPackages) {
+                    Label("Update All", systemImage: "arrow.down.circle")
+                }
+                .disabled(!model.canUpdateAllOutdatedPackages)
             }
         }
     }

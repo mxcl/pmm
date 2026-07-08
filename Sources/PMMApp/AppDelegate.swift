@@ -2,10 +2,9 @@ import AppKit
 import AppUpdater
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate {
     private let appUpdater = AppUpdater(owner: "mxcl", repo: "package-manager-manager")
     private var checkForUpdatesItem: NSMenuItem?
-    private var updateAllButton: NSButton?
     private var availableUpdate: Update? {
         didSet {
             syncToolbarItems()
@@ -47,9 +46,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate {
 
         let initialContentSize = NSSize(width: 1378, height: 824)
         let controller = MainWindowController()
-        controller.onToolbarStateChanged = { [weak self] in
-            self?.syncToolbarItems()
-        }
         let window = PMMWindow(
             contentRect: NSRect(origin: .zero, size: initialContentSize),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
@@ -62,10 +58,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate {
         window.titleVisibility = .hidden
         window.titlebarSeparatorStyle = .none
         window.toolbarStyle = .automatic
-        let toolbar = NSToolbar(identifier: "PMMToolbar")
-        toolbar.displayMode = .iconAndLabel
-        toolbar.delegate = self
-        window.toolbar = toolbar
         window.isMovableByWindowBackground = true
         window.minSize = NSSize(width: 1104, height: 680)
         window.setContentSize(initialContentSize)
@@ -153,35 +145,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate {
         return windowItem
     }
 
-    func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
-        [.flexibleSpace, .updateAllPackages]
-    }
-
-    func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
-        toolbarItemIdentifiers()
-    }
-
-    func toolbar(
-        _ toolbar: NSToolbar,
-        itemForItemIdentifier itemIdentifier: NSToolbarItem.Identifier,
-        willBeInsertedIntoToolbar flag: Bool
-    ) -> NSToolbarItem? {
-        if itemIdentifier == .updateAllPackages {
-            let button = NSButton(title: "Update All", target: self, action: #selector(updateAllPackages(_:)))
-            button.bezelStyle = .toolbar
-            button.controlSize = .small
-            button.image = NSImage(systemSymbolName: "arrow.down.circle", accessibilityDescription: "Update All")
-            button.imagePosition = .imageLeading
-            let item = NSToolbarItem(itemIdentifier: itemIdentifier)
-            item.label = "Update All"
-            item.paletteLabel = "Update All"
-            item.view = button
-            updateAllButton = button
-            return item
-        }
-        return nil
-    }
-
     @objc private func refreshPackages(_ sender: Any?) {
         (window?.contentViewController as? MainWindowController)?.refresh(sender)
     }
@@ -193,11 +156,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate {
         else { return }
         showMainWindow()
         mainWindowController?.openPackageURL(url)
-    }
-
-    @objc private func updateAllPackages(_ sender: Any?) {
-        mainWindowController?.updateAllPackages(sender)
-        syncToolbarItems()
     }
 
     @objc private func checkForUpdates(_ sender: Any?) {
@@ -228,29 +186,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate {
         mainWindowController?.setAppUpdateButtonVisible(availableUpdate != nil) { [weak self] in
             self?.updatePMM(nil)
         }
-        guard let toolbar = window?.toolbar else { return }
-        let desired = toolbarItemIdentifiers()
-        if toolbar.items.map(\.itemIdentifier) != desired {
-            updateAllButton = nil
-            for index in toolbar.items.indices.reversed() {
-                toolbar.removeItem(at: index)
-            }
-            for (index, identifier) in desired.enumerated() {
-                toolbar.insertItem(withItemIdentifier: identifier, at: index)
-            }
-        }
-        updateAllButton?.isEnabled = mainWindowController?.canUpdateAllPackages == true
-    }
-
-    private func toolbarItemIdentifiers() -> [NSToolbarItem.Identifier] {
-        var identifiers: [NSToolbarItem.Identifier] = []
-        if mainWindowController?.showsUpdateAllToolbarButton == true {
-            identifiers.append(.updateAllPackages)
-        }
-        if !identifiers.isEmpty {
-            identifiers.insert(.flexibleSpace, at: 0)
-        }
-        return identifiers
     }
 
     private var mainWindowController: MainWindowController? {
@@ -288,10 +223,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate {
         alert.informativeText = informativeText
         alert.runModal()
     }
-}
-
-private extension NSToolbarItem.Identifier {
-    static let updateAllPackages = NSToolbarItem.Identifier("UpdateAllPackages")
 }
 
 private final class PMMWindow: NSWindow {
