@@ -183,7 +183,7 @@ public struct PackageScanner {
             guard !entry.lastPathComponent.hasPrefix(".") else { return [] }
             return uvxEnvironmentRoots(entry).map { environment in
                 let fallbackName = uvxDisplayName(entry.lastPathComponent)
-                let dist = requestedDistInfo(in: environment) ?? matchingDistInfo(in: environment, packageName: fallbackName) ?? firstDistInfo(in: environment)
+                let dist = matchingDistInfo(in: environment, packageName: fallbackName) ?? requestedDistInfo(in: environment) ?? singleDistInfo(in: environment)
                 let name = dist?.name ?? fallbackName
                 return ManagedPackage(
                     manager: .uvx,
@@ -850,12 +850,15 @@ public struct PackageScanner {
     }
 
     private func requestedDistInfo(in environment: URL) -> (name: String, version: String?, summary: String?, homepage: String?)? {
-        distInfos(in: environment).first { fileManager.fileExists(atPath: $0.appendingPathComponent("REQUESTED").path) }
-            .flatMap(pythonPackageMetadata)
+        let requested = distInfos(in: environment).filter { fileManager.fileExists(atPath: $0.appendingPathComponent("REQUESTED").path) }
+        guard requested.count == 1 else { return nil }
+        return requested.first.flatMap(pythonPackageMetadata)
     }
 
-    private func firstDistInfo(in environment: URL) -> (name: String, version: String?, summary: String?, homepage: String?)? {
-        distInfos(in: environment).first.flatMap(pythonPackageMetadata)
+    private func singleDistInfo(in environment: URL) -> (name: String, version: String?, summary: String?, homepage: String?)? {
+        let infos = distInfos(in: environment)
+        guard infos.count == 1 else { return nil }
+        return infos.first.flatMap(pythonPackageMetadata)
     }
 
     private func distInfos(in environment: URL) -> [URL] {

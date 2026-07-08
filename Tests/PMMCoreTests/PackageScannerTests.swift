@@ -655,6 +655,31 @@ private final class EmptyNPMRegistryURLProtocol: URLProtocol, @unchecked Sendabl
     #expect(packages.first?.binaryPath?.hasSuffix("/environments-v2/ruff-0123456789abcdef/bin/ruff") == true)
 }
 
+@Test func uvxScannerFallsBackToCacheEntryNameWhenDependenciesAreMarkedRequested() throws {
+    let temp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    let environment = temp.appendingPathComponent("environments-v2/site-e32b691154c494a3", isDirectory: true)
+    let sitePackages = environment.appendingPathComponent("lib/python3.11/site-packages", isDirectory: true)
+    let annotatedTypes = sitePackages.appendingPathComponent("annotated_types-0.7.0.dist-info", isDirectory: true)
+    let pydantic = sitePackages.appendingPathComponent("pydantic-2.13.4.dist-info", isDirectory: true)
+    try FileManager.default.createDirectory(at: annotatedTypes, withIntermediateDirectories: true)
+    try FileManager.default.createDirectory(at: pydantic, withIntermediateDirectories: true)
+    try "".write(to: annotatedTypes.appendingPathComponent("REQUESTED"), atomically: true, encoding: .utf8)
+    try "".write(to: pydantic.appendingPathComponent("REQUESTED"), atomically: true, encoding: .utf8)
+    defer { try? FileManager.default.removeItem(at: temp) }
+
+    let runner = FakeRunner(responses: [
+        "/fake/uv cache dir": CommandResult(stdout: "\(temp.path)\n", stderr: "", status: 0),
+    ])
+    let scanner = PackageScanner(runner: runner, toolPaths: ["uv": "/fake/uv"])
+
+    let package = try #require(scanner.scanUVX(database: PackageDatabase()).first)
+
+    #expect(package.identifier == "uvx:site")
+    #expect(package.displayName == "site")
+    #expect(package.installedVersion == nil)
+    #expect(package.summary == "uvx cached tool environment")
+}
+
 @Test func uvxScannerReadsSymlinkedCachedToolMetadata() throws {
     let temp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
     let archive = temp.appendingPathComponent("archive-v0/Q3TrjBbVSvYNhiMC", isDirectory: true)
