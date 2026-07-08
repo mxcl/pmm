@@ -21,11 +21,12 @@ install=false
 dmg=false
 notarize=false
 publish=false
+clobber=false
 mount=""
 release_notes_path=""
 
 usage() {
-  printf 'Usage: %s [--install] [--run] [--dmg] [--notarize] [--publish]\n' "${0##*/}"
+  printf 'Usage: %s [--install] [--run] [--dmg] [--notarize] [--publish] [--clobber]\n' "${0##*/}"
 }
 
 die() {
@@ -34,7 +35,7 @@ die() {
 }
 
 require_tool() {
-  command -v "$1" >/dev/null || die "$1 is required for --publish"
+  command -v "$1" >/dev/null || die "$1 is required"
 }
 
 script_version() {
@@ -210,6 +211,15 @@ push_current_branch() {
   git -C "$root" push >&2
 }
 
+force_push_release_tag() {
+  local tag="$1"
+
+  git -C "$root" remote get-url origin >/dev/null 2>&1 ||
+    die "A git origin remote is required to force-push $tag"
+  git -C "$root" tag -f "$tag" HEAD >&2
+  git -C "$root" push --force origin "refs/tags/$tag" >&2
+}
+
 while (($#)); do
   case "$1" in
     --install) install=true ;;
@@ -217,11 +227,16 @@ while (($#)); do
     --dmg) dmg=true ;;
     --notarize) dmg=true; notarize=true ;;
     --publish) dmg=true; notarize=true; publish=true ;;
+    --clobber) clobber=true ;;
     -h|--help) usage; exit 0 ;;
     *) usage >&2; exit 64 ;;
   esac
   shift
 done
+
+if $clobber && ! $publish; then
+  die "--clobber requires --publish"
+fi
 
 if $publish; then
   require_tool git
@@ -235,23 +250,25 @@ if $publish; then
   fi
 
   ensure_release_worktree_state
-  current_version="$(script_version)"
-  [[ -n "$current_version" ]] || die "Unable to read default version from scripts/build.sh"
-  release_plan="$(generate_release_plan "$current_version")"
-  release_notes_path="$(printf '%s\n' "$release_plan" | sed -n '1p')"
-  version_path="$(printf '%s\n' "$release_plan" | sed -n '2p')"
-  planned_version="$(<"$version_path")"
+  if ! $clobber; then
+    current_version="$(script_version)"
+    [[ -n "$current_version" ]] || die "Unable to read default version from scripts/build.sh"
+    release_plan="$(generate_release_plan "$current_version")"
+    release_notes_path="$(printf '%s\n' "$release_plan" | sed -n '1p')"
+    version_path="$(printf '%s\n' "$release_plan" | sed -n '2p')"
+    planned_version="$(<"$version_path")"
 
-  version_gt "$planned_version" "$current_version" ||
-    die "Codex proposed $planned_version, which is not newer than current version $current_version"
-  if git -C "$root" rev-parse --verify --quiet "v$planned_version^{commit}" >/dev/null; then
-    die "Tag v$planned_version already exists"
+    version_gt "$planned_version" "$current_version" ||
+      die "Codex proposed $planned_version, which is not newer than current version $current_version"
+    if git -C "$root" rev-parse --verify --quiet "v$planned_version^{commit}" >/dev/null; then
+      die "Tag v$planned_version already exists"
+    fi
+
+    bump_script_version "$planned_version"
+    version="$planned_version"
+    commit_release_version "$planned_version"
+    push_current_branch
   fi
-
-  bump_script_version "$planned_version"
-  version="$planned_version"
-  commit_release_version "$planned_version"
-  push_current_branch
 fi
 
 dmg_path="${DMG_PATH:-$root/dist/package-manager-manager-$version.dmg}"
@@ -450,10 +467,15 @@ fi
 
 if $publish; then
   tag="${RELEASE_TAG:-v$version}"
-  gh release create "$tag" "$dmg_path" \
-    --target "$(git -C "$root" rev-parse HEAD)" \
-    --title "$app_name $version" \
-    --notes-file "$release_notes_path"
+  if $clobber; then
+    force_push_release_tag "$tag"
+    gh release upload "$tag" "$dmg_path" --clobber
+  else
+    gh release create "$tag" "$dmg_path" \
+      --target "$(git -C "$root" rev-parse HEAD)" \
+      --title "$app_name $version" \
+      --notes-file "$release_notes_path"
+  fi
 fi
 
 final_app="$app"
