@@ -280,6 +280,30 @@ func mainWindowPackageLocations(for package: ManagedPackage) -> [MainWindowPacka
     ].compactMap { $0 }
 }
 
+func mainWindowExecutablePath(
+    named name: String,
+    for package: ManagedPackage,
+    fileManager: FileManager = .default,
+    findExecutable: (String) -> String? = { firstExecutable(named: $0) }
+) -> String? {
+    guard !name.isEmpty, !name.contains("/") else { return nil }
+
+    let binaryPath = package.binaryPath.map(mainWindowExpandTilde)
+    let binaryURL = binaryPath.map { URL(fileURLWithPath: $0) }
+    let installLocation = package.installLocation.map(mainWindowExpandTilde)
+    let candidates = [
+        binaryURL?.lastPathComponent == name ? binaryPath : nil,
+        binaryURL?.deletingLastPathComponent().appendingPathComponent(name).path,
+        installLocation.map { URL(fileURLWithPath: $0).appendingPathComponent("bin").appendingPathComponent(name).path },
+    ].compactMap { $0 }
+
+    if let path = candidates.first(where: { fileManager.isExecutableFile(atPath: $0) }) {
+        return path
+    }
+    guard let path = findExecutable(name), fileManager.isExecutableFile(atPath: path) else { return nil }
+    return path
+}
+
 func mainWindowConfigurationLocations(for dossier: PackageDossierPage?, resolve: (String) -> String = { $0 }) -> [MainWindowConfigurationLocation] {
     let paths = mainWindowRawConfigurationPaths(for: dossier)
         .map(resolve)
@@ -511,22 +535,22 @@ private struct PackageLocationSection: View {
     var body: some View {
         InfoSection(title: "Location") {
             if let installLocation = package.installLocation {
-                LocationButton(label: "Install Root", path: installLocation, action: revealInFinder)
+                LocationButton(label: "Install Root", path: installLocation, action: mainWindowRevealInFinder)
             } else {
                 InfoRow(label: "Install Root", value: "unknown")
             }
             if let binaryPath = package.binaryPath {
-                LocationButton(label: "Binary", path: binaryPath, action: revealInFinder)
+                LocationButton(label: "Binary", path: binaryPath, action: mainWindowRevealInFinder)
             } else {
                 InfoRow(label: "Binary", value: "unknown")
             }
         }
     }
+}
 
-    private func revealInFinder(_ path: String) {
-        let expandedPath = NSString(string: path).expandingTildeInPath
-        NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: expandedPath)])
-    }
+private func mainWindowRevealInFinder(_ path: String) {
+    let expandedPath = mainWindowExpandTilde(path)
+    NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: expandedPath)])
 }
 
 private struct LocationButton: View {
@@ -617,7 +641,7 @@ private struct PackagePageSection: View {
                     InfoRow(label: "License", value: license)
                 }
                 if !dossier.executables.isEmpty {
-                    InfoRow(label: "Executables", value: dossier.executables.joined(separator: "\n"), valueLineLimit: nil)
+                    DossierExecutableStack(executables: dossier.executables, package: model.selectedPackage)
                 }
                 if !dossier.dependencies.isEmpty {
                     InfoRow(label: "Dependencies", value: dossier.dependencies.prefix(12).joined(separator: ", "))
@@ -656,6 +680,48 @@ private struct PackagePageSection: View {
         }
         let text = rows.joined(separator: "\n")
         return text.isEmpty ? nil : text
+    }
+}
+
+private struct DossierExecutableStack: View {
+    let executables: [String]
+    let package: ManagedPackage?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text("Executables")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(SystemColor.quietText)
+            VStack(spacing: 2) {
+                ForEach(executables, id: \.self) { executable in
+                    Button {
+                        revealExecutableInFinder(executable)
+                    } label: {
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            Text(executable)
+                                .font(.system(size: 12))
+                                .foregroundStyle(SystemColor.secondaryText)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                            Spacer(minLength: 0)
+                        }
+                        .padding(.horizontal, 10)
+                        .frame(maxWidth: .infinity, minHeight: 28, alignment: .leading)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func revealExecutableInFinder(_ executable: String) {
+        guard let package else { return }
+        Task.detached {
+            guard let path = mainWindowExecutablePath(named: executable, for: package) else { return }
+            await MainActor.run { mainWindowRevealInFinder(path) }
+        }
     }
 }
 

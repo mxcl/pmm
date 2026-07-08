@@ -647,6 +647,27 @@ import Testing
     ])
 }
 
+@Test func executablePathUsesKnownBinaryDirectory() throws {
+    let root = FileManager.default.temporaryDirectory
+        .appendingPathComponent(UUID().uuidString, isDirectory: true)
+    let bin = root.appendingPathComponent("bin", isDirectory: true)
+    let tool = bin.appendingPathComponent("pkg-tool")
+    defer { try? FileManager.default.removeItem(at: root) }
+    try FileManager.default.createDirectory(at: bin, withIntermediateDirectories: true)
+    FileManager.default.createFile(atPath: tool.path, contents: Data())
+    try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: tool.path)
+    let package = ManagedPackage(
+        manager: .homebrew,
+        name: "pkg",
+        installedVersion: "1.0.0",
+        latestVersion: nil,
+        binaryPath: bin.appendingPathComponent("pkg").path
+    )
+
+    #expect(mainWindowExecutablePath(named: "pkg-tool", for: package, findExecutable: { _ in nil }) == tool.path)
+    #expect(mainWindowExecutablePath(named: "../pkg-tool", for: package, findExecutable: { _ in nil }) == nil)
+}
+
 @Test func configurationLocationsShowOnlyMacOSAndUnixPaths() throws {
     let dossier = try JSONDecoder().decode(PackageDossierPage.self, from: Data("""
     {
