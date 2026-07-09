@@ -92,3 +92,57 @@ func menuBarCommandInstallPackages(ids: [String], snapshot: PackageHostSnapshot)
 func menuBarShouldRefreshOnLaunch(snapshot: PackageHostSnapshot) -> Bool {
     snapshot.inventory == nil
 }
+
+func menuBarSnapshot(
+    _ snapshot: PackageHostSnapshot,
+    applyingSuccessfulAction kind: PackageHostActionKind,
+    package: ManagedPackage
+) -> PackageHostSnapshot {
+    guard let inventory = snapshot.inventory else { return snapshot }
+    var snapshot = snapshot
+    var packages = inventory.packages
+
+    switch kind {
+    case .install:
+        if !packages.contains(where: { $0.identifier == package.identifier }) {
+            packages.append(package.withInstalledVersion(package.latestVersion))
+        }
+    case .update:
+        guard let latestVersion = package.latestVersion,
+              let index = packages.firstIndex(where: { $0.id == package.id }) else { return snapshot }
+        packages[index] = package.withInstalledVersion(latestVersion)
+    case .uninstall:
+        if package.manager == .uv, package.summary == "uv-managed Python", let nextVersion = package.otherInstalledVersions.first,
+           let index = packages.firstIndex(where: { $0.id == package.id }) {
+            packages[index] = package.withInstalledVersion(nextVersion, installedVersions: package.otherInstalledVersions)
+        } else {
+            packages.removeAll { $0.id == package.id }
+        }
+    }
+
+    snapshot.inventory = PackageInventory(packages: packages, errors: inventory.errors)
+    return snapshot
+}
+
+private extension ManagedPackage {
+    func withInstalledVersion(_ version: String?, installedVersions: [String]? = nil) -> ManagedPackage {
+        ManagedPackage(
+            manager: manager,
+            identifier: identifier,
+            displayName: displayName,
+            installedVersion: version,
+            installedVersions: installedVersions ?? self.installedVersions,
+            latestVersion: latestVersion,
+            summary: summary,
+            category: category,
+            homepage: homepage,
+            docs: docs,
+            repo: repo,
+            lastUpdatedAt: lastUpdatedAt,
+            pulseKind: pulseKind,
+            installLocation: installLocation,
+            binaryPath: binaryPath,
+            executableNames: executableNames
+        )
+    }
+}

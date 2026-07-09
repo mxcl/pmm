@@ -96,3 +96,41 @@ import Testing
     #expect(menuBarShouldRefreshOnLaunch(snapshot: PackageHostSnapshot()))
     #expect(!menuBarShouldRefreshOnLaunch(snapshot: PackageHostSnapshot(inventory: PackageInventory(packages: []))))
 }
+
+@Test func successfulActionsUpdateSnapshotImmediately() {
+    let installed = ManagedPackage(manager: .homebrew, name: "git", installedVersion: "1", latestVersion: "2")
+    let catalog = ManagedPackage(manager: .npm, name: "eslint", installedVersion: nil, latestVersion: "9")
+    var snapshot = PackageHostSnapshot(
+        inventory: PackageInventory(packages: [installed]),
+        catalogPackages: [catalog]
+    )
+
+    snapshot = menuBarSnapshot(snapshot, applyingSuccessfulAction: .install, package: catalog)
+    #expect(snapshot.inventory?.packages.first { $0.identifier == catalog.identifier }?.installedVersion == "9")
+
+    snapshot = menuBarSnapshot(snapshot, applyingSuccessfulAction: .update, package: installed)
+    #expect(snapshot.inventory?.packages.first { $0.identifier == installed.identifier }?.installedVersion == "2")
+    #expect(snapshot.inventory?.packages.first { $0.identifier == installed.identifier }?.isOutdated == false)
+
+    snapshot = menuBarSnapshot(snapshot, applyingSuccessfulAction: .uninstall, package: installed)
+    #expect(snapshot.inventory?.packages.contains { $0.identifier == installed.identifier } == false)
+}
+
+@Test func uninstallingManagedPythonKeepsOtherInstalledVersions() {
+    let python = ManagedPackage(
+        manager: .uv,
+        name: "uv:cpython:3.13",
+        installedVersion: "3.13.2",
+        installedVersions: ["3.13.2", "3.13.1"],
+        latestVersion: "3.13.2",
+        summary: "uv-managed Python"
+    )
+    let snapshot = menuBarSnapshot(
+        PackageHostSnapshot(inventory: PackageInventory(packages: [python])),
+        applyingSuccessfulAction: .uninstall,
+        package: python
+    )
+
+    #expect(snapshot.inventory?.packages.first?.installedVersion == "3.13.1")
+    #expect(snapshot.inventory?.packages.first?.installedVersions == ["3.13.1"])
+}

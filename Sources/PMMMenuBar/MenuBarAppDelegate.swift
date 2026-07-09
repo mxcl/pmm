@@ -12,6 +12,7 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
     private var timer: Timer?
     private var refreshTask: Task<Void, Never>?
     private var actionTask: Task<Void, Never>?
+    private var rescanTask: Task<Void, Never>?
     private var lastActionOutputPublishAt = Date.distantPast
     private var pendingActionOutputPublishTask: Task<Void, Never>?
     private static let actionOutputLimit = 100_000
@@ -34,12 +35,15 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
         timer?.invalidate()
         refreshTask?.cancel()
         actionTask?.cancel()
+        rescanTask?.cancel()
         pendingActionOutputPublishTask?.cancel()
         notificationCenter.removeObserver(self)
     }
 
     private func refresh() {
         guard refreshTask == nil, actionTask == nil else { return }
+        rescanTask?.cancel()
+        rescanTask = nil
         snapshot.isRefreshing = true
         snapshot.errorMessage = nil
         publishSnapshot()
@@ -75,13 +79,14 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
     private func rescanAfterAction(errorMessage: String? = nil) {
         let lastBrewUpdateAt = snapshot.lastBrewUpdateAt
         let previousFirstSeen = snapshot.installedPackageFirstSeenAtByID
-        actionTask = Task { [weak self] in
+        rescanTask?.cancel()
+        rescanTask = Task { [weak self] in
             let next = await Task.detached(priority: .background) {
                 await Self.scanSnapshot(errorMessage: errorMessage, lastBrewUpdateAt: lastBrewUpdateAt)
             }.value
 
             guard let self, !Task.isCancelled else { return }
-            self.actionTask = nil
+            self.rescanTask = nil
             self.snapshot = next
             self.snapshot.installedPackageFirstSeenAtByID = previousFirstSeen
             self.publishSnapshot()
@@ -91,6 +96,8 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
     private func runAction(kind: PackageHostActionKind, packageID: String) {
         guard refreshTask == nil, actionTask == nil,
               let package = menuBarCommandPackage(id: packageID, kind: kind, snapshot: snapshot) else { return }
+        rescanTask?.cancel()
+        rescanTask = nil
         snapshot.runningAction = PackageHostRunningAction(kind: kind, packageID: package.id, displayName: package.displayName)
         snapshot.errorMessage = nil
         publishSnapshot()
@@ -111,12 +118,16 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
             }.value
 
             guard let self, !Task.isCancelled else { return }
+            self.actionTask = nil
             self.snapshot.runningAction = nil
-            self.publishSnapshot()
             switch result {
             case .success:
+                self.snapshot = menuBarSnapshot(self.snapshot, applyingSuccessfulAction: kind, package: package)
+                self.publishSnapshot()
                 self.rescanAfterAction()
             case .failure(let error):
+                self.snapshot.errorMessage = error.localizedDescription
+                self.publishSnapshot()
                 self.rescanAfterAction(errorMessage: error.localizedDescription)
             }
         }
@@ -223,6 +234,8 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
         guard refreshTask == nil, actionTask == nil else { return }
         let packages = menuBarCommandUpdateAllPackages(snapshot: snapshot)
         guard !packages.isEmpty else { return }
+        rescanTask?.cancel()
+        rescanTask = nil
         snapshot.errorMessage = nil
         publishSnapshot()
         let progressHandler = actionProgressHandler()
@@ -239,15 +252,20 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
                         try PackageUpdater().update(package, onProgress: progressHandler)
                     }
                 }.value
-                if case .failure(let error) = result {
+                if case .success = result {
+                    self.snapshot = menuBarSnapshot(self.snapshot, applyingSuccessfulAction: .update, package: package)
+                } else if case .failure(let error) = result {
                     errors.append(error.localizedDescription)
                 }
             }
 
             guard let self, !Task.isCancelled else { return }
+            let errorMessage = errors.isEmpty ? nil : errors.joined(separator: "\n")
+            self.actionTask = nil
             self.snapshot.runningAction = nil
+            self.snapshot.errorMessage = errorMessage
             self.publishSnapshot()
-            self.rescanAfterAction(errorMessage: errors.isEmpty ? nil : errors.joined(separator: "\n"))
+            self.rescanAfterAction(errorMessage: errorMessage)
         }
     }
 
@@ -300,6 +318,8 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
         guard refreshTask == nil, actionTask == nil else { return }
         let packages = menuBarCommandInstallPackages(ids: packageIDs, snapshot: snapshot)
         guard !packages.isEmpty else { return }
+        rescanTask?.cancel()
+        rescanTask = nil
         snapshot.errorMessage = nil
         publishSnapshot()
         let progressHandler = actionProgressHandler()
@@ -316,15 +336,20 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
                         try PackageInstaller().install(package, onProgress: progressHandler)
                     }
                 }.value
-                if case .failure(let error) = result {
+                if case .success = result {
+                    self.snapshot = menuBarSnapshot(self.snapshot, applyingSuccessfulAction: .install, package: package)
+                } else if case .failure(let error) = result {
                     errors.append(error.localizedDescription)
                 }
             }
 
             guard let self, !Task.isCancelled else { return }
+            let errorMessage = errors.isEmpty ? nil : errors.joined(separator: "\n")
+            self.actionTask = nil
             self.snapshot.runningAction = nil
+            self.snapshot.errorMessage = errorMessage
             self.publishSnapshot()
-            self.rescanAfterAction(errorMessage: errors.isEmpty ? nil : errors.joined(separator: "\n"))
+            self.rescanAfterAction(errorMessage: errorMessage)
         }
     }
 
