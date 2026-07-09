@@ -10,14 +10,11 @@ struct MainWindowDashboardView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: dashboardCardSpacing) {
-                dashboardStats
-                HStack(alignment: .top, spacing: dashboardCardSpacing) {
-                    dashboardMainColumn
-                        .frame(minWidth: 0, maxWidth: .infinity)
-                    dashboardSideColumn
-                        .frame(width: 310)
-                }
+            HStack(alignment: .top, spacing: dashboardCardSpacing) {
+                dashboardMainColumn
+                    .frame(minWidth: 0, maxWidth: .infinity)
+                dashboardSideColumn
+                    .frame(width: 310)
             }
             .padding(dashboardCardSpacing)
         }
@@ -26,7 +23,7 @@ struct MainWindowDashboardView: View {
     }
 
     private var dashboardStats: some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 110), spacing: dashboardCardSpacing), count: 4), spacing: dashboardCardSpacing) {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 110), spacing: dashboardCardSpacing), count: 3), spacing: dashboardCardSpacing) {
             DashboardMetricCard(title: "Installed packages", value: model.dashboardInstalledCount, detail: model.dashboardInstalledThisWeekText, isLoading: model.dashboardIsLoadingData, tint: AnyShapeStyle(.tertiary)) {
                 model.selectSection(.installed)
             }
@@ -38,18 +35,12 @@ struct MainWindowDashboardView: View {
                     model.selectSection(section)
                 }
             }
-            DashboardMetricCard(
-                title: "Install packs",
-                value: model.dashboardBlogEntriesAreLoading ? nil : model.dashboardInstallPacks.count,
-                detail: model.dashboardBlogEntriesAreLoading ? nil : "Published",
-                isLoading: model.dashboardBlogEntriesAreLoading,
-                tint: AnyShapeStyle(Color.accentColor)
-            )
         }
     }
 
     private var dashboardMainColumn: some View {
         VStack(spacing: dashboardCardSpacing) {
+            dashboardStats
             DashboardPackageSection(
                 title: "What's New",
                 systemImage: "sparkle",
