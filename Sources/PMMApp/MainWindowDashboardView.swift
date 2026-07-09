@@ -97,7 +97,8 @@ private struct DashboardCard<Content: View>: View {
         }
         .overlay {
             RoundedRectangle(cornerRadius: dashboardItemCornerRadius, style: .continuous)
-                .stroke(SystemColor.controlBorder, lineWidth: 1)
+                .stroke(colorScheme == .light ? Color.white : SystemColor.controlBorder, lineWidth: 1)
+                .shadow(color: colorScheme == .light ? .black.opacity(0.09) : .clear, radius: 4, y: 2)
         }
     }
 }
