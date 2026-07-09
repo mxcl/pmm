@@ -43,6 +43,16 @@ import Testing
     """)
 }
 
+@Test func terminalOutputCarriageReturnClearsSoftWrappedProgressLine() {
+    let first = ": Bottle dcmkt (3.7.0)" + String(repeating: " ", count: 37) + "Downloading 61.4KB/20.2MB"
+    let second = ": Bottle dcmkt (3.7.0)" + String(repeating: " ", count: 36) + "# Downloading 847.9KB/20.2MB"
+    let output = mainWindowTerminalAttributedOutput(first + "\r" + second)
+
+    #expect(first.count > 80)
+    #expect(second.count > 80)
+    #expect(output.string == ": Bottle dcmkt (3.7.0)                                    # Downloading 847.9KB/\n20.2MB")
+}
+
 @Test func terminalOutputCursorMovementAccountsForEightyColumnWraps() {
     let longProgress = String(repeating: "a", count: 90)
     let output = mainWindowTerminalAttributedOutput("""

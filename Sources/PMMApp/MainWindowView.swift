@@ -1043,23 +1043,25 @@ func mainWindowTerminalAttributedOutput(_ output: String) -> NSAttributedString 
     let defaultColor = NSColor.labelColor
     var color = defaultColor
     var lineStarts = [0]
+    var lineIsSoftContinuation = [false]
     var currentColumn = 0
     var index = output.startIndex
 
     var lineStart: Int { lineStarts.last ?? 0 }
 
-    func appendLineBreak() {
+    func appendLineBreak(soft: Bool = false) {
         result.append(NSAttributedString(
             string: "\n",
             attributes: [.font: font, .foregroundColor: color]
         ))
         lineStarts.append(result.length)
+        lineIsSoftContinuation.append(soft)
         currentColumn = 0
     }
 
     func append(_ character: Character) {
         if character != "\n", currentColumn >= TerminalOutputTextView.columns {
-            appendLineBreak()
+            appendLineBreak(soft: true)
         }
         result.append(NSAttributedString(
             string: String(character),
@@ -1067,17 +1069,31 @@ func mainWindowTerminalAttributedOutput(_ output: String) -> NSAttributedString 
         ))
         if character == "\n" {
             lineStarts.append(result.length)
+            lineIsSoftContinuation.append(false)
             currentColumn = 0
         } else {
             currentColumn += 1
         }
     }
 
-    func clearLine(force: Bool = false) {
-        if (force || currentColumn == 0), result.length > lineStart {
-            result.deleteCharacters(in: NSRange(location: lineStart, length: result.length - lineStart))
+    func logicalLineIndex() -> Int {
+        var lineIndex = max(lineStarts.count - 1, 0)
+        while lineIndex > 0, lineIsSoftContinuation[lineIndex] {
+            lineIndex -= 1
+        }
+        return lineIndex
+    }
+
+    func clearLine(force: Bool = false, includeSoftWraps: Bool = false) {
+        guard force || currentColumn == 0 else { return }
+        let targetLine = includeSoftWraps ? logicalLineIndex() : max(lineStarts.count - 1, 0)
+        let targetStart = lineStarts[targetLine]
+        if result.length > targetStart {
+            result.deleteCharacters(in: NSRange(location: targetStart, length: result.length - targetStart))
             currentColumn = 0
         }
+        lineStarts = Array(lineStarts.prefix(targetLine + 1))
+        lineIsSoftContinuation = Array(lineIsSoftContinuation.prefix(targetLine + 1))
     }
 
     func cursorUp(_ count: Int) {
@@ -1091,6 +1107,7 @@ func mainWindowTerminalAttributedOutput(_ output: String) -> NSAttributedString 
             result.deleteCharacters(in: NSRange(location: targetStart, length: result.length - targetStart))
         }
         lineStarts = Array(lineStarts.prefix(targetLine + 1))
+        lineIsSoftContinuation = Array(lineIsSoftContinuation.prefix(targetLine + 1))
         currentColumn = 0
     }
 
@@ -1124,7 +1141,7 @@ func mainWindowTerminalAttributedOutput(_ output: String) -> NSAttributedString 
             index = output.index(after: sequenceEnd)
         } else if character == "\r" {
             currentColumn = 0
-            clearLine()
+            clearLine(includeSoftWraps: true)
             index = output.index(after: index)
         } else {
             append(character)
