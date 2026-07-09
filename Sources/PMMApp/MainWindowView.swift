@@ -67,7 +67,6 @@ struct MainWindowSidebarView: View {
                 Image(image)
                     .renderingMode(.template)
                     .resizable()
-                    .interpolation(.high)
                     .scaledToFit()
                     .frame(width: 20, height: 20)
             } else {
@@ -793,7 +792,6 @@ private struct PackageEcosystemMark: View {
                 Image(image)
                     .renderingMode(.template)
                     .resizable()
-                    .interpolation(.high)
                     .scaledToFit()
                     .frame(width: 15, height: 15)
                     .offset(y: imageOffset)

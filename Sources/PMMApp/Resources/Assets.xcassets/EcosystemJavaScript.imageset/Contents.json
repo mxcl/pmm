@@ -1,7 +1,7 @@
 {
   "images" : [
     {
-      "filename" : "javascript.png",
+      "filename" : "javascript.svg",
       "idiom" : "universal",
       "scale" : "1x"
     }
@@ -11,6 +11,7 @@
     "version" : 1
   },
   "properties" : {
+    "preserves-vector-representation" : true,
     "template-rendering-intent" : "template"
   }
 }
