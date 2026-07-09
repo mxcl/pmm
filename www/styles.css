@@ -293,6 +293,10 @@ h1 {
   line-height: 1.55;
 }
 
+.post-card-copy > .button {
+  margin-top: 20px;
+}
+
 .pack-install-band {
   display: flex;
   align-items: center;
