@@ -12,24 +12,24 @@ public struct PackageUpdater: Sendable {
         self.toolPaths = toolPaths
     }
 
-    public func update(_ package: ManagedPackage) throws {
+    public func update(_ package: ManagedPackage, onProgress: (@Sendable (PackageCommandProgress) -> Void)? = nil) throws {
         guard package.isOutdated else { return }
         switch package.manager {
         case .cargoInstall:
-            try run("cargo", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["install", package.packageToken, "--force", "--color", "never"])
+            try run("cargo", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["install", package.packageToken, "--force", "--color", "always"], onProgress: onProgress)
         case .rustup:
             throw PackageUpdateError.unsupportedManager(package.manager)
         case .homebrew:
-            try run("brew", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin"], ["upgrade", package.packageToken])
+            try run("brew", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin"], ["upgrade", package.packageToken], onProgress: onProgress)
         case .npm:
-            try run("npm", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["install", "-g", "\(package.packageToken)@latest"])
+            try run("npm", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["install", "-g", "\(package.packageToken)@latest"], onProgress: onProgress)
         case .npx:
-            try run("npm", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["exec", "--yes", "--package", "\(package.packageToken)@\(package.latestVersion ?? "latest")", "--", "true"])
+            try run("npm", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["exec", "--yes", "--package", "\(package.packageToken)@\(package.latestVersion ?? "latest")", "--", "true"], onProgress: onProgress)
         case .uv:
             if package.summary == "uv-managed Python", let latestVersion = package.latestVersion {
-                try run("uv", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["python", "install", latestVersion, "--color", "never"])
+                try run("uv", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["python", "install", latestVersion, "--color", "always"], onProgress: onProgress)
             } else {
-                try run("uv", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["tool", "upgrade", package.packageToken, "--color", "never"])
+                try run("uv", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["tool", "upgrade", package.packageToken, "--color", "always"], onProgress: onProgress)
             }
         case .uvx:
             throw PackageUpdateError.unsupportedManager(package.manager)
@@ -43,15 +43,29 @@ public struct PackageUpdater: Sendable {
         }
     }
 
-    private func run(_ executableName: String, extraPaths: [String], _ arguments: [String]) throws {
+    private func run(
+        _ executableName: String,
+        extraPaths: [String],
+        _ arguments: [String],
+        onProgress: (@Sendable (PackageCommandProgress) -> Void)?
+    ) throws {
         guard let executable = toolPaths[executableName] ?? firstExecutable(named: executableName, extraPaths: extraPaths) else {
             throw PackageUpdateError.missingExecutable(executableName)
         }
-        let result = try runner.run(executable, arguments)
+        let command = ([executableName] + arguments).joined(separator: " ")
+        onProgress?(.started(command: command))
+        let result = try runner.run(executable, arguments, options: CommandRunOptions(terminal: true)) { output in
+            onProgress?(.output(output))
+        }
         guard result.status == 0 else {
-            throw PackageUpdateError.failed(([executableName] + arguments).joined(separator: " "), result.stderr)
+            throw PackageUpdateError.failed(command, result.stderr.isEmpty ? result.stdout : result.stderr)
         }
     }
+}
+
+public enum PackageCommandProgress: Sendable, Equatable {
+    case started(command: String)
+    case output(String)
 }
 
 public enum PackageUpdateError: LocalizedError, Equatable {

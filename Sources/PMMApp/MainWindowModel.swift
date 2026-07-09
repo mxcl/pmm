@@ -383,6 +383,8 @@ final class MainWindowModel: NSObject, ObservableObject {
     @Published private(set) var installingPackageName: String?
     @Published private(set) var uninstallingPackageName: String?
     @Published private(set) var updatingPackageName: String?
+    @Published private(set) var updateCommand: String?
+    @Published private(set) var updateOutput = ""
     @Published private(set) var packageIDToScrollIntoView: String?
     @Published private(set) var dashboardBlogEntries: [DashboardBlogEntry] = []
     @Published private(set) var dashboardBlogEntriesAreLoading = false
@@ -770,6 +772,8 @@ final class MainWindowModel: NSObject, ObservableObject {
             installingPackageName = nil
             uninstallingPackageName = nil
             updatingPackageName = nil
+            updateCommand = nil
+            updateOutput = ""
             return
         }
         apply(snapshot: snapshot, inventory: inventory)
@@ -795,6 +799,8 @@ final class MainWindowModel: NSObject, ObservableObject {
         installingPackageName = snapshot.runningAction?.kind == .install ? snapshot.runningAction?.displayName : nil
         uninstallingPackageName = snapshot.runningAction?.kind == .uninstall ? snapshot.runningAction?.displayName : nil
         updatingPackageName = snapshot.runningAction?.kind == .update ? snapshot.runningAction?.displayName : nil
+        updateCommand = snapshot.runningAction?.kind == .update ? snapshot.runningAction?.command : nil
+        updateOutput = snapshot.runningAction?.kind == .update ? snapshot.runningAction?.output ?? "" : ""
     }
 
     @objc private func hostSnapshotChanged(_ notification: Notification) {

@@ -4,11 +4,43 @@ import Testing
 
 private final class RecordingRunner: CommandRunning, @unchecked Sendable {
     var commands: [String] = []
+    var options: [CommandRunOptions] = []
+    var streamedOutput = ""
     var result = CommandResult(stdout: "", stderr: "", status: 0)
 
     func run(_ executable: String, _ arguments: [String]) throws -> CommandResult {
+        try run(executable, arguments, options: CommandRunOptions(), onOutput: nil)
+    }
+
+    func run(
+        _ executable: String,
+        _ arguments: [String],
+        options: CommandRunOptions,
+        onOutput: (@Sendable (String) -> Void)? = nil
+    ) throws -> CommandResult {
         commands.append(([executable] + arguments).joined(separator: " "))
+        self.options.append(options)
+        if !streamedOutput.isEmpty {
+            onOutput?(streamedOutput)
+        }
         return result
+    }
+}
+
+private final class ProgressRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var events: [PackageCommandProgress] = []
+
+    func append(_ event: PackageCommandProgress) {
+        lock.lock()
+        events.append(event)
+        lock.unlock()
+    }
+
+    var values: [PackageCommandProgress] {
+        lock.lock()
+        defer { lock.unlock() }
+        return events
     }
 }
 
@@ -27,12 +59,29 @@ private final class RecordingRunner: CommandRunning, @unchecked Sendable {
     try updater.update(package(.uv, "uv:cpython:3.13", displayName: "uv Managed Python 3.13", latestVersion: "3.13.14", summary: "uv-managed Python", category: "language-runtime"))
 
     #expect(runner.commands == [
-        "/fake/cargo install ripgrep --force --color never",
+        "/fake/cargo install ripgrep --force --color always",
         "/fake/brew upgrade git",
         "/fake/npm install -g @scope/tool@latest",
         "/fake/npm exec --yes --package acorn@2.0.0 -- true",
-        "/fake/uv tool upgrade ruff --color never",
-        "/fake/uv python install 3.13.14 --color never",
+        "/fake/uv tool upgrade ruff --color always",
+        "/fake/uv python install 3.13.14 --color always",
+    ])
+    #expect(runner.options.map(\.terminal) == Array(repeating: true, count: 6))
+}
+
+@Test func packageUpdaterReportsCommandAndOutputProgress() throws {
+    let runner = RecordingRunner()
+    runner.streamedOutput = "\u{1B}[32mupdated\u{1B}[0m\n"
+    let updater = PackageUpdater(runner: runner, toolPaths: ["brew": "/fake/brew"])
+    let progress = ProgressRecorder()
+
+    try updater.update(package(.homebrew, "brew:git")) { event in
+        progress.append(event)
+    }
+
+    #expect(progress.values == [
+        .started(command: "brew upgrade git"),
+        .output("\u{1B}[32mupdated\u{1B}[0m\n"),
     ])
 }
 

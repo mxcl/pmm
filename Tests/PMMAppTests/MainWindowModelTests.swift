@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 import PMMCore
 import Testing
 @testable import PMMApp
@@ -9,6 +10,13 @@ import Testing
 
     #expect(model.selectedSection == .home)
     #expect(MainWindowSection.librarySections.first == .home)
+}
+
+@Test func terminalOutputStripsANSIEscapesAndReplacesCarriageReturnLine() {
+    let output = mainWindowTerminalAttributedOutput("old\r\u{1B}[32mnew\u{1B}[0m\u{1B}[K\n")
+
+    #expect(output.string == "new\n")
+    #expect(output.attribute(.foregroundColor, at: 0, effectiveRange: nil) is NSColor)
 }
 
 @MainActor
@@ -43,7 +51,13 @@ import Testing
         inventory: PackageInventory(packages: [package]),
         catalogPackages: [catalogPackage],
         isRefreshing: true,
-        runningAction: PackageHostRunningAction(kind: .update, packageID: package.id, displayName: "git")
+        runningAction: PackageHostRunningAction(
+            kind: .update,
+            packageID: package.id,
+            displayName: "git",
+            command: "brew upgrade git",
+            output: "Already up-to-date\n"
+        )
     ))
 
     let model = MainWindowModel(userDefaults: UserDefaults(suiteName: UUID().uuidString)!, store: store)
@@ -51,6 +65,8 @@ import Testing
     #expect(model.packages == [package])
     #expect(model.isReloading)
     #expect(model.updatingPackageName == "git")
+    #expect(model.updateCommand == "brew upgrade git")
+    #expect(model.updateOutput == "Already up-to-date\n")
     #expect(model.installingPackageName == nil)
     #expect(model.count(for: .outdated) == 1)
     #expect(model.count(for: .newUpdated) == 1)
@@ -72,6 +88,8 @@ import Testing
     #expect(model.canInstall(missing))
     #expect(!model.canInstall(alreadyInstalledCatalog))
     #expect(model.installingPackageName == "curl")
+    #expect(model.updateCommand == nil)
+    #expect(model.updateOutput == "")
 }
 
 @MainActor
@@ -692,7 +710,7 @@ import Testing
     #expect(mainWindowSelectedBrowserLink(in: links, selectedTab: nil)?.tab == .repo)
 }
 
-@Test func outdatedBrowserLinksShowReleasesAfterExternalURLs() {
+@Test func outdatedBrowserLinksShowChangelogAfterExternalURLs() {
     let links = mainWindowBrowserLinks(for: ManagedPackage(
         manager: .homebrew,
         name: "pkg",
@@ -703,9 +721,9 @@ import Testing
         repo: "https://github.com/foo/bar"
     ))
 
-    #expect(links.map(\.title) == ["Home", "Repo", "Docs", "Registry", "Releases"])
-    #expect(mainWindowSelectedBrowserLink(in: links, selectedTab: nil)?.title == "Releases")
-    #expect(mainWindowSelectedBrowserLink(in: links, selectedTab: .releases)?.title == "Releases")
+    #expect(links.map(\.title) == ["Home", "Repo", "Docs", "Registry", "Changelog"])
+    #expect(mainWindowSelectedBrowserLink(in: links, selectedTab: nil)?.title == "Changelog")
+    #expect(mainWindowSelectedBrowserLink(in: links, selectedTab: .releases)?.title == "Changelog")
 }
 
 @Test func selectedBrowserLinkFallsBackToFirstAvailableLink() {

@@ -12,6 +12,10 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
     private var timer: Timer?
     private var refreshTask: Task<Void, Never>?
     private var actionTask: Task<Void, Never>?
+    private var lastActionOutputPublishAt = Date.distantPast
+    private var pendingActionOutputPublishTask: Task<Void, Never>?
+    private static let actionOutputLimit = 100_000
+    private static let actionOutputPublishInterval: TimeInterval = 0.1
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         loadSnapshot()
@@ -30,6 +34,7 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
         timer?.invalidate()
         refreshTask?.cancel()
         actionTask?.cancel()
+        pendingActionOutputPublishTask?.cancel()
         notificationCenter.removeObserver(self)
     }
 
@@ -89,6 +94,7 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
         snapshot.runningAction = PackageHostRunningAction(kind: kind, packageID: package.id, displayName: package.displayName)
         snapshot.errorMessage = nil
         publishSnapshot()
+        let progressHandler = updateProgressHandler()
 
         actionTask = Task { [weak self] in
             let result = await Task.detached(priority: .background) {
@@ -97,7 +103,7 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
                     case .install:
                         try PackageInstaller().install(package)
                     case .update:
-                        try PackageUpdater().update(package)
+                        try PackageUpdater().update(package, onProgress: progressHandler)
                     case .uninstall:
                         try PackageUninstaller().uninstall(package)
                     }
@@ -219,6 +225,7 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
         guard !packages.isEmpty else { return }
         snapshot.errorMessage = nil
         publishSnapshot()
+        let progressHandler = updateProgressHandler()
 
         actionTask = Task { [weak self] in
             var errors: [String] = []
@@ -229,7 +236,7 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
 
                 let result = await Task.detached(priority: .background) {
                     Result {
-                        try PackageUpdater().update(package)
+                        try PackageUpdater().update(package, onProgress: progressHandler)
                     }
                 }.value
                 if case .failure(let error) = result {
@@ -241,6 +248,51 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
             self.snapshot.runningAction = nil
             self.publishSnapshot()
             self.rescanAfterAction(errorMessage: errors.isEmpty ? nil : errors.joined(separator: "\n"))
+        }
+    }
+
+    private func updateProgressHandler() -> @Sendable (PackageCommandProgress) -> Void {
+        { [weak self] progress in
+            Task { @MainActor in
+                self?.applyUpdateProgress(progress)
+            }
+        }
+    }
+
+    private func applyUpdateProgress(_ progress: PackageCommandProgress) {
+        guard var action = snapshot.runningAction, action.kind == .update else { return }
+        switch progress {
+        case .started(let command):
+            action.command = command
+            action.output = ""
+            snapshot.runningAction = action
+            lastActionOutputPublishAt = Date.distantPast
+            pendingActionOutputPublishTask?.cancel()
+            pendingActionOutputPublishTask = nil
+            publishSnapshot()
+        case .output(let text):
+            action.output = String(((action.output ?? "") + text).suffix(Self.actionOutputLimit))
+            snapshot.runningAction = action
+            publishActionOutputSoon()
+        }
+    }
+
+    private func publishActionOutputSoon() {
+        let now = Date()
+        if now.timeIntervalSince(lastActionOutputPublishAt) >= Self.actionOutputPublishInterval {
+            lastActionOutputPublishAt = now
+            publishSnapshot()
+            return
+        }
+        guard pendingActionOutputPublishTask == nil else { return }
+        pendingActionOutputPublishTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(100))
+            await MainActor.run {
+                guard let self else { return }
+                self.pendingActionOutputPublishTask = nil
+                self.lastActionOutputPublishAt = Date()
+                self.publishSnapshot()
+            }
         }
     }
 

@@ -10,11 +10,21 @@ public struct PackageHostRunningAction: Codable, Equatable, Sendable {
     public let kind: PackageHostActionKind
     public let packageID: String
     public let displayName: String
+    public var command: String?
+    public var output: String?
 
-    public init(kind: PackageHostActionKind, packageID: String, displayName: String) {
+    public init(
+        kind: PackageHostActionKind,
+        packageID: String,
+        displayName: String,
+        command: String? = nil,
+        output: String? = nil
+    ) {
         self.kind = kind
         self.packageID = packageID
         self.displayName = displayName
+        self.command = command
+        self.output = output
     }
 }
 

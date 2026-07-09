@@ -8,7 +8,13 @@ import Testing
         inventory: PackageInventory(generatedAt: Date(timeIntervalSince1970: 10), packages: [package], errors: ["scan warning"]),
         catalogPackages: [package],
         isRefreshing: true,
-        runningAction: PackageHostRunningAction(kind: .update, packageID: package.id, displayName: "git"),
+        runningAction: PackageHostRunningAction(
+            kind: .update,
+            packageID: package.id,
+            displayName: "git",
+            command: "brew upgrade git",
+            output: "\u{1B}[32mok\u{1B}[0m\n"
+        ),
         errorMessage: "brew failed",
         lastBrewUpdateAt: Date(timeIntervalSince1970: 20),
         installedPackageFirstSeenAtByID: [package.id: Date(timeIntervalSince1970: 30)]
@@ -32,6 +38,21 @@ import Testing
     let decoded = try JSONDecoder().decode(PackageHostSnapshot.self, from: data)
 
     #expect(decoded.installedPackageFirstSeenAtByID == nil)
+}
+
+@Test func packageHostRunningActionDecodesOldJSONWithoutCommandOutput() throws {
+    let data = Data("""
+    {
+      "kind": "update",
+      "packageID": "brew:git",
+      "displayName": "git"
+    }
+    """.utf8)
+
+    let decoded = try JSONDecoder().decode(PackageHostRunningAction.self, from: data)
+
+    #expect(decoded.command == nil)
+    #expect(decoded.output == nil)
 }
 
 @Test func packageHostSnapshotTracksInstalledPackageFirstSeenDates() {

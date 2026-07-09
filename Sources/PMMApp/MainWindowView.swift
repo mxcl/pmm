@@ -209,7 +209,11 @@ struct MainWindowDossierView: View {
                 .interactiveDismissDisabled(true)
         }
         .sheet(isPresented: updateModalBinding) {
-            PackageProgressView(title: "Updating \(model.updatingPackageName ?? "package")")
+            PackageUpdateProgressView(
+                title: "Updating \(model.updatingPackageName ?? "package")",
+                command: model.updateCommand,
+                output: model.updateOutput
+            )
                 .interactiveDismissDisabled(true)
         }
     }
@@ -945,6 +949,156 @@ private struct PackageProgressView: View {
         .frame(width: 260)
         .background(LiquidGlassSurface(material: .ultraThinMaterial, tint: SystemColor.windowTint))
     }
+}
+
+private struct PackageUpdateProgressView: View {
+    let title: String
+    let command: String?
+    let output: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 12) {
+                ProgressView()
+                    .controlSize(.large)
+                Text(title)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(SystemColor.primaryText)
+                    .lineLimit(2)
+            }
+            if let command {
+                HStack(alignment: .firstTextBaseline, spacing: 7) {
+                    Text("$")
+                        .font(.system(size: 13, weight: .bold, design: .monospaced))
+                        .foregroundStyle(.green)
+                    Text(command)
+                        .font(.system(size: 13, design: .monospaced))
+                        .foregroundStyle(SystemColor.primaryText)
+                        .lineLimit(2)
+                        .textSelection(.enabled)
+                }
+            }
+            TerminalOutputTextView(output: output)
+                .frame(height: 300)
+        }
+        .padding(24)
+        .frame(width: 640)
+        .background(LiquidGlassSurface(material: .ultraThinMaterial, tint: SystemColor.windowTint))
+    }
+}
+
+private struct TerminalOutputTextView: NSViewRepresentable {
+    let output: String
+
+    func makeNSView(context: Context) -> NSScrollView {
+        let scrollView = NSScrollView()
+        scrollView.hasVerticalScroller = true
+        scrollView.drawsBackground = false
+        scrollView.borderType = .noBorder
+
+        let textView = NSTextView()
+        textView.isEditable = false
+        textView.isSelectable = true
+        textView.drawsBackground = false
+        textView.textContainerInset = NSSize(width: 10, height: 10)
+        textView.textContainer?.widthTracksTextView = true
+        textView.textContainer?.containerSize = NSSize(width: scrollView.contentSize.width, height: .greatestFiniteMagnitude)
+        textView.autoresizingMask = [.width]
+        scrollView.documentView = textView
+        return scrollView
+    }
+
+    func updateNSView(_ scrollView: NSScrollView, context: Context) {
+        guard let textView = scrollView.documentView as? NSTextView else { return }
+        textView.textStorage?.setAttributedString(mainWindowTerminalAttributedOutput(output))
+        textView.scrollToEndOfDocument(nil)
+    }
+}
+
+func mainWindowTerminalAttributedOutput(_ output: String) -> NSAttributedString {
+    let result = NSMutableAttributedString()
+    let font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+    let defaultColor = NSColor.labelColor
+    var color = defaultColor
+    var lineStart = 0
+    var index = output.startIndex
+
+    func append(_ character: Character) {
+        result.append(NSAttributedString(
+            string: String(character),
+            attributes: [.font: font, .foregroundColor: color]
+        ))
+        if character == "\n" {
+            lineStart = result.length
+        }
+    }
+
+    func clearLine() {
+        if result.length > lineStart {
+            result.deleteCharacters(in: NSRange(location: lineStart, length: result.length - lineStart))
+        }
+    }
+
+    while index < output.endIndex {
+        let character = output[index]
+        if character == "\u{1B}" {
+            let next = output.index(after: index)
+            guard next < output.endIndex, output[next] == "[" else {
+                index = next
+                continue
+            }
+            var sequenceEnd = output.index(after: next)
+            while sequenceEnd < output.endIndex,
+                  let scalar = output[sequenceEnd].unicodeScalars.first,
+                  !(0x40...0x7E).contains(Int(scalar.value)) {
+                sequenceEnd = output.index(after: sequenceEnd)
+            }
+            guard sequenceEnd < output.endIndex else { break }
+            let command = output[sequenceEnd]
+            let parameters = String(output[output.index(after: next)..<sequenceEnd])
+            if command == "m" {
+                color = mainWindowANSIColor(parameters: parameters) ?? color
+            }
+            index = output.index(after: sequenceEnd)
+        } else if character == "\r" {
+            clearLine()
+            index = output.index(after: index)
+        } else {
+            append(character)
+            index = output.index(after: index)
+        }
+    }
+    return result
+}
+
+private func mainWindowANSIColor(parameters: String) -> NSColor? {
+    let values = parameters.isEmpty ? [0] : parameters.split(separator: ";").compactMap { Int($0) }
+    var nextColor: NSColor?
+    for value in values {
+        switch value {
+        case 0, 39:
+            nextColor = .labelColor
+        case 30: nextColor = .black
+        case 31: nextColor = .systemRed
+        case 32: nextColor = .systemGreen
+        case 33: nextColor = .systemYellow
+        case 34: nextColor = .systemBlue
+        case 35: nextColor = .systemPurple
+        case 36: nextColor = .systemCyan
+        case 37: nextColor = .systemGray
+        case 90: nextColor = .secondaryLabelColor
+        case 91: nextColor = .systemRed
+        case 92: nextColor = .systemGreen
+        case 93: nextColor = .systemYellow
+        case 94: nextColor = .systemBlue
+        case 95: nextColor = .systemPurple
+        case 96: nextColor = .systemCyan
+        case 97: nextColor = .labelColor
+        default:
+            break
+        }
+    }
+    return nextColor
 }
 
 private struct PackageWebView: NSViewRepresentable {
