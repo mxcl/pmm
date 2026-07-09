@@ -20,6 +20,13 @@ import Testing
             }
           },
           "casks": {},
+          "crates": {
+            "ripgrep": {
+              "summary": "Line-oriented search tool",
+              "category": "developer-tools",
+              "version": "14.1.1"
+            }
+          },
           "npms": {
             "typescript": {
               "summary": "TypeScript is a language for application scale JavaScript development",
@@ -40,6 +47,8 @@ import Testing
     #expect(db.metadata(for: .homebrew, name: "git")?.version == "2.50.0")
     #expect(db.metadata(for: .homebrew, name: "git")?.lastUpdatedAt == "2026-06-26T22:01:54Z")
     #expect(db.metadata(for: .homebrew, name: "git")?.pulseKind == "updated")
+    #expect(db.metadata(for: .cargoInstall, name: "ripgrep")?.summary == "Line-oriented search tool")
+    #expect(db.metadata(for: .cargoInstall, name: "ripgrep")?.version == "14.1.1")
     #expect(db.metadata(for: .npm, name: "typescript")?.summary == "TypeScript is a language for application scale JavaScript development")
     #expect(db.metadata(for: .npm, name: "typescript")?.version == "5.9.2")
 }
@@ -52,16 +61,19 @@ import Testing
         casks: [
             "git": PackageMetadata(summary: nil, category: "productivity", homepage: nil, version: nil)
         ],
+        crates: [
+            "ripgrep": PackageMetadata(summary: "Search tool", category: "developer-tools", homepage: nil, version: "14.1.1")
+        ],
         npms: [
             "typescript": PackageMetadata(summary: "Typed JavaScript", category: "language-runtime", homepage: nil, version: "5.9.2")
         ]
     )
 
-    #expect(db.catalogPackages.map(\.identifier) == ["brew:cask:git", "brew:git", "npm:typescript"])
-    #expect(db.catalogPackages.map(\.displayName) == ["git", "git", "typescript"])
-    #expect(db.catalogPackages.map(\.installedVersion) == [nil, nil, nil])
-    #expect(db.catalogPackages.map(\.latestVersion) == [nil, "2.50.0", "5.9.2"])
-    #expect(db.catalogPackages.map(\.summary) == [nil, "Distributed revision control", "Typed JavaScript"])
+    #expect(db.catalogPackages.map(\.identifier) == ["cargo:ripgrep", "brew:cask:git", "brew:git", "npm:typescript"])
+    #expect(db.catalogPackages.map(\.displayName) == ["ripgrep", "git", "git", "typescript"])
+    #expect(db.catalogPackages.map(\.installedVersion) == [nil, nil, nil, nil])
+    #expect(db.catalogPackages.map(\.latestVersion) == ["14.1.1", nil, "2.50.0", "5.9.2"])
+    #expect(db.catalogPackages.map(\.summary) == ["Search tool", nil, "Distributed revision control", "Typed JavaScript"])
     #expect(Set(db.catalogPackages.compactMap(\.category)) == ["developer-tools", "language-runtime", "productivity"])
 }
 

@@ -5,11 +5,13 @@ public struct PackageDatabase: Sendable {
 
     private let formulas: [String: PackageMetadata]
     private let casks: [String: PackageMetadata]
+    private let crates: [String: PackageMetadata]
     private let npms: [String: PackageMetadata]
 
-    public init(formulas: [String: PackageMetadata] = [:], casks: [String: PackageMetadata] = [:], npms: [String: PackageMetadata] = [:]) {
+    public init(formulas: [String: PackageMetadata] = [:], casks: [String: PackageMetadata] = [:], crates: [String: PackageMetadata] = [:], npms: [String: PackageMetadata] = [:]) {
         self.formulas = formulas
         self.casks = casks
+        self.crates = crates
         self.npms = npms
     }
 
@@ -35,6 +37,7 @@ public struct PackageDatabase: Sendable {
         return PackageDatabase(
             formulas: decodeMetadataMap(db?["formulas"]),
             casks: decodeMetadataMap(db?["casks"]),
+            crates: decodeMetadataMap(db?["crates"]),
             npms: decodeMetadataMap(db?["npms"])
         )
     }
@@ -45,6 +48,7 @@ public struct PackageDatabase: Sendable {
 
     public func catalogPackages(homebrewPrefix: String?) -> [ManagedPackage] {
         let packages = (
+            managedPackages(for: .cargoInstall, identifierPrefix: "cargo", metadata: crates) +
             managedPackages(for: .homebrew, identifierPrefix: "brew", metadata: formulas, homebrewPrefix: homebrewPrefix) +
             managedPackages(for: .homebrew, identifierPrefix: "brew:cask", metadata: casks, homebrewPrefix: homebrewPrefix) +
             managedPackages(for: .npm, identifierPrefix: "npm", metadata: npms)
@@ -60,7 +64,9 @@ public struct PackageDatabase: Sendable {
 
     public func metadata(for manager: PackageManagerKind, name: String) -> PackageMetadata? {
         switch manager {
-        case .cargoInstall, .rustup:
+        case .cargoInstall:
+            return crates[name]
+        case .rustup:
             return nil
         case .homebrew:
             return formulas[name] ?? casks[name]
