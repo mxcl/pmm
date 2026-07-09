@@ -89,7 +89,7 @@ private struct DashboardCard<Content: View>: View {
             if colorScheme == .light {
                 RoundedRectangle(cornerRadius: dashboardItemCornerRadius, style: .continuous)
                     .fill(Color.white)
-                    .shadow(color: .black.opacity(0.08), radius: 8, y: 3)
+                    .shadow(color: .black.opacity(0.06), radius: 6, y: 2)
             } else {
                 RoundedRectangle(cornerRadius: dashboardItemCornerRadius, style: .continuous)
                     .fill(.ultraThinMaterial)
@@ -408,7 +408,7 @@ private struct DashboardSponsoredCard: View {
                 RoundedRectangle(cornerRadius: dashboardItemCornerRadius, style: .continuous)
                     .stroke(colorScheme == .light ? Color.white : SystemColor.controlBorder, lineWidth: 1)
             }
-            .shadow(color: colorScheme == .light ? .black.opacity(0.08) : .clear, radius: 8, y: 3)
+            .shadow(color: colorScheme == .light ? .black.opacity(0.06) : .clear, radius: 6, y: 2)
         }
         .buttonStyle(.plain)
     }
