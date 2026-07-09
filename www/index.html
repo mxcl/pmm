@@ -3,11 +3,141 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="refresh" content="0; url=./blog/">
-  <title>Package Manager Manager Blog</title>
-  <link rel="canonical" href="https://mxcl.dev/package-manager-manager/blog/">
+  <title>pkg⋅mgr² — Every package. One place.</title>
+  <meta name="description" content="Package Manager Manager inventories Homebrew, npm, npx, uv, uvx, Cargo, and rustup packages in one Mac app.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Package Manager Manager">
+  <meta property="og:title" content="pkg⋅mgr² — Every package. One place.">
+  <meta property="og:description" content="See what every package manager installed, what is outdated, and where it came from.">
+  <meta property="og:url" content="https://mxcl.dev/package-manager-manager/">
+  <meta property="og:image" content="https://mxcl.dev/package-manager-manager/pmm-promo-1.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://mxcl.dev/package-manager-manager/pmm-promo-1.png">
+  <link rel="canonical" href="https://mxcl.dev/package-manager-manager/">
+  <link rel="icon" href="./boxes.png">
+  <link rel="apple-touch-icon" href="./boxes.png">
+  <link rel="stylesheet" href="./styles.css">
 </head>
-<body>
-  <p><a href="./blog/">Package Manager Manager Blog</a></p>
+<body class="landing-page">
+  <div class="scroll-meter" aria-hidden="true"><span></span></div>
+  <div class="site-shell" id="top">
+    <header class="masthead">
+      <a class="brand" href="./" aria-label="Package Manager Manager home">
+        <img class="brand-mark" src="./boxes.png" alt="" width="54" height="54">
+        <span class="brand-type">pkg⋅mgr²</span>
+      </a>
+
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-label="Toggle navigation">
+        <span></span>
+        <span></span>
+      </button>
+
+      <nav class="nav" aria-label="Main navigation">
+        <a href="#features">Features</a>
+        <a href="./blog/">Blog</a>
+        <a href="https://github.com/mxcl/pmm#readme">Docs</a>
+        <a href="https://github.com/mxcl/pmm">GitHub</a>
+        <a class="nav-download" href="https://github.com/mxcl/pmm/releases/latest">Download</a>
+      </nav>
+    </header>
+
+    <main class="landing-main">
+      <section class="product-hero" aria-labelledby="product-title">
+        <div class="hero-copy">
+          <p class="eyebrow">Package Manager Manager for macOS</p>
+          <h1 id="product-title">Every package.<br><span>One place.</span></h1>
+          <p class="lede">pkg⋅mgr² inventories the tools scattered across your package managers, so you can see what you have, what needs an update, and where everything came from.</p>
+          <div class="hero-actions">
+            <a class="button primary button-large" href="https://github.com/mxcl/pmm/releases/latest">Download the latest .dmg</a>
+            <a class="button button-large" href="https://github.com/mxcl/pmm">Browse the source <span aria-hidden="true">↗</span></a>
+          </div>
+        </div>
+
+        <p class="manager-line" aria-label="Supported package managers">
+          <span>Homebrew</span><span>npm + npx</span><span>uv + uvx</span><span>Cargo + rustup</span>
+        </p>
+
+        <figure class="product-shot hero-shot">
+          <img src="./pmm-promo-1.png" alt="Package Manager Manager home screen showing installed packages, ecosystems, recommendations, and install packs" width="2980" height="1872" fetchpriority="high">
+        </figure>
+      </section>
+
+      <section class="inventory-intro" id="features" aria-labelledby="inventory-title">
+        <p class="eyebrow">One honest inventory</p>
+        <h2 id="inventory-title">Your tools stopped living in one place. Now your inventory does.</h2>
+        <div class="inventory-points">
+          <article>
+            <strong>7</strong>
+            <h3>Package managers</h3>
+            <p>Homebrew, npm, npx, uv, uvx, Cargo, and rustup, searched together.</p>
+          </article>
+          <article>
+            <strong>1</strong>
+            <h3>Native Mac app</h3>
+            <p>Search packages, compare versions, and open their project links without returning to the terminal.</p>
+          </article>
+          <article>
+            <strong>0</strong>
+            <h3>New abstractions</h3>
+            <p>pkg⋅mgr² uses each manager’s own commands. Your setup stays yours.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="package-story" aria-labelledby="package-story-title">
+        <div class="story-copy">
+          <p class="eyebrow">From install to source</p>
+          <h2 id="package-story-title">See the package, not just the package name.</h2>
+          <p>Open a package to see its installed version, install location, binary path, homepage, repository, and docs. When pkg⋅mgr² knows the native command, update or uninstall it from the same view.</p>
+          <ul class="check-list">
+            <li>Installed and latest versions</li>
+            <li>Project links and local paths</li>
+            <li>Native update and uninstall actions</li>
+          </ul>
+        </div>
+        <figure class="product-shot detail-shot">
+          <img src="./pmm-promo-2.png" alt="Package Manager Manager package detail screen for rustup beside the rustup project website" width="2980" height="1872" loading="lazy" decoding="async">
+        </figure>
+      </section>
+
+      <section class="feature-strip" aria-label="Product features">
+        <article>
+          <span class="feature-number">01</span>
+          <h3>Find the strays</h3>
+          <p>Cached npx commands and uvx environments count too. If it is taking up space, it belongs in the inventory.</p>
+        </article>
+        <article>
+          <span class="feature-number">02</span>
+          <h3>Act in context</h3>
+          <p>Update and remove supported packages with the manager that installed them.</p>
+        </article>
+        <article>
+          <span class="feature-number">03</span>
+          <h3>Keep the caveats</h3>
+          <p>Missing metadata stays missing. rustup remains inventory-only until its actions are safe and obvious.</p>
+        </article>
+      </section>
+
+      <section class="final-cta" aria-labelledby="cta-title">
+        <div>
+          <p class="eyebrow">Free and open source</p>
+          <h2 id="cta-title">Take inventory.</h2>
+        </div>
+        <a class="button primary button-large" href="https://github.com/mxcl/pmm/releases/latest">Download pkg⋅mgr²</a>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>&copy; 2026 Package Manager Manager.</p>
+      <div class="footer-links">
+        <a href="./blog/">Blog</a>
+        <a href="https://github.com/mxcl/pmm#readme">Docs</a>
+        <a href="https://github.com/mxcl/pmm/releases/latest">Download</a>
+        <a href="https://github.com/mxcl/pmm">GitHub</a>
+      </div>
+    </footer>
+  </div>
+
+  <script src="./app.js"></script>
 </body>
 </html>
