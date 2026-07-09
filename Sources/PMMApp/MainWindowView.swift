@@ -794,7 +794,7 @@ private struct PackageEcosystemMark: View {
                     .resizable()
                     .scaledToFit()
                     .frame(width: 15, height: 15)
-                    .offset(y: 3)
+                    .offset(y: imageOffset)
             } else {
                 Image(systemName: section.systemImage)
                     .font(.system(size: 11, weight: .semibold))
@@ -824,6 +824,10 @@ private struct PackageEcosystemMark: View {
         case .rust: .red
         default: SystemColor.secondaryText
         }
+    }
+
+    private var imageOffset: CGFloat {
+        section == .homebrew ? 3 : 4.5
     }
 }
 
