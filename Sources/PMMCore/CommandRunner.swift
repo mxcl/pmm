@@ -97,7 +97,8 @@ public struct SystemCommandRunner: CommandRunning {
     ) throws -> CommandResult {
         var master: Int32 = -1
         var slave: Int32 = -1
-        guard openpty(&master, &slave, nil, nil, nil) == 0 else {
+        var windowSize = winsize(ws_row: 24, ws_col: 80, ws_xpixel: 0, ws_ypixel: 0)
+        guard openpty(&master, &slave, nil, nil, &windowSize) == 0 else {
             throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
         }
 
@@ -132,6 +133,8 @@ public struct SystemCommandRunner: CommandRunning {
             "CLICOLOR_FORCE": "1",
             "FORCE_COLOR": "3",
             "HOMEBREW_COLOR": "1",
+            "COLUMNS": "80",
+            "LINES": "24",
         ].merging(overrides) { _, new in new }
     }
 }

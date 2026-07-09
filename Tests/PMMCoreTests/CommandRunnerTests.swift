@@ -41,3 +41,14 @@ private final class StringRecorder: @unchecked Sendable {
     #expect(result.stdout == "tty")
     #expect(streamed.value == "tty")
 }
+
+@Test func systemCommandRunnerTerminalModeReportsEightyColumns() throws {
+    let result = try SystemCommandRunner().run(
+        "/usr/bin/python3",
+        ["-c", "import fcntl, struct, sys, termios; print(*struct.unpack('hhhh', fcntl.ioctl(1, termios.TIOCGWINSZ, b'\\0' * 8))[:2]); print(__import__('os').environ['COLUMNS'], __import__('os').environ['LINES'])"],
+        options: CommandRunOptions(terminal: true)
+    )
+
+    let lines = result.stdout.split(whereSeparator: \.isNewline).map(String.init)
+    #expect(lines == ["24 80", "80 24"])
+}
