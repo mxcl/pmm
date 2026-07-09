@@ -981,13 +981,15 @@ private struct PackageUpdateProgressView: View {
             TerminalOutputTextView(output: output)
                 .frame(height: 300)
         }
-        .padding(24)
-        .frame(width: 640)
+        .frame(width: TerminalOutputTextView.eightyColumnWidth)
         .background(LiquidGlassSurface(material: .ultraThinMaterial, tint: SystemColor.windowTint))
     }
 }
 
 private struct TerminalOutputTextView: NSViewRepresentable {
+    static let font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+    static let eightyColumnWidth = ceil(("M" as NSString).size(withAttributes: [.font: font]).width * 80)
+
     let output: String
 
     func makeNSView(context: Context) -> NSScrollView {
@@ -1000,7 +1002,7 @@ private struct TerminalOutputTextView: NSViewRepresentable {
         textView.isEditable = false
         textView.isSelectable = true
         textView.drawsBackground = false
-        textView.textContainerInset = NSSize(width: 10, height: 10)
+        textView.textContainerInset = .zero
         textView.textContainer?.widthTracksTextView = true
         textView.textContainer?.containerSize = NSSize(width: scrollView.contentSize.width, height: .greatestFiniteMagnitude)
         textView.autoresizingMask = [.width]
@@ -1017,11 +1019,13 @@ private struct TerminalOutputTextView: NSViewRepresentable {
 
 func mainWindowTerminalAttributedOutput(_ output: String) -> NSAttributedString {
     let result = NSMutableAttributedString()
-    let font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+    let font = TerminalOutputTextView.font
     let defaultColor = NSColor.labelColor
     var color = defaultColor
-    var lineStart = 0
+    var lineStarts = [0]
     var index = output.startIndex
+
+    var lineStart: Int { lineStarts.last ?? 0 }
 
     func append(_ character: Character) {
         result.append(NSAttributedString(
@@ -1029,7 +1033,7 @@ func mainWindowTerminalAttributedOutput(_ output: String) -> NSAttributedString 
             attributes: [.font: font, .foregroundColor: color]
         ))
         if character == "\n" {
-            lineStart = result.length
+            lineStarts.append(result.length)
         }
     }
 
@@ -1037,6 +1041,19 @@ func mainWindowTerminalAttributedOutput(_ output: String) -> NSAttributedString 
         if result.length > lineStart {
             result.deleteCharacters(in: NSRange(location: lineStart, length: result.length - lineStart))
         }
+    }
+
+    func cursorUp(_ count: Int) {
+        guard lineStarts.count > 1 else {
+            clearLine()
+            return
+        }
+        let targetLine = max(0, lineStarts.count - 1 - max(count, 1))
+        let targetStart = lineStarts[targetLine]
+        if result.length > targetStart {
+            result.deleteCharacters(in: NSRange(location: targetStart, length: result.length - targetStart))
+        }
+        lineStarts = Array(lineStarts.prefix(targetLine + 1))
     }
 
     while index < output.endIndex {
@@ -1058,6 +1075,10 @@ func mainWindowTerminalAttributedOutput(_ output: String) -> NSAttributedString 
             let parameters = String(output[output.index(after: next)..<sequenceEnd])
             if command == "m" {
                 color = mainWindowANSIColor(parameters: parameters) ?? color
+            } else if command == "A" {
+                cursorUp(Int(parameters) ?? 1)
+            } else if command == "K", parameters == "2" {
+                clearLine()
             }
             index = output.index(after: sequenceEnd)
         } else if character == "\r" {

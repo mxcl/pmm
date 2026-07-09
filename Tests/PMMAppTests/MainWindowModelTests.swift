@@ -19,6 +19,12 @@ import Testing
     #expect(output.attribute(.foregroundColor, at: 0, effectiveRange: nil) is NSColor)
 }
 
+@Test func terminalOutputHandlesCursorUpLineReplacement() {
+    let output = mainWindowTerminalAttributedOutput("Downloading\nExtracting\n\u{1B}[1A\u{1B}[2KInstalling\n")
+
+    #expect(output.string == "Downloading\nInstalling\n")
+}
+
 @MainActor
 @Test func inventoryApplyDoesNotSelectPackageAutomatically() {
     let model = MainWindowModel(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
