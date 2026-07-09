@@ -86,7 +86,11 @@ private struct DashboardCard<Content: View>: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
-            if colorScheme == .dark {
+            if colorScheme == .light {
+                RoundedRectangle(cornerRadius: dashboardItemCornerRadius, style: .continuous)
+                    .fill(Color.white)
+                    .shadow(color: .black.opacity(0.08), radius: 8, y: 3)
+            } else {
                 RoundedRectangle(cornerRadius: dashboardItemCornerRadius, style: .continuous)
                     .fill(.ultraThinMaterial)
                     .overlay {
@@ -98,7 +102,6 @@ private struct DashboardCard<Content: View>: View {
         .overlay {
             RoundedRectangle(cornerRadius: dashboardItemCornerRadius, style: .continuous)
                 .stroke(colorScheme == .light ? Color.white : SystemColor.controlBorder, lineWidth: 1)
-                .shadow(color: colorScheme == .light ? .black.opacity(0.09) : .clear, radius: 4, y: 2)
         }
     }
 }
@@ -323,46 +326,44 @@ private struct DashboardRecommendationCard: View {
     let action: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 9) {
-            ZStack {
-                Circle().fill(SystemColor.controlFill)
-                PackageEcosystemMark(package: package, size: 22, isBaselineAligned: false)
-            }
-            .frame(width: 38, height: 38)
-            Text(package.displayName)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(SystemColor.primaryText)
-                .lineLimit(1)
-            Text(package.summary ?? package.manager.title)
-                .font(.system(size: 11))
-                .foregroundStyle(SystemColor.secondaryText)
-                .lineLimit(2)
-                .frame(minHeight: 28, alignment: .topLeading)
-            Spacer(minLength: 0)
-            Button("View Package Details", action: action)
-                .buttonStyle(.plain)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(Color.accentColor)
-                .frame(maxWidth: .infinity, minHeight: 30)
-                .background(SystemColor.controlFill, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .stroke(SystemColor.controlBorder, lineWidth: 1)
+        DashboardCard {
+            VStack(alignment: .leading, spacing: 9) {
+                ZStack {
+                    Circle().fill(SystemColor.controlFill)
+                    PackageEcosystemMark(package: package, size: 22, isBaselineAligned: false)
                 }
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-        }
-        .padding(16)
-        .frame(minHeight: 150, alignment: .topLeading)
-        .background(SystemColor.controlFill, in: RoundedRectangle(cornerRadius: dashboardItemCornerRadius, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: dashboardItemCornerRadius, style: .continuous)
-                .stroke(SystemColor.controlBorder, lineWidth: 1)
+                .frame(width: 38, height: 38)
+                Text(package.displayName)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(SystemColor.primaryText)
+                    .lineLimit(1)
+                Text(package.summary ?? package.manager.title)
+                    .font(.system(size: 11))
+                    .foregroundStyle(SystemColor.secondaryText)
+                    .lineLimit(2)
+                    .frame(minHeight: 28, alignment: .topLeading)
+                Spacer(minLength: 0)
+                Button("View Package Details", action: action)
+                    .buttonStyle(.plain)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Color.accentColor)
+                    .frame(maxWidth: .infinity, minHeight: 30)
+                    .background(SystemColor.controlFill, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .stroke(SystemColor.controlBorder, lineWidth: 1)
+                    }
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .padding(16)
+            .frame(minHeight: 150, alignment: .topLeading)
         }
     }
 }
 
 private struct DashboardSponsoredCard: View {
+    @Environment(\.colorScheme) private var colorScheme
     private let url = URL(string: "https://automicvault.com")!
 
     var body: some View {
@@ -405,8 +406,9 @@ private struct DashboardSponsoredCard: View {
             }
             .overlay {
                 RoundedRectangle(cornerRadius: dashboardItemCornerRadius, style: .continuous)
-                    .stroke(SystemColor.controlBorder, lineWidth: 1)
+                    .stroke(colorScheme == .light ? Color.white : SystemColor.controlBorder, lineWidth: 1)
             }
+            .shadow(color: colorScheme == .light ? .black.opacity(0.08) : .clear, radius: 8, y: 3)
         }
         .buttonStyle(.plain)
     }
