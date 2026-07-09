@@ -92,6 +92,16 @@ struct MainWindowRootView: View {
                 .toolbar(removing: .title)
             }
         }
+        .alert("Install \(model.pendingInstallPackConfirmation?.packageCount ?? 0) packages?", isPresented: installPackConfirmationBinding) {
+            Button("Cancel", role: .cancel) {
+                model.cancelPendingInstallPack()
+            }
+            Button("Install") {
+                model.confirmPendingInstallPack()
+            }
+        } message: {
+            Text("pkg⋅mgr² will install them one at a time through the existing package managers.")
+        }
     }
 
     @ToolbarContentBuilder
@@ -124,5 +134,16 @@ struct MainWindowRootView: View {
     private var sidebar: some View {
         MainWindowSidebarView(model: model)
             .navigationSplitViewColumnWidth(min: 250, ideal: 250, max: 250)
+    }
+
+    private var installPackConfirmationBinding: Binding<Bool> {
+        Binding(
+            get: { model.pendingInstallPackConfirmation != nil },
+            set: { isPresented in
+                if !isPresented {
+                    model.cancelPendingInstallPack()
+                }
+            }
+        )
     }
 }

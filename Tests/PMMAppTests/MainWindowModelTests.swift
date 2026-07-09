@@ -247,6 +247,27 @@ import Testing
     #expect(python.identifier == "brew:python@3.13")
 }
 
+@MainActor
+@Test func packageInstallURLAsksForConfirmation() {
+    let model = MainWindowModel(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
+    let bat = ManagedPackage(manager: .homebrew, name: "bat", installedVersion: nil, latestVersion: "1", category: "developer-tools")
+    let eslint = ManagedPackage(manager: .npm, name: "eslint", installedVersion: nil, latestVersion: "9", category: "developer-tools")
+
+    model.apply(snapshot: PackageHostSnapshot(
+        inventory: PackageInventory(packages: []),
+        catalogPackages: [bat, eslint],
+        isRefreshing: false
+    ))
+
+    #expect(model.openPackageURL(URL(string: "pkgmgrmgr://install?package=brew%3Abat&package=npm%3Aeslint")!))
+    #expect(model.pendingInstallPackConfirmation == MainWindowInstallPackConfirmation(packageIDs: [bat.id, eslint.id], packageCount: 2))
+    #expect(model.selectedPackage == nil)
+
+    model.cancelPendingInstallPack()
+
+    #expect(model.pendingInstallPackConfirmation == nil)
+}
+
 @Test func installedSectionSortsPackagesAlphabetically() {
     let packages = [
         package(.npm, "zeta"),

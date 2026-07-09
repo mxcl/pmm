@@ -291,6 +291,11 @@ private struct DashboardInstallPackIndex: Decodable, Sendable {
     let packs: [DashboardInstallPack]
 }
 
+struct MainWindowInstallPackConfirmation: Equatable, Sendable {
+    let packageIDs: [String]
+    let packageCount: Int
+}
+
 func mainWindowLinks(for package: ManagedPackage?) -> [MainWindowPackageLink] {
     guard let package else { return [] }
     let links = MainWindowLinkTab.allCases.compactMap { tab in
@@ -365,6 +370,7 @@ final class MainWindowModel: NSObject, ObservableObject {
     @Published private(set) var packageIDToScrollIntoView: String?
     @Published private(set) var dashboardInstallPacks: [DashboardInstallPack] = []
     @Published private(set) var dashboardInstallPacksAreLoading = false
+    @Published private(set) var pendingInstallPackConfirmation: MainWindowInstallPackConfirmation?
     @Published var searchText = ""
 
     nonisolated private static let newUpdatedLastClickedAtDefaultsKey = "MainWindowModel.newUpdatedLastClickedAt"
@@ -544,14 +550,6 @@ final class MainWindowModel: NSObject, ObservableObject {
         PackageHostNotifications.postInstallRequested(packageID: package.id)
     }
 
-    func install(_ pack: DashboardInstallPack) {
-        let requests = pack.packages.compactMap(MainWindowPackageURLRequest.init(identifier:))
-        guard !requests.isEmpty, requests.count == pack.packages.count else { return }
-        let command = MainWindowPackageURLCommand.install(requests)
-        pendingPackageURLCommand = command
-        openPackageURLCommand(command)
-    }
-
     func uninstall(_ package: ManagedPackage) {
         guard PackageUninstaller.supports(package), !isPackageActionRunning else { return }
         PackageHostNotifications.postUninstallRequested(packageID: package.id)
@@ -565,6 +563,16 @@ final class MainWindowModel: NSObject, ObservableObject {
     func updateAllOutdatedPackages() {
         guard canUpdateAllOutdatedPackages else { return }
         PackageHostNotifications.postUpdateAllRequested()
+    }
+
+    func confirmPendingInstallPack() {
+        guard let pendingInstallPackConfirmation else { return }
+        self.pendingInstallPackConfirmation = nil
+        PackageHostNotifications.postInstallManyRequested(packageIDs: pendingInstallPackConfirmation.packageIDs)
+    }
+
+    func cancelPendingInstallPack() {
+        pendingInstallPackConfirmation = nil
     }
 
     func canInstall(_ package: ManagedPackage) -> Bool {
@@ -664,6 +672,7 @@ final class MainWindowModel: NSObject, ObservableObject {
 
     @discardableResult
     private func install(_ requests: [MainWindowPackageURLRequest]) -> Bool {
+        guard !isPackageActionRunning else { return false }
         guard hasInventory else {
             if let first = requests.first {
                 selectSection(first.section)
@@ -678,7 +687,10 @@ final class MainWindowModel: NSObject, ObservableObject {
             }
             return false
         }
-        PackageHostNotifications.postInstallManyRequested(packageIDs: installablePackages.map(\.id))
+        pendingInstallPackConfirmation = MainWindowInstallPackConfirmation(
+            packageIDs: installablePackages.map(\.id),
+            packageCount: installablePackages.count
+        )
         return true
     }
 

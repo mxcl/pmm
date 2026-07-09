@@ -77,9 +77,7 @@ struct MainWindowDashboardView: View {
             DashboardInstallPacksCard(
                 packs: model.dashboardInstallPacks,
                 isLoading: model.dashboardInstallPacksAreLoading
-            ) {
-                model.install($0)
-            }
+            )
         }
     }
 }
@@ -464,7 +462,6 @@ private struct DashboardUpdatesCard: View {
 private struct DashboardInstallPacksCard: View {
     let packs: [DashboardInstallPack]
     let isLoading: Bool
-    let install: (DashboardInstallPack) -> Void
 
     @Environment(\.openURL) private var openURL
 
@@ -513,16 +510,6 @@ private struct DashboardInstallPacksCard: View {
                                     .foregroundStyle(Color.accentColor)
                                     .frame(width: 48, height: 30)
                                     .background(SystemColor.controlFill, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-                            }
-                            .buttonStyle(.plain)
-                            Button {
-                                install(pack)
-                            } label: {
-                                Text("Install")
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundStyle(.white)
-                                    .frame(width: 58, height: 30)
-                                    .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
                             }
                             .buttonStyle(.plain)
                         }
