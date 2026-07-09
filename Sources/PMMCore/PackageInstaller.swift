@@ -12,16 +12,16 @@ public struct PackageInstaller: Sendable {
         self.toolPaths = toolPaths
     }
 
-    public func install(_ package: ManagedPackage) throws {
+    public func install(_ package: ManagedPackage, onProgress: (@Sendable (PackageCommandProgress) -> Void)? = nil) throws {
         guard package.installedVersion == nil else { return }
         switch package.manager {
         case .homebrew:
             let arguments = package.identifier.hasPrefix("brew:cask:")
                 ? ["install", "--cask", package.packageToken]
                 : ["install", package.packageToken]
-            try run("brew", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin"], arguments)
+            try run("brew", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin"], arguments, onProgress: onProgress)
         case .npm:
-            try run("npm", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["install", "-g", "\(package.packageToken)@latest"])
+            try run("npm", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["install", "-g", "\(package.packageToken)@latest"], onProgress: onProgress)
         case .cargoInstall, .rustup, .npx, .uv, .uvx:
             throw PackageInstallError.unsupportedManager(package.manager)
         }
@@ -31,13 +31,22 @@ public struct PackageInstaller: Sendable {
         package.installedVersion == nil && [.homebrew, .npm].contains(package.manager)
     }
 
-    private func run(_ executableName: String, extraPaths: [String], _ arguments: [String]) throws {
+    private func run(
+        _ executableName: String,
+        extraPaths: [String],
+        _ arguments: [String],
+        onProgress: (@Sendable (PackageCommandProgress) -> Void)?
+    ) throws {
         guard let executable = toolPaths[executableName] ?? firstExecutable(named: executableName, extraPaths: extraPaths) else {
             throw PackageInstallError.missingExecutable(executableName)
         }
-        let result = try runner.run(executable, arguments)
+        let command = ([executableName] + arguments).joined(separator: " ")
+        onProgress?(.started(command: command))
+        let result = try runner.run(executable, arguments, options: CommandRunOptions(terminal: true)) { output in
+            onProgress?(.output(output))
+        }
         guard result.status == 0 else {
-            throw PackageInstallError.failed(([executableName] + arguments).joined(separator: " "), result.stderr)
+            throw PackageInstallError.failed(command, result.stderr.isEmpty ? result.stdout : result.stderr)
         }
     }
 }

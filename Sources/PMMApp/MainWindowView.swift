@@ -200,19 +200,11 @@ struct MainWindowDossierView: View {
         .ignoresSafeArea(.container, edges: .top)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background((colorScheme == .dark ? Color.black.opacity(0.08) : Color.white.opacity(0.1)))
-        .sheet(isPresented: installModalBinding) {
-            PackageProgressView(title: "Installing \(model.installingPackageName ?? "package")")
-                .interactiveDismissDisabled(true)
-        }
-        .sheet(isPresented: uninstallModalBinding) {
-            PackageProgressView(title: "Uninstalling \(model.uninstallingPackageName ?? "package")")
-                .interactiveDismissDisabled(true)
-        }
-        .sheet(isPresented: updateModalBinding) {
-            PackageUpdateProgressView(
-                title: "Updating \(model.updatingPackageName ?? "package")",
-                command: model.updateCommand,
-                output: model.updateOutput
+        .sheet(isPresented: packageActionModalBinding) {
+            PackageCommandProgressView(
+                title: packageActionTitle,
+                command: model.packageActionCommand,
+                output: model.packageActionOutput
             )
                 .interactiveDismissDisabled(true)
         }
@@ -222,16 +214,15 @@ struct MainWindowDossierView: View {
         model.installingPackageName != nil || model.uninstallingPackageName != nil || model.updatingPackageName != nil
     }
 
-    private var installModalBinding: Binding<Bool> {
-        Binding(get: { model.installingPackageName != nil }, set: { _ in })
+    private var packageActionModalBinding: Binding<Bool> {
+        Binding(get: { isPackageActionRunning }, set: { _ in })
     }
 
-    private var uninstallModalBinding: Binding<Bool> {
-        Binding(get: { model.uninstallingPackageName != nil }, set: { _ in })
-    }
-
-    private var updateModalBinding: Binding<Bool> {
-        Binding(get: { model.updatingPackageName != nil }, set: { _ in })
+    private var packageActionTitle: String {
+        if let name = model.installingPackageName { return "Installing \(name)" }
+        if let name = model.uninstallingPackageName { return "Uninstalling \(name)" }
+        if let name = model.updatingPackageName { return "Updating \(name)" }
+        return "Working"
     }
 
     private func updateButtonTitle(for package: ManagedPackage) -> String {
@@ -932,26 +923,7 @@ private struct InfoRow: View {
     }
 }
 
-private struct PackageProgressView: View {
-    let title: String
-
-    var body: some View {
-        VStack(spacing: 14) {
-            ProgressView()
-                .controlSize(.large)
-            Text(title)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(SystemColor.primaryText)
-                .lineLimit(2)
-                .multilineTextAlignment(.center)
-        }
-        .padding(28)
-        .frame(width: 260)
-        .background(LiquidGlassSurface(material: .ultraThinMaterial, tint: SystemColor.windowTint))
-    }
-}
-
-private struct PackageUpdateProgressView: View {
+private struct PackageCommandProgressView: View {
     let title: String
     let command: String?
     let output: String

@@ -4,11 +4,43 @@ import Testing
 
 private final class RecordingRunner: CommandRunning, @unchecked Sendable {
     var commands: [String] = []
+    var options: [CommandRunOptions] = []
+    var streamedOutput = ""
     var result = CommandResult(stdout: "", stderr: "", status: 0)
 
     func run(_ executable: String, _ arguments: [String]) throws -> CommandResult {
+        try run(executable, arguments, options: CommandRunOptions(), onOutput: nil)
+    }
+
+    func run(
+        _ executable: String,
+        _ arguments: [String],
+        options: CommandRunOptions,
+        onOutput: (@Sendable (String) -> Void)? = nil
+    ) throws -> CommandResult {
         commands.append(([executable] + arguments).joined(separator: " "))
+        self.options.append(options)
+        if !streamedOutput.isEmpty {
+            onOutput?(streamedOutput)
+        }
         return result
+    }
+}
+
+private final class ProgressRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var events: [PackageCommandProgress] = []
+
+    func append(_ event: PackageCommandProgress) {
+        lock.lock()
+        events.append(event)
+        lock.unlock()
+    }
+
+    var values: [PackageCommandProgress] {
+        lock.lock()
+        defer { lock.unlock() }
+        return events
     }
 }
 
@@ -24,6 +56,23 @@ private final class RecordingRunner: CommandRunning, @unchecked Sendable {
         "/fake/brew install git",
         "/fake/brew install --cask visual-studio-code",
         "/fake/npm install -g @scope/tool@latest",
+    ])
+    #expect(runner.options.map(\.terminal) == [true, true, true])
+}
+
+@Test func packageInstallerReportsCommandAndOutputProgress() throws {
+    let runner = RecordingRunner()
+    runner.streamedOutput = "installed\n"
+    let installer = PackageInstaller(runner: runner, toolPaths: ["brew": "/fake/brew"])
+    let progress = ProgressRecorder()
+
+    try installer.install(package(.homebrew, "brew:git")) { event in
+        progress.append(event)
+    }
+
+    #expect(progress.values == [
+        .started(command: "brew install git"),
+        .output("installed\n"),
     ])
 }
 

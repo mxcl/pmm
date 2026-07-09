@@ -4,11 +4,43 @@ import Testing
 
 private final class RecordingRunner: CommandRunning, @unchecked Sendable {
     var commands: [String] = []
+    var options: [CommandRunOptions] = []
+    var streamedOutput = ""
     var result = CommandResult(stdout: "", stderr: "", status: 0)
 
     func run(_ executable: String, _ arguments: [String]) throws -> CommandResult {
+        try run(executable, arguments, options: CommandRunOptions(), onOutput: nil)
+    }
+
+    func run(
+        _ executable: String,
+        _ arguments: [String],
+        options: CommandRunOptions,
+        onOutput: (@Sendable (String) -> Void)? = nil
+    ) throws -> CommandResult {
         commands.append(([executable] + arguments).joined(separator: " "))
+        self.options.append(options)
+        if !streamedOutput.isEmpty {
+            onOutput?(streamedOutput)
+        }
         return result
+    }
+}
+
+private final class ProgressRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var events: [PackageCommandProgress] = []
+
+    func append(_ event: PackageCommandProgress) {
+        lock.lock()
+        events.append(event)
+        lock.unlock()
+    }
+
+    var values: [PackageCommandProgress] {
+        lock.lock()
+        defer { lock.unlock() }
+        return events
     }
 }
 
@@ -26,11 +58,28 @@ private final class RecordingRunner: CommandRunning, @unchecked Sendable {
     try uninstaller.uninstall(package(.uv, "uv:cpython:3.13", displayName: "uv Managed Python 3.13", installedVersion: "3.13.12", summary: "uv-managed Python", category: "language-runtime"))
 
     #expect(runner.commands == [
-        "/fake/cargo uninstall ripgrep --color never",
+        "/fake/cargo uninstall ripgrep --color always",
         "/fake/brew uninstall git",
         "/fake/npm uninstall -g @scope/tool",
-        "/fake/uv tool uninstall ruff --color never",
-        "/fake/uv python uninstall 3.13.12 --color never",
+        "/fake/uv tool uninstall ruff --color always",
+        "/fake/uv python uninstall 3.13.12 --color always",
+    ])
+    #expect(runner.options.map(\.terminal) == [true, true, true, true, true])
+}
+
+@Test func packageUninstallerReportsCommandAndOutputProgress() throws {
+    let runner = RecordingRunner()
+    runner.streamedOutput = "removed\n"
+    let uninstaller = PackageUninstaller(runner: runner, toolPaths: ["brew": "/fake/brew"])
+    let progress = ProgressRecorder()
+
+    try uninstaller.uninstall(package(.homebrew, "brew:git")) { event in
+        progress.append(event)
+    }
+
+    #expect(progress.values == [
+        .started(command: "brew uninstall git"),
+        .output("removed\n"),
     ])
 }
 

@@ -71,11 +71,34 @@ import Testing
     #expect(model.packages == [package])
     #expect(model.isReloading)
     #expect(model.updatingPackageName == "git")
-    #expect(model.updateCommand == "brew upgrade git")
-    #expect(model.updateOutput == "Already up-to-date\n")
+    #expect(model.packageActionCommand == "brew upgrade git")
+    #expect(model.packageActionOutput == "Already up-to-date\n")
     #expect(model.installingPackageName == nil)
     #expect(model.count(for: .outdated) == 1)
     #expect(model.count(for: .newUpdated) == 1)
+}
+
+@MainActor
+@Test func modelMapsInstallSnapshotToPackageActionOutput() {
+    let model = MainWindowModel(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
+    let package = ManagedPackage(manager: .homebrew, name: "curl", installedVersion: nil, latestVersion: "8")
+
+    model.apply(snapshot: PackageHostSnapshot(
+        inventory: PackageInventory(packages: []),
+        catalogPackages: [package],
+        runningAction: PackageHostRunningAction(
+            kind: .install,
+            packageID: package.id,
+            displayName: "curl",
+            command: "brew install curl",
+            output: "Installing curl\n"
+        )
+    ))
+
+    #expect(model.installingPackageName == "curl")
+    #expect(model.packageActionCommand == "brew install curl")
+    #expect(model.packageActionOutput == "Installing curl\n")
+    #expect(model.updatingPackageName == nil)
 }
 
 @MainActor
@@ -94,8 +117,8 @@ import Testing
     #expect(model.canInstall(missing))
     #expect(!model.canInstall(alreadyInstalledCatalog))
     #expect(model.installingPackageName == "curl")
-    #expect(model.updateCommand == nil)
-    #expect(model.updateOutput == "")
+    #expect(model.packageActionCommand == nil)
+    #expect(model.packageActionOutput == "")
 }
 
 @MainActor
@@ -467,6 +490,40 @@ import Testing
     )
 
     #expect(mainWindowVersionText(package, section: .developerTools) == "NPM")
+}
+
+@MainActor
+@Test func categoryCatalogPackagesUseInstalledStateForActions() throws {
+    let model = MainWindowModel(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
+    let installed = ManagedPackage(
+        manager: .homebrew,
+        name: "git",
+        installedVersion: "2.50.0",
+        latestVersion: "2.50.0",
+        installLocation: "/opt/homebrew/Cellar/git/2.50.0"
+    )
+    let catalog = ManagedPackage(
+        manager: .homebrew,
+        name: "git",
+        installedVersion: nil,
+        latestVersion: "2.51.0",
+        category: "developer-tools",
+        lastUpdatedAt: "2026-06-01T00:00:00Z"
+    )
+
+    model.apply(snapshot: PackageHostSnapshot(
+        inventory: PackageInventory(packages: [installed]),
+        catalogPackages: [catalog],
+        isRefreshing: false
+    ))
+    model.selectSection(.developerTools)
+
+    let displayed = try #require(model.displayedPackages.first)
+    #expect(displayed.id == installed.id)
+    #expect(displayed.installedVersion == "2.50.0")
+    #expect(displayed.latestVersion == "2.51.0")
+    #expect(!model.canInstall(displayed))
+    #expect(PackageUninstaller.supports(displayed))
 }
 
 @MainActor

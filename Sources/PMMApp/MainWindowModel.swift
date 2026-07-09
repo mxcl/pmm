@@ -383,8 +383,8 @@ final class MainWindowModel: NSObject, ObservableObject {
     @Published private(set) var installingPackageName: String?
     @Published private(set) var uninstallingPackageName: String?
     @Published private(set) var updatingPackageName: String?
-    @Published private(set) var updateCommand: String?
-    @Published private(set) var updateOutput = ""
+    @Published private(set) var packageActionCommand: String?
+    @Published private(set) var packageActionOutput = ""
     @Published private(set) var packageIDToScrollIntoView: String?
     @Published private(set) var dashboardBlogEntries: [DashboardBlogEntry] = []
     @Published private(set) var dashboardBlogEntriesAreLoading = false
@@ -772,8 +772,8 @@ final class MainWindowModel: NSObject, ObservableObject {
             installingPackageName = nil
             uninstallingPackageName = nil
             updatingPackageName = nil
-            updateCommand = nil
-            updateOutput = ""
+            packageActionCommand = nil
+            packageActionOutput = ""
             return
         }
         apply(snapshot: snapshot, inventory: inventory)
@@ -799,8 +799,8 @@ final class MainWindowModel: NSObject, ObservableObject {
         installingPackageName = snapshot.runningAction?.kind == .install ? snapshot.runningAction?.displayName : nil
         uninstallingPackageName = snapshot.runningAction?.kind == .uninstall ? snapshot.runningAction?.displayName : nil
         updatingPackageName = snapshot.runningAction?.kind == .update ? snapshot.runningAction?.displayName : nil
-        updateCommand = snapshot.runningAction?.kind == .update ? snapshot.runningAction?.command : nil
-        updateOutput = snapshot.runningAction?.kind == .update ? snapshot.runningAction?.output ?? "" : ""
+        packageActionCommand = snapshot.runningAction?.command
+        packageActionOutput = snapshot.runningAction?.output ?? ""
     }
 
     @objc private func hostSnapshotChanged(_ notification: Notification) {
@@ -854,6 +854,14 @@ struct PackageIndex: Sendable {
     let newUpdatedUnreadCount: Int?
 
     init(packages: [ManagedPackage], catalogPackages: [ManagedPackage], newUpdatedLastClickedAt: Date?) {
+        var installedByIdentifier: [String: ManagedPackage] = [:]
+        for package in packages where installedByIdentifier[package.identifier] == nil {
+            installedByIdentifier[package.identifier] = package
+        }
+        let catalogPackages = catalogPackages.map { catalogPackage in
+            guard let installedPackage = installedByIdentifier[catalogPackage.identifier] else { return catalogPackage }
+            return Self.catalogPackage(catalogPackage, withInstalledStateFrom: installedPackage)
+        }
         let newUpdated = catalogPackages
             .filter { $0.pulseKind == "new" }
             .sorted(by: Self.newestUpdatedFirst)
@@ -888,6 +896,27 @@ struct PackageIndex: Sendable {
             return ($0.lastUpdatedAt ?? "") > clickedAt
         }.count
         newUpdatedUnreadCount = unread > 0 ? unread : nil
+    }
+
+    private static func catalogPackage(_ catalogPackage: ManagedPackage, withInstalledStateFrom installedPackage: ManagedPackage) -> ManagedPackage {
+        ManagedPackage(
+            manager: catalogPackage.manager,
+            identifier: catalogPackage.identifier,
+            displayName: catalogPackage.displayName,
+            installedVersion: installedPackage.installedVersion,
+            installedVersions: installedPackage.installedVersions,
+            latestVersion: catalogPackage.latestVersion ?? installedPackage.latestVersion,
+            summary: catalogPackage.summary ?? installedPackage.summary,
+            category: catalogPackage.category ?? installedPackage.category,
+            homepage: catalogPackage.homepage ?? installedPackage.homepage,
+            docs: catalogPackage.docs ?? installedPackage.docs,
+            repo: catalogPackage.repo ?? installedPackage.repo,
+            lastUpdatedAt: catalogPackage.lastUpdatedAt,
+            pulseKind: catalogPackage.pulseKind,
+            installLocation: installedPackage.installLocation,
+            binaryPath: installedPackage.binaryPath,
+            executableNames: installedPackage.executableNames
+        )
     }
 
     private static func alphabetical(_ lhs: ManagedPackage, _ rhs: ManagedPackage) -> Bool {

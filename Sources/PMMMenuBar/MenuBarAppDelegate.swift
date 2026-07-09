@@ -94,18 +94,18 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
         snapshot.runningAction = PackageHostRunningAction(kind: kind, packageID: package.id, displayName: package.displayName)
         snapshot.errorMessage = nil
         publishSnapshot()
-        let progressHandler = updateProgressHandler()
+        let progressHandler = actionProgressHandler()
 
         actionTask = Task { [weak self] in
             let result = await Task.detached(priority: .background) {
                 Result {
                     switch kind {
                     case .install:
-                        try PackageInstaller().install(package)
+                        try PackageInstaller().install(package, onProgress: progressHandler)
                     case .update:
                         try PackageUpdater().update(package, onProgress: progressHandler)
                     case .uninstall:
-                        try PackageUninstaller().uninstall(package)
+                        try PackageUninstaller().uninstall(package, onProgress: progressHandler)
                     }
                 }
             }.value
@@ -225,7 +225,7 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
         guard !packages.isEmpty else { return }
         snapshot.errorMessage = nil
         publishSnapshot()
-        let progressHandler = updateProgressHandler()
+        let progressHandler = actionProgressHandler()
 
         actionTask = Task { [weak self] in
             var errors: [String] = []
@@ -251,16 +251,16 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func updateProgressHandler() -> @Sendable (PackageCommandProgress) -> Void {
+    private func actionProgressHandler() -> @Sendable (PackageCommandProgress) -> Void {
         { [weak self] progress in
             Task { @MainActor in
-                self?.applyUpdateProgress(progress)
+                self?.applyActionProgress(progress)
             }
         }
     }
 
-    private func applyUpdateProgress(_ progress: PackageCommandProgress) {
-        guard var action = snapshot.runningAction, action.kind == .update else { return }
+    private func applyActionProgress(_ progress: PackageCommandProgress) {
+        guard var action = snapshot.runningAction else { return }
         switch progress {
         case .started(let command):
             action.command = command
@@ -302,6 +302,7 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
         guard !packages.isEmpty else { return }
         snapshot.errorMessage = nil
         publishSnapshot()
+        let progressHandler = actionProgressHandler()
 
         actionTask = Task { [weak self] in
             var errors: [String] = []
@@ -312,7 +313,7 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
 
                 let result = await Task.detached(priority: .background) {
                     Result {
-                        try PackageInstaller().install(package)
+                        try PackageInstaller().install(package, onProgress: progressHandler)
                     }
                 }.value
                 if case .failure(let error) = result {
