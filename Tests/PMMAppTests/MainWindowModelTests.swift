@@ -43,6 +43,17 @@ import Testing
     """)
 }
 
+@Test func terminalOutputCursorMovementAccountsForEightyColumnWraps() {
+    let longProgress = String(repeating: "a", count: 90)
+    let output = mainWindowTerminalAttributedOutput("""
+    \(longProgress)
+    status
+    \u{1B}[3A\u{1B}[2Kdone
+    """)
+
+    #expect(output.string == "done")
+}
+
 @MainActor
 @Test func inventoryApplyDoesNotSelectPackageAutomatically() {
     let model = MainWindowModel(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)

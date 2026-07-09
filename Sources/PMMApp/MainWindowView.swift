@@ -943,8 +943,9 @@ private struct PackageCommandProgressView: View {
 }
 
 private struct TerminalOutputTextView: NSViewRepresentable {
+    static let columns = 80
     static let font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
-    static let eightyColumnWidth = ceil(("M" as NSString).size(withAttributes: [.font: font]).width * 80)
+    static let eightyColumnWidth = ceil(("M" as NSString).size(withAttributes: [.font: font]).width * CGFloat(columns))
 
     let output: String
 
@@ -984,7 +985,19 @@ func mainWindowTerminalAttributedOutput(_ output: String) -> NSAttributedString 
 
     var lineStart: Int { lineStarts.last ?? 0 }
 
+    func appendLineBreak() {
+        result.append(NSAttributedString(
+            string: "\n",
+            attributes: [.font: font, .foregroundColor: color]
+        ))
+        lineStarts.append(result.length)
+        currentColumn = 0
+    }
+
     func append(_ character: Character) {
+        if character != "\n", currentColumn >= TerminalOutputTextView.columns {
+            appendLineBreak()
+        }
         result.append(NSAttributedString(
             string: String(character),
             attributes: [.font: font, .foregroundColor: color]
