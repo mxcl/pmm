@@ -86,6 +86,7 @@ struct MainWindowDashboardView: View {
 }
 
 private struct DashboardCard<Content: View>: View {
+    @Environment(\.colorScheme) private var colorScheme
     @ViewBuilder let content: Content
 
     var body: some View {
@@ -94,12 +95,14 @@ private struct DashboardCard<Content: View>: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
-            RoundedRectangle(cornerRadius: dashboardItemCornerRadius, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .overlay {
-                    RoundedRectangle(cornerRadius: dashboardItemCornerRadius, style: .continuous)
-                        .fill(SystemColor.cardTint)
-                }
+            if colorScheme == .dark {
+                RoundedRectangle(cornerRadius: dashboardItemCornerRadius, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: dashboardItemCornerRadius, style: .continuous)
+                            .fill(SystemColor.cardTint)
+                    }
+            }
         }
         .overlay {
             RoundedRectangle(cornerRadius: dashboardItemCornerRadius, style: .continuous)
