@@ -202,7 +202,6 @@ struct MainWindowDossierView: View {
         .background((colorScheme == .dark ? Color.black.opacity(0.08) : Color.white.opacity(0.1)))
         .sheet(isPresented: packageActionModalBinding) {
             PackageCommandProgressView(
-                title: packageActionTitle,
                 command: model.packageActionCommand,
                 output: model.packageActionOutput
             )
@@ -216,13 +215,6 @@ struct MainWindowDossierView: View {
 
     private var packageActionModalBinding: Binding<Bool> {
         Binding(get: { isPackageActionRunning }, set: { _ in })
-    }
-
-    private var packageActionTitle: String {
-        if let name = model.installingPackageName { return "Installing \(name)" }
-        if let name = model.uninstallingPackageName { return "Uninstalling \(name)" }
-        if let name = model.updatingPackageName { return "Updating \(name)" }
-        return "Working"
     }
 
     private func updateButtonTitle(for package: ManagedPackage) -> String {
@@ -924,21 +916,11 @@ private struct InfoRow: View {
 }
 
 private struct PackageCommandProgressView: View {
-    let title: String
     let command: String?
     let output: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 12) {
-                ProgressView()
-                    .controlSize(.large)
-                    .padding(.leading, 15)
-                Text(title)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(SystemColor.primaryText)
-                    .lineLimit(2)
-            }
             if let command {
                 HStack(alignment: .firstTextBaseline, spacing: 7) {
                     Text("$")
