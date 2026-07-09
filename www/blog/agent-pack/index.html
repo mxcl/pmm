@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Pack | Package Manager Manager Blog</title>
+  <meta name="description" content="Agent Pack is a Package Manager Manager shortlist of terminal-native agent CLIs, coding assistants, model routers, and usage inspection tools.">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Package Manager Manager">
+  <meta property="og:title" content="Agent Pack">
+  <meta property="og:description" content="Agent CLIs and coding assistants, listed for Package Manager Manager users.">
+  <meta property="og:url" content="https://mxcl.github.io/pmm/blog/agent-pack/">
+  <meta property="og:image" content="https://mxcl.github.io/pmm/boxes.png">
+  <meta property="article:published_time" content="2026-06-04">
+  <meta property="article:modified_time" content="2026-06-04">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://mxcl.github.io/pmm/boxes.png">
+  <meta name="twitter:title" content="Agent Pack">
+  <meta name="twitter:description" content="Agent CLIs and coding assistants, listed for Package Manager Manager users.">
+  <link rel="canonical" href="https://mxcl.github.io/pmm/blog/agent-pack/">
+  <script type="application/ld+json">
+  {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://mxcl.github.io/pmm/#organization",
+      "name": "Package Manager Manager",
+      "url": "https://mxcl.github.io/pmm/",
+      "logo": "https://mxcl.github.io/pmm/boxes.png"
+    },
+    {
+      "@type": "BlogPosting",
+      "@id": "https://mxcl.github.io/pmm/blog/agent-pack/#article",
+      "headline": "Agent Pack",
+      "description": "Agent Pack is a Package Manager Manager shortlist of terminal-native agent CLIs, coding assistants, model routers, and usage inspection tools.",
+      "image": "https://mxcl.github.io/pmm/boxes.png",
+      "datePublished": "2026-06-04",
+      "dateModified": "2026-06-04",
+      "author": {
+        "@id": "https://mxcl.github.io/pmm/#organization"
+      },
+      "publisher": {
+        "@id": "https://mxcl.github.io/pmm/#organization"
+      },
+      "mainEntityOfPage": {
+        "@id": "https://mxcl.github.io/pmm/blog/agent-pack/#webpage"
+      }
+    },
+    {
+      "@type": "WebPage",
+      "@id": "https://mxcl.github.io/pmm/blog/agent-pack/#webpage",
+      "url": "https://mxcl.github.io/pmm/blog/agent-pack/",
+      "name": "Agent Pack",
+      "isPartOf": {
+        "@id": "https://mxcl.github.io/pmm/blog/#blog"
+      },
+      "breadcrumb": {
+        "@id": "https://mxcl.github.io/pmm/blog/agent-pack/#breadcrumb"
+      }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "@id": "https://mxcl.github.io/pmm/blog/agent-pack/#breadcrumb",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Package Manager Manager",
+          "item": "https://mxcl.github.io/pmm/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Blog",
+          "item": "https://mxcl.github.io/pmm/blog/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Agent Pack",
+          "item": "https://mxcl.github.io/pmm/blog/agent-pack/"
+        }
+      ]
+    }
+  ]
+}
+  </script>
+  <link rel="icon" href="../../boxes.png" sizes="16x16 32x32 48x48">
+  <link rel="apple-touch-icon" href="../../boxes.png">
+  <link rel="stylesheet" href="../../styles.css">
+</head>
+<body>
+  <div class="scroll-meter" aria-hidden="true"><span></span></div>
+  <div class="site-shell" id="top">
+    <header class="masthead">
+      <a class="brand" href="../../" aria-label="Package Manager Manager home">
+        <img class="brand-mark" src="../../boxes.png" alt="Package Manager Manager" width="54" height="54">
+        <span class="brand-type">pkg⋅mgr²</span>
+      </a>
+
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-label="Toggle navigation">
+        <span></span>
+        <span></span>
+      </button>
+
+      <nav class="nav" aria-label="Main navigation">
+        <a href="../../">Home</a>
+        <a href="#packages">Packages</a>
+        <a href="../" aria-current="page">Blog</a>
+        <a href="https://github.com/mxcl/pmm#readme">Docs</a>
+        <a href="https://github.com/mxcl/pmm/releases/latest">Download</a>
+        <a href="https://github.com/mxcl/pmm">GitHub</a>
+      </nav>
+    </header>
+
+    <main>
+      <article>
+        <header class="article-hero">
+          <div class="article-hero-copy">
+            <p class="eyebrow">Agent Pack</p>
+            <h1>Agent Pack.</h1>
+            <p class="lede">
+              Agent CLIs and coding assistants for terminal-native planning, editing, review, model routing, and usage inspection.
+            </p>
+            <div class="hero-actions">
+              <a
+                class="button primary"
+                href="#packages"
+              >Browse the tools</a>
+              <a class="button text" href="#packages">Package list</a>
+            </div>
+          </div>
+          <figure class="article-hero-image">
+            <img
+              src="../../boxes.png"
+              alt="Agent Pack package grid artwork"
+              width="1200"
+              height="675"
+              decoding="async"
+              fetchpriority="high"
+            >
+          </figure>
+        </header>
+
+        <section class="article-body" aria-label="Agent Pack overview">
+          <p>
+            Agent work no longer happens inside one app. Operators jump between coding assistants, model routers, usage inspectors, and terminal-native CLIs that can plan, edit, review, and explain a repository from the shell.
+          </p>
+          <p>
+            Agent Pack lists those tools for Package Manager Manager users. Use it when a workstation needs the practical agent surface without a separate pack installer.
+          </p>
+        </section>
+
+        <section class="toolkit-summary" aria-labelledby="why-this-pack">
+          <div class="section-label">
+            <h2 id="why-this-pack">Why this pack exists</h2>
+            <span>agent layer</span>
+          </div>
+          <div class="compare-grid">
+            <article>
+              <span>01 / assistants</span>
+              <h3>Run the coding agents developers use.</h3>
+              <p>Codex, Claude Code, Goose, Aider, OpenCode, Gemini CLI, and Qwen Code cover the common terminal-native agent entry points.</p>
+            </article>
+            <article>
+              <span>02 / routing</span>
+              <h3>Keep model access scriptable.</h3>
+              <p>llm and mods make prompts, providers, and shell pipelines easier to compose without leaving the terminal.</p>
+            </article>
+            <article>
+              <span>03 / accounting</span>
+              <h3>Know what the agents cost.</h3>
+              <p>ccusage gives operators a quick view of Claude Code token and cost usage before a run grows invisible.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="pack-install-band" aria-labelledby="install-pack">
+          <div>
+            <p class="story-kicker">One at a time</p>
+            <h2 id="install-pack">Install these 10 agent tools individually from the app.</h2>
+            <p>
+              pkg⋅mgr² opens one package per install link today. Use the package list below to install the tools you want.
+            </p>
+          </div>
+          <a
+            class="button primary"
+            href="#packages"
+          >Browse packages</a>
+        </section>
+
+        <section class="package-directory" id="packages" aria-labelledby="package-list-title">
+          <div class="section-label">
+            <h2 id="package-list-title">Every package in Agent Pack</h2>
+            <span>10 tools</span>
+          </div>
+          <div class="package-grid">
+            <article class="package-card">
+              <img src="../../boxes.png" alt="Abstract Agent Pack artwork for codex" width="1200" height="675" loading="lazy" decoding="async">
+              <div class="package-card-body">
+                <p class="story-kicker">Coding agent</p>
+                <h3><a href="https://formulae.brew.sh/cask/codex">codex</a></h3>
+                <p>OpenAI Codex CLI for terminal-native planning, editing, and code review.</p>
+                <div class="package-actions">
+                  <a href="https://formulae.brew.sh/cask/codex">Homebrew page</a>
+                  <a href="pkgmgrmgr://brew/cask/codex">Install in app</a>
+                </div>
+              </div>
+            </article>
+            <article class="package-card">
+              <img src="../../boxes.png" alt="Abstract Agent Pack artwork for claude-code" width="1200" height="675" loading="lazy" decoding="async">
+              <div class="package-card-body">
+                <p class="story-kicker">Coding agent</p>
+                <h3><a href="https://formulae.brew.sh/formula/claude-code">claude-code</a></h3>
+                <p>Anthropic Claude Code for repository work, edits, and terminal workflows.</p>
+                <div class="package-actions">
+                  <a href="https://formulae.brew.sh/formula/claude-code">Homebrew page</a>
+                  <a href="pkgmgrmgr://brew/claude-code">Install in app</a>
+                </div>
+              </div>
+            </article>
+            <article class="package-card">
+              <img src="../../boxes.png" alt="Abstract Agent Pack artwork for block-goose-cli" width="1200" height="675" loading="lazy" decoding="async">
+              <div class="package-card-body">
+                <p class="story-kicker">Agent runtime</p>
+                <h3><a href="https://formulae.brew.sh/formula/block-goose-cli">block-goose-cli</a></h3>
+                <p>Block Goose command line agent for extensible local automation.</p>
+                <div class="package-actions">
+                  <a href="https://formulae.brew.sh/formula/block-goose-cli">Homebrew page</a>
+                  <a href="pkgmgrmgr://brew/block-goose-cli">Install in app</a>
+                </div>
+              </div>
+            </article>
+            <article class="package-card">
+              <img src="../../boxes.png" alt="Abstract Agent Pack artwork for aider" width="1200" height="675" loading="lazy" decoding="async">
+              <div class="package-card-body">
+                <p class="story-kicker">Pair programmer</p>
+                <h3><a href="https://formulae.brew.sh/formula/aider">aider</a></h3>
+                <p>AI pair programming in the terminal with Git-aware code edits.</p>
+                <div class="package-actions">
+                  <a href="https://formulae.brew.sh/formula/aider">Homebrew page</a>
+                  <a href="pkgmgrmgr://brew/aider">Install in app</a>
+                </div>
+              </div>
+            </article>
+            <article class="package-card">
+              <img src="../../boxes.png" alt="Abstract Agent Pack artwork for opencode" width="1200" height="675" loading="lazy" decoding="async">
+              <div class="package-card-body">
+                <p class="story-kicker">Coding agent</p>
+                <h3><a href="https://formulae.brew.sh/formula/opencode">opencode</a></h3>
+                <p>Terminal coding assistant for project navigation, edits, and review loops.</p>
+                <div class="package-actions">
+                  <a href="https://formulae.brew.sh/formula/opencode">Homebrew page</a>
+                  <a href="pkgmgrmgr://brew/opencode">Install in app</a>
+                </div>
+              </div>
+            </article>
+            <article class="package-card">
+              <img src="../../boxes.png" alt="Abstract Agent Pack artwork for gemini-cli" width="1200" height="675" loading="lazy" decoding="async">
+              <div class="package-card-body">
+                <p class="story-kicker">Model CLI</p>
+                <h3><a href="https://formulae.brew.sh/formula/gemini-cli">gemini-cli</a></h3>
+                <p>Gemini command line access for coding, analysis, and prompt workflows.</p>
+                <div class="package-actions">
+                  <a href="https://formulae.brew.sh/formula/gemini-cli">Homebrew page</a>
+                  <a href="pkgmgrmgr://brew/gemini-cli">Install in app</a>
+                </div>
+              </div>
+            </article>
+            <article class="package-card">
+              <img src="../../boxes.png" alt="Abstract Agent Pack artwork for qwen-code" width="1200" height="675" loading="lazy" decoding="async">
+              <div class="package-card-body">
+                <p class="story-kicker">Coding agent</p>
+                <h3><a href="https://formulae.brew.sh/formula/qwen-code">qwen-code</a></h3>
+                <p>Qwen Code CLI for agentic coding and terminal assistance.</p>
+                <div class="package-actions">
+                  <a href="https://formulae.brew.sh/formula/qwen-code">Homebrew page</a>
+                  <a href="pkgmgrmgr://brew/qwen-code">Install in app</a>
+                </div>
+              </div>
+            </article>
+            <article class="package-card">
+              <img src="../../boxes.png" alt="Abstract Agent Pack artwork for ccusage" width="1200" height="675" loading="lazy" decoding="async">
+              <div class="package-card-body">
+                <p class="story-kicker">Usage accounting</p>
+                <h3><a href="https://formulae.brew.sh/formula/ccusage">ccusage</a></h3>
+                <p>Inspect Claude Code usage and cost from local terminal data.</p>
+                <div class="package-actions">
+                  <a href="https://formulae.brew.sh/formula/ccusage">Homebrew page</a>
+                  <a href="pkgmgrmgr://brew/ccusage">Install in app</a>
+                </div>
+              </div>
+            </article>
+            <article class="package-card">
+              <img src="../../boxes.png" alt="Abstract Agent Pack artwork for llm" width="1200" height="675" loading="lazy" decoding="async">
+              <div class="package-card-body">
+                <p class="story-kicker">Model router</p>
+                <h3><a href="https://formulae.brew.sh/formula/llm">llm</a></h3>
+                <p>Run prompts, manage models, and compose LLM workflows from the shell.</p>
+                <div class="package-actions">
+                  <a href="https://formulae.brew.sh/formula/llm">Homebrew page</a>
+                  <a href="pkgmgrmgr://brew/llm">Install in app</a>
+                </div>
+              </div>
+            </article>
+            <article class="package-card">
+              <img src="../../boxes.png" alt="Abstract Agent Pack artwork for mods" width="1200" height="675" loading="lazy" decoding="async">
+              <div class="package-card-body">
+                <p class="story-kicker">Prompt operator</p>
+                <h3><a href="https://formulae.brew.sh/formula/mods">mods</a></h3>
+                <p>Pipe command output through models and keep prompt workflows scriptable.</p>
+                <div class="package-actions">
+                  <a href="https://formulae.brew.sh/formula/mods">Homebrew page</a>
+                  <a href="pkgmgrmgr://brew/mods">Install in app</a>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <p>&copy; 2026 Package Manager Manager.</p>
+      <div class="footer-links">
+        <a href="../../">Home</a>
+        <a href="../">Blog</a>
+        <a href="https://github.com/mxcl/pmm/releases/latest">Download</a>
+        <a href="https://github.com/mxcl/pmm">GitHub</a>
+      </div>
+    </footer>
+  </div>
+
+  <script src="../../app.js"></script>
+</body>
+</html>
