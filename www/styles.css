@@ -193,6 +193,7 @@ h1 {
   border: 1px solid var(--line);
   border-radius: 7px;
   font-weight: 750;
+  white-space: nowrap;
 }
 
 .button.primary {
