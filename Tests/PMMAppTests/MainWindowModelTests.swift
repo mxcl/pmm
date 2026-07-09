@@ -247,6 +247,38 @@ import Testing
     #expect(python.identifier == "brew:python@3.13")
 }
 
+@Test func dashboardBlogIndexDecodesCategoriesAndIcons() throws {
+    let data = """
+    {
+      "posts": [
+        {
+          "slug": "agent-pack",
+          "title": "Agent Pack",
+          "subtitle": "10 agent CLIs and assistants",
+          "category": "pack",
+          "systemImage": "sparkles",
+          "publishedAt": "Jun 4, 2026",
+          "url": "https://mxcl.dev/package-manager-manager/blog/agent-pack/"
+        },
+        {
+          "slug": "introducing-package-manager-manager",
+          "title": "Introducing Package Manager Manager",
+          "subtitle": "See what every package manager installed",
+          "category": "blog",
+          "systemImage": "square.grid.2x2",
+          "publishedAt": "Jul 9, 2026",
+          "url": "https://mxcl.dev/package-manager-manager/blog/introducing-package-manager-manager/"
+        }
+      ]
+    }
+    """.data(using: .utf8)!
+
+    let index = try JSONDecoder().decode(DashboardBlogIndex.self, from: data)
+
+    #expect(index.posts.map(\.category) == [.pack, .blog])
+    #expect(index.posts.map(\.systemImage) == ["sparkles", "square.grid.2x2"])
+}
+
 @MainActor
 @Test func packageInstallURLAsksForConfirmation() {
     let model = MainWindowModel(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)

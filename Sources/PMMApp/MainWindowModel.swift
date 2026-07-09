@@ -286,19 +286,25 @@ private enum MainWindowPackageURLCommand: Equatable {
     }
 }
 
-struct DashboardInstallPack: Codable, Equatable, Identifiable, Sendable {
+enum DashboardBlogCategory: String, Codable, Sendable {
+    case pack
+    case blog
+}
+
+struct DashboardBlogEntry: Codable, Equatable, Identifiable, Sendable {
     let slug: String
     let title: String
     let subtitle: String
+    let category: DashboardBlogCategory
     let systemImage: String
+    let publishedAt: String
     let url: URL
-    let packages: [String]
 
     var id: String { slug }
 }
 
-private struct DashboardInstallPackIndex: Decodable, Sendable {
-    let packs: [DashboardInstallPack]
+struct DashboardBlogIndex: Decodable, Sendable {
+    let posts: [DashboardBlogEntry]
 }
 
 struct MainWindowInstallPackConfirmation: Equatable, Sendable {
@@ -361,7 +367,7 @@ private func mainWindowGitHubRepoReleaseNotesURL(_ string: String?) -> URL? {
 
 @MainActor
 final class MainWindowModel: NSObject, ObservableObject {
-    static let defaultDashboardInstallPacksURL = URL(string: "https://mxcl.dev/package-manager-manager/packs/index.json")!
+    static let defaultDashboardBlogURL = URL(string: "https://mxcl.dev/package-manager-manager/blog/index.json")!
 
     @Published var selectedSection: MainWindowSection = .home
     @Published private(set) var packages: [ManagedPackage] = []
@@ -378,8 +384,8 @@ final class MainWindowModel: NSObject, ObservableObject {
     @Published private(set) var uninstallingPackageName: String?
     @Published private(set) var updatingPackageName: String?
     @Published private(set) var packageIDToScrollIntoView: String?
-    @Published private(set) var dashboardInstallPacks: [DashboardInstallPack] = []
-    @Published private(set) var dashboardInstallPacksAreLoading = false
+    @Published private(set) var dashboardBlogEntries: [DashboardBlogEntry] = []
+    @Published private(set) var dashboardBlogEntriesAreLoading = false
     @Published private(set) var pendingInstallPackConfirmation: MainWindowInstallPackConfirmation?
     @Published var searchText = ""
 
@@ -396,14 +402,14 @@ final class MainWindowModel: NSObject, ObservableObject {
     private let store: PackageHostStore
     private let dossierClient: PackageDossierClient?
     private var dossierTask: Task<Void, Never>?
-    private var dashboardInstallPacksTask: Task<Void, Never>?
+    private var dashboardBlogEntriesTask: Task<Void, Never>?
     private let notificationCenter = DistributedNotificationCenter.default()
 
     init(
         userDefaults: UserDefaults = .standard,
         store: PackageHostStore = PackageHostStore(),
         dossierClient: PackageDossierClient? = nil,
-        dashboardInstallPacksURL: URL? = nil
+        dashboardBlogURL: URL? = nil
     ) {
         self.userDefaults = userDefaults
         newUpdatedLastClickedAt = userDefaults.object(forKey: Self.newUpdatedLastClickedAtDefaultsKey) as? Date
@@ -411,15 +417,15 @@ final class MainWindowModel: NSObject, ObservableObject {
         self.dossierClient = dossierClient
         super.init()
         syncFromHost()
-        if let dashboardInstallPacksURL {
-            loadDashboardInstallPacks(from: dashboardInstallPacksURL)
+        if let dashboardBlogURL {
+            loadDashboardBlogEntries(from: dashboardBlogURL)
         }
         notificationCenter.addObserver(self, selector: #selector(hostSnapshotChanged(_:)), name: PackageHostNotifications.snapshotChanged, object: nil)
     }
 
     deinit {
         dossierTask?.cancel()
-        dashboardInstallPacksTask?.cancel()
+        dashboardBlogEntriesTask?.cancel()
         notificationCenter.removeObserver(self)
     }
 
@@ -463,6 +469,14 @@ final class MainWindowModel: NSObject, ObservableObject {
 
     var dashboardRecommendedPackages: [ManagedPackage] {
         Array(packageIndex.recommendedPackages.prefix(3))
+    }
+
+    var dashboardBlogPosts: [DashboardBlogEntry] {
+        dashboardBlogEntries.filter { $0.category == .blog }
+    }
+
+    var dashboardInstallPacks: [DashboardBlogEntry] {
+        dashboardBlogEntries.filter { $0.category == .pack }
     }
 
     var visibleManagerSections: [MainWindowSection] {
@@ -605,29 +619,29 @@ final class MainWindowModel: NSObject, ObservableObject {
         searchText.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private static func fetchDashboardInstallPacks(from url: URL) async throws -> [DashboardInstallPack] {
+    private static func fetchDashboardBlogEntries(from url: URL) async throws -> [DashboardBlogEntry] {
         let (data, _) = try await URLSession.shared.data(from: url)
-        return try JSONDecoder().decode(DashboardInstallPackIndex.self, from: data).packs
+        return try JSONDecoder().decode(DashboardBlogIndex.self, from: data).posts
     }
 
-    private func loadDashboardInstallPacks(from url: URL) {
-        dashboardInstallPacksTask?.cancel()
-        dashboardInstallPacksAreLoading = true
-        dashboardInstallPacksTask = Task { [url] in
-            let result = await Task.detached(priority: .utility) { () -> Result<[DashboardInstallPack], Error> in
+    private func loadDashboardBlogEntries(from url: URL) {
+        dashboardBlogEntriesTask?.cancel()
+        dashboardBlogEntriesAreLoading = true
+        dashboardBlogEntriesTask = Task { [url] in
+            let result = await Task.detached(priority: .utility) { () -> Result<[DashboardBlogEntry], Error> in
                 do {
-                    return .success(try await Self.fetchDashboardInstallPacks(from: url))
+                    return .success(try await Self.fetchDashboardBlogEntries(from: url))
                 } catch {
                     return .failure(error)
                 }
             }.value
 
             guard !Task.isCancelled else { return }
-            dashboardInstallPacksAreLoading = false
-            if case .success(let packs) = result {
-                dashboardInstallPacks = packs
+            dashboardBlogEntriesAreLoading = false
+            if case .success(let posts) = result {
+                dashboardBlogEntries = posts
             } else {
-                dashboardInstallPacks = []
+                dashboardBlogEntries = []
             }
         }
     }

@@ -6,7 +6,7 @@ import SwiftUI
 final class MainWindowController: NSHostingController<MainWindowRootView> {
     private let model = MainWindowModel(
         dossierClient: PackageDossierClient(),
-        dashboardInstallPacksURL: MainWindowModel.defaultDashboardInstallPacksURL
+        dashboardBlogURL: MainWindowModel.defaultDashboardBlogURL
     )
     private var showsAppUpdateButton = false
 

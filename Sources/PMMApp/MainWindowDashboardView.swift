@@ -3,7 +3,7 @@ import SwiftUI
 
 private let dashboardItemCornerRadius: CGFloat = 17.5
 private let dashboardCardSpacing: CGFloat = 8.5
-private let dashboardInstallPacksBlogURL = URL(string: "https://mxcl.dev/package-manager-manager/blog/")!
+private let dashboardBlogURL = URL(string: "https://mxcl.dev/package-manager-manager/blog/")!
 
 struct MainWindowDashboardView: View {
     @ObservedObject var model: MainWindowModel
@@ -40,9 +40,9 @@ struct MainWindowDashboardView: View {
             }
             DashboardMetricCard(
                 title: "Install packs",
-                value: model.dashboardInstallPacksAreLoading ? nil : model.dashboardInstallPacks.count,
-                detail: model.dashboardInstallPacksAreLoading ? nil : "Published",
-                isLoading: model.dashboardInstallPacksAreLoading,
+                value: model.dashboardBlogEntriesAreLoading ? nil : model.dashboardInstallPacks.count,
+                detail: model.dashboardBlogEntriesAreLoading ? nil : "Published",
+                isLoading: model.dashboardBlogEntriesAreLoading,
                 tint: AnyShapeStyle(Color.accentColor)
             )
         }
@@ -73,10 +73,13 @@ struct MainWindowDashboardView: View {
     private var dashboardSideColumn: some View {
         VStack(spacing: dashboardCardSpacing) {
             DashboardSponsoredCard()
-            DashboardUpdatesCard()
+            DashboardUpdatesCard(
+                posts: model.dashboardBlogPosts,
+                isLoading: model.dashboardBlogEntriesAreLoading
+            )
             DashboardInstallPacksCard(
                 packs: model.dashboardInstallPacks,
-                isLoading: model.dashboardInstallPacksAreLoading
+                isLoading: model.dashboardBlogEntriesAreLoading
             )
         }
     }
@@ -419,48 +422,66 @@ private struct DashboardSponsoredCard: View {
 }
 
 private struct DashboardUpdatesCard: View {
-    private let updates = [
-        ("Introducing Install Packs", "Ship complete workflows in one click", "May 28, 2025", "shippingbox"),
-        ("Hermes in a Box: Safer agents", "Contain, approve, control", "May 22, 2025", "lock.cube"),
-        ("10,000 packages. One mission.", "Securing the open source supply chain", "May 15, 2025", "network.badge.shield.half.filled"),
-    ]
+    let posts: [DashboardBlogEntry]
+    let isLoading: Bool
+
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         DashboardCard {
-            DashboardSectionHeader(title: "Blog & Updates")
-            VStack(spacing: 12) {
-                ForEach(updates, id: \.0) { update in
-                    HStack(spacing: 12) {
-                        Image(systemName: update.3)
-                            .font(.system(size: 20, weight: .medium))
-                            .foregroundStyle(SystemColor.primaryText)
-                            .frame(width: 48, height: 48)
-                            .background(SystemColor.controlFill, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(update.0)
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(SystemColor.primaryText)
-                                .lineLimit(1)
-                            Text(update.1)
-                                .font(.system(size: 11))
-                                .foregroundStyle(SystemColor.secondaryText)
-                                .lineLimit(1)
-                            Text(update.2)
-                                .font(.system(size: 11))
-                                .foregroundStyle(SystemColor.quietText)
+            DashboardSectionHeader(title: "Blog & Updates") {
+                openURL(dashboardBlogURL)
+            }
+            VStack(spacing: 0) {
+                if isLoading {
+                    ProgressView()
+                        .controlSize(.small)
+                        .frame(maxWidth: .infinity, minHeight: 120)
+                } else if posts.isEmpty {
+                    Text("No blog posts yet")
+                        .font(.system(size: 12))
+                        .foregroundStyle(SystemColor.secondaryText)
+                        .frame(maxWidth: .infinity, minHeight: 92)
+                } else {
+                    ForEach(posts) { post in
+                        Link(destination: post.url) {
+                            HStack(spacing: 12) {
+                                Image(systemName: post.systemImage)
+                                    .font(.system(size: 20, weight: .medium))
+                                    .foregroundStyle(SystemColor.primaryText)
+                                    .frame(width: 48, height: 48)
+                                    .background(SystemColor.controlFill, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(post.title)
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundStyle(SystemColor.primaryText)
+                                        .lineLimit(1)
+                                    Text(post.subtitle)
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(SystemColor.secondaryText)
+                                        .lineLimit(1)
+                                    Text(post.publishedAt)
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(SystemColor.quietText)
+                                }
+                                Spacer(minLength: 0)
+                            }
                         }
-                        Spacer(minLength: 0)
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 12)
+                        if post.id != posts.last?.id {
+                            Divider().overlay(SystemColor.hairline)
+                        }
                     }
                 }
             }
-            .padding(.horizontal, 18)
-            .padding(.bottom, 18)
         }
     }
 }
 
 private struct DashboardInstallPacksCard: View {
-    let packs: [DashboardInstallPack]
+    let packs: [DashboardBlogEntry]
     let isLoading: Bool
 
     @Environment(\.openURL) private var openURL
@@ -468,7 +489,7 @@ private struct DashboardInstallPacksCard: View {
     var body: some View {
         DashboardCard {
             DashboardSectionHeader(title: "Install Packs") {
-                openURL(dashboardInstallPacksBlogURL)
+                openURL(dashboardBlogURL)
             }
             VStack(spacing: 0) {
                 if isLoading {

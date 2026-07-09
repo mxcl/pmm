@@ -1,0 +1,49 @@
+{
+  "posts": [
+    {
+      "slug": "introducing-install-packs",
+      "title": "Introducing Install Packs",
+      "subtitle": "Ship complete workflows in one click",
+      "category": "blog",
+      "systemImage": "shippingbox",
+      "publishedAt": "Jul 9, 2026",
+      "url": "https://mxcl.dev/package-manager-manager/blog/introducing-install-packs/"
+    },
+    {
+      "slug": "introducing-package-manager-manager",
+      "title": "Introducing Package Manager Manager",
+      "subtitle": "See what every package manager installed",
+      "category": "blog",
+      "systemImage": "square.grid.2x2",
+      "publishedAt": "Jul 9, 2026",
+      "url": "https://mxcl.dev/package-manager-manager/blog/introducing-package-manager-manager/"
+    },
+    {
+      "slug": "agentic-toolkit",
+      "title": "Agentic Toolkit",
+      "subtitle": "26 tools for agent workflows",
+      "category": "pack",
+      "systemImage": "shippingbox",
+      "publishedAt": "Jun 2, 2026",
+      "url": "https://mxcl.dev/package-manager-manager/blog/agentic-toolkit/"
+    },
+    {
+      "slug": "agent-pack",
+      "title": "Agent Pack",
+      "subtitle": "10 agent CLIs and assistants",
+      "category": "pack",
+      "systemImage": "sparkles",
+      "publishedAt": "Jun 4, 2026",
+      "url": "https://mxcl.dev/package-manager-manager/blog/agent-pack/"
+    },
+    {
+      "slug": "unix-plus-plus",
+      "title": "UNIX++ Pack",
+      "subtitle": "23 modern shell tools",
+      "category": "pack",
+      "systemImage": "terminal",
+      "publishedAt": "Jun 4, 2026",
+      "url": "https://mxcl.dev/package-manager-manager/blog/unix-plus-plus/"
+    }
+  ]
+}
