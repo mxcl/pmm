@@ -1,3 +1,4 @@
+import CoreImage
 import PMMCore
 import SwiftUI
 
@@ -365,6 +366,14 @@ private struct DashboardRecommendationCard: View {
 private struct DashboardSponsoredCard: View {
     @Environment(\.colorScheme) private var colorScheme
     private let url = URL(string: "https://automicvault.com")!
+    private static let ditherImage: CGImage? = {
+        let extent = CGRect(x: 0, y: 0, width: 64, height: 64)
+        guard let noise = CIFilter(name: "CIRandomGenerator")?.outputImage?
+            .applyingFilter("CIColorControls", parameters: [kCIInputSaturationKey: 0])
+            .cropped(to: extent)
+        else { return nil }
+        return CIContext(options: [.cacheIntermediates: false]).createCGImage(noise, from: extent)
+    }()
 
     var body: some View {
         Link(destination: url) {
@@ -397,12 +406,24 @@ private struct DashboardSponsoredCard: View {
             .padding(16)
             .frame(maxWidth: .infinity, minHeight: 200, alignment: .leading)
             .background {
-                LinearGradient(
-                    colors: [Color(red: 0.35, green: 0.16, blue: 0.62), Color(red: 0.98, green: 0.44, blue: 0.25), Color(red: 0.05, green: 0.06, blue: 0.10)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .clipShape(RoundedRectangle(cornerRadius: dashboardItemCornerRadius, style: .continuous))
+                Rectangle()
+                    .fill(
+                        .linearGradient(
+                            Gradient(colors: [Color(red: 0.35, green: 0.16, blue: 0.62), Color(red: 0.98, green: 0.44, blue: 0.25), Color(red: 0.05, green: 0.06, blue: 0.10)])
+                                .colorSpace(.perceptual),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .overlay {
+                        if let ditherImage = Self.ditherImage {
+                            Image(decorative: ditherImage, scale: 2)
+                                .resizable(resizingMode: .tile)
+                                .interpolation(.none)
+                                .opacity(2 / 255)
+                        }
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: dashboardItemCornerRadius, style: .continuous))
             }
             .overlay {
                 RoundedRectangle(cornerRadius: dashboardItemCornerRadius, style: .continuous)
