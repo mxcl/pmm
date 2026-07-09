@@ -93,6 +93,16 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    var sidebarImage: String? {
+        switch self {
+        case .rust: "EcosystemRust"
+        case .homebrew: "EcosystemHomebrew"
+        case .javascript: "EcosystemJavaScript"
+        case .python: "EcosystemPython"
+        default: nil
+        }
+    }
+
     var packageManagers: Set<PackageManagerKind> {
         switch self {
         case .rust: [.cargoInstall, .rustup]

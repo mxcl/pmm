@@ -60,11 +60,22 @@ struct MainWindowSidebarView: View {
         .tag(section)
     }
 
+    @ViewBuilder
     private func sidebarIcon(_ section: MainWindowSection) -> some View {
-        Image(systemName: section.systemImage)
-            .font(.system(size: 14, weight: .semibold))
-            .foregroundStyle(model.activeSidebarSection == section ? Color.accentColor : .primary)
-            .frame(width: 20, height: 20)
+        Group {
+            if let image = section.sidebarImage {
+                Image(image)
+                    .renderingMode(.template)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 16, height: 16)
+            } else {
+                Image(systemName: section.systemImage)
+                    .font(.system(size: 14, weight: .semibold))
+            }
+        }
+        .foregroundStyle(model.activeSidebarSection == section ? Color.accentColor : .primary)
+        .frame(width: 20, height: 20)
     }
 }
 
