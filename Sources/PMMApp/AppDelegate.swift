@@ -28,8 +28,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.mainMenu = makeMainMenu()
-        showMainWindow()
         launchMenuBarApp()
+        showMainWindow()
         checkForUpdates(reportCurrent: false)
     }
 
