@@ -68,7 +68,7 @@ struct MainWindowSidebarView: View {
                     .renderingMode(.template)
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 16, height: 16)
+                    .frame(width: 20, height: 20)
             } else {
                 Image(systemName: section.systemImage)
                     .font(.system(size: 14, weight: .semibold))
