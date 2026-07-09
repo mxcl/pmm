@@ -25,6 +25,24 @@ import Testing
     #expect(output.string == "Downloading\nInstalling\n")
 }
 
+@Test func terminalOutputHandlesRepeatedMultilineProgressReplacement() {
+    let output = mainWindowTerminalAttributedOutput("""
+    Header
+    : Bottle pitchfork ## Downloading 1.3MB
+    : Bottle usage #### Downloading
+    \u{1B}[2A\u{1B}[G\u{1B}[K: Bottle pitchfork ### Downloading 1.8MB
+    \u{1B}[K: Bottle usage ##### Downloaded
+    \u{1B}[2F\u{1B}[K: Bottle pitchfork #### Downloading 2.1MB
+    \u{1B}[K: Bottle usage ##### Downloaded
+    """)
+
+    #expect(output.string == """
+    Header
+    : Bottle pitchfork #### Downloading 2.1MB
+    : Bottle usage ##### Downloaded
+    """)
+}
+
 @MainActor
 @Test func inventoryApplyDoesNotSelectPackageAutomatically() {
     let model = MainWindowModel(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)

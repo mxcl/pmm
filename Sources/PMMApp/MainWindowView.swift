@@ -997,6 +997,7 @@ func mainWindowTerminalAttributedOutput(_ output: String) -> NSAttributedString 
     let defaultColor = NSColor.labelColor
     var color = defaultColor
     var lineStarts = [0]
+    var currentColumn = 0
     var index = output.startIndex
 
     var lineStart: Int { lineStarts.last ?? 0 }
@@ -1008,12 +1009,16 @@ func mainWindowTerminalAttributedOutput(_ output: String) -> NSAttributedString 
         ))
         if character == "\n" {
             lineStarts.append(result.length)
+            currentColumn = 0
+        } else {
+            currentColumn += 1
         }
     }
 
-    func clearLine() {
-        if result.length > lineStart {
+    func clearLine(force: Bool = false) {
+        if (force || currentColumn == 0), result.length > lineStart {
             result.deleteCharacters(in: NSRange(location: lineStart, length: result.length - lineStart))
+            currentColumn = 0
         }
     }
 
@@ -1028,6 +1033,7 @@ func mainWindowTerminalAttributedOutput(_ output: String) -> NSAttributedString 
             result.deleteCharacters(in: NSRange(location: targetStart, length: result.length - targetStart))
         }
         lineStarts = Array(lineStarts.prefix(targetLine + 1))
+        currentColumn = 0
     }
 
     while index < output.endIndex {
@@ -1049,13 +1055,17 @@ func mainWindowTerminalAttributedOutput(_ output: String) -> NSAttributedString 
             let parameters = String(output[output.index(after: next)..<sequenceEnd])
             if command == "m" {
                 color = mainWindowANSIColor(parameters: parameters) ?? color
-            } else if command == "A" {
+            } else if command == "A" || command == "F" {
                 cursorUp(Int(parameters) ?? 1)
-            } else if command == "K", parameters == "2" {
+            } else if command == "G" {
+                currentColumn = max((Int(parameters) ?? 1) - 1, 0)
                 clearLine()
+            } else if command == "K" || command == "J" {
+                clearLine(force: parameters == "2")
             }
             index = output.index(after: sequenceEnd)
         } else if character == "\r" {
+            currentColumn = 0
             clearLine()
             index = output.index(after: index)
         } else {
