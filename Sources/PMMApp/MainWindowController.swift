@@ -70,14 +70,17 @@ struct MainWindowRootView: View {
                 }
                 .searchable(text: $model.searchText, placement: .sidebar, prompt: "Search")
                 .toolbar(removing: .title)
-                
+
             } else {
                 NavigationSplitView {
                     sidebar
                 } content: {
                     MainWindowPackageListView(model: model)
                         .navigationSplitViewColumnWidth(min: 252, ideal: 252, max: 252)
-                        .toolbar { updateAllToolbarItem }
+                        .toolbar {
+                            ToolbarSpacer() //TODO I only want to space it to the edge of this column! :-/
+                            updateAllToolbarItem
+                        }
                 } detail: {
                     HStack(spacing: 0) {
                         MainWindowDossierView(model: model)
