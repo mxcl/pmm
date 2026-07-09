@@ -933,6 +933,7 @@ private struct PackageCommandProgressView: View {
             HStack(spacing: 12) {
                 ProgressView()
                     .controlSize(.large)
+                    .padding(.leading, 15)
                 Text(title)
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(SystemColor.primaryText)
@@ -954,6 +955,7 @@ private struct PackageCommandProgressView: View {
                 .frame(height: 300)
         }
         .frame(width: TerminalOutputTextView.eightyColumnWidth)
+        .padding(5)
         .background(LiquidGlassSurface(material: .ultraThinMaterial, tint: SystemColor.windowTint))
     }
 }
