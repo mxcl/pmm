@@ -203,7 +203,9 @@ struct MainWindowDossierView: View {
         .sheet(isPresented: packageActionModalBinding) {
             PackageCommandProgressView(
                 command: model.packageActionCommand,
-                output: model.packageActionOutput
+                output: model.packageActionOutput,
+                error: model.packageActionError,
+                dismiss: model.dismissPackageAction
             )
                 .interactiveDismissDisabled(true)
         }
@@ -214,7 +216,7 @@ struct MainWindowDossierView: View {
     }
 
     private var packageActionModalBinding: Binding<Bool> {
-        Binding(get: { isPackageActionRunning }, set: { _ in })
+        Binding(get: { isPackageActionRunning || model.packageActionError != nil }, set: { _ in })
     }
 
     private func updateButtonTitle(for package: ManagedPackage) -> String {
@@ -973,6 +975,8 @@ private struct InfoRow: View {
 private struct PackageCommandProgressView: View {
     let command: String?
     let output: String
+    let error: String?
+    let dismiss: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -990,6 +994,16 @@ private struct PackageCommandProgressView: View {
             }
             TerminalOutputTextView(output: output)
                 .frame(width: TerminalOutputTextView.scrollViewWidth, height: 300)
+            if let error {
+                HStack {
+                    Label(error, systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.red)
+                        .textSelection(.enabled)
+                    Spacer()
+                    Button("Dismiss", action: dismiss)
+                        .keyboardShortcut(.cancelAction)
+                }
+            }
         }
         .frame(width: TerminalOutputTextView.scrollViewWidth)
         .padding(5)

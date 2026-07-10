@@ -385,6 +385,7 @@ final class MainWindowModel: NSObject, ObservableObject {
     @Published private(set) var updatingPackageName: String?
     @Published private(set) var packageActionCommand: String?
     @Published private(set) var packageActionOutput = ""
+    @Published private(set) var packageActionError: String?
     @Published private(set) var packageIDToScrollIntoView: String?
     @Published private(set) var dashboardBlogEntries: [DashboardBlogEntry] = []
     @Published private(set) var dashboardBlogEntriesAreLoading = false
@@ -602,6 +603,13 @@ final class MainWindowModel: NSObject, ObservableObject {
     func updateAllOutdatedPackages() {
         guard canUpdateAllOutdatedPackages else { return }
         PackageHostNotifications.postUpdateAllRequested()
+    }
+
+    func dismissPackageAction() {
+        guard !isPackageActionRunning else { return }
+        packageActionCommand = nil
+        packageActionOutput = ""
+        packageActionError = nil
     }
 
     func confirmPendingInstallPack() {
@@ -824,6 +832,7 @@ final class MainWindowModel: NSObject, ObservableObject {
 #endif
 
     private func apply(snapshot: PackageHostSnapshot, inventory: PackageInventory) {
+        let packageActionWasRunning = isPackageActionRunning
         isReloading = snapshot.isRefreshing
         loadingManagers = snapshot.loadingManagers ?? (snapshot.isRefreshing ? Set(PackageManagerKind.allCases) : [])
         var nextErrors = inventory.errors
@@ -843,8 +852,16 @@ final class MainWindowModel: NSObject, ObservableObject {
         installingPackageName = snapshot.runningAction?.kind == .install ? snapshot.runningAction?.displayName : nil
         uninstallingPackageName = snapshot.runningAction?.kind == .uninstall ? snapshot.runningAction?.displayName : nil
         updatingPackageName = snapshot.runningAction?.kind == .update ? snapshot.runningAction?.displayName : nil
-        packageActionCommand = snapshot.runningAction?.command
-        packageActionOutput = snapshot.runningAction?.output ?? ""
+        if let runningAction = snapshot.runningAction {
+            packageActionCommand = runningAction.command
+            packageActionOutput = runningAction.output ?? ""
+            packageActionError = nil
+        } else if packageActionWasRunning, let errorMessage = snapshot.errorMessage {
+            packageActionError = errorMessage
+        } else if packageActionError == nil {
+            packageActionCommand = nil
+            packageActionOutput = ""
+        }
     }
 
     @objc private func hostSnapshotChanged(_ notification: Notification) {

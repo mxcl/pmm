@@ -212,6 +212,39 @@ import Testing
 }
 
 @MainActor
+@Test func failedPackageActionStaysAvailableUntilDismissed() {
+    let model = MainWindowModel(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
+    let package = ManagedPackage(manager: .homebrew, name: "git", installedVersion: "1", latestVersion: "2")
+    let inventory = PackageInventory(packages: [package])
+
+    model.apply(snapshot: PackageHostSnapshot(
+        inventory: inventory,
+        runningAction: PackageHostRunningAction(
+            kind: .update,
+            packageID: package.id,
+            displayName: "git",
+            command: "brew upgrade git",
+            output: "Updating git\n"
+        )
+    ))
+    model.apply(snapshot: PackageHostSnapshot(
+        inventory: inventory,
+        errorMessage: "Update failed"
+    ))
+
+    #expect(model.updatingPackageName == nil)
+    #expect(model.packageActionCommand == "brew upgrade git")
+    #expect(model.packageActionOutput == "Updating git\n")
+    #expect(model.packageActionError == "Update failed")
+
+    model.dismissPackageAction()
+
+    #expect(model.packageActionCommand == nil)
+    #expect(model.packageActionOutput == "")
+    #expect(model.packageActionError == nil)
+}
+
+@MainActor
 @Test func modelCanInstallOnlyCatalogPackagesNotAlreadyInstalled() {
     let model = MainWindowModel(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
     let installed = ManagedPackage(manager: .homebrew, name: "git", installedVersion: "1", latestVersion: "1")
