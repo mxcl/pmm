@@ -507,6 +507,10 @@ h1 {
   border-top: 1px solid var(--line);
 }
 
+.release-story {
+  grid-template-columns: minmax(0, 1.28fr) minmax(300px, 0.72fr);
+}
+
 .story-copy h2 {
   font-size: clamp(2.4rem, 5vw, 4rem);
 }
