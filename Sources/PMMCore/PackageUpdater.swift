@@ -34,6 +34,7 @@ public struct PackageUpdater: Sendable {
         case .uvx:
             throw PackageUpdateError.unsupportedManager(package.manager)
         }
+        PostHogTelemetry.shared.capturePackageUpdated(package)
     }
 
     public static func supports(_ package: ManagedPackage) -> Bool {

@@ -239,6 +239,7 @@ if $clobber && ! $publish; then
 fi
 
 if $publish; then
+  [[ -n "${POSTHOG_API_KEY:-}" ]] || die "Set POSTHOG_API_KEY in the environment for --publish"
   require_tool git
   require_tool gh
   git -C "$root" rev-parse --is-inside-work-tree >/dev/null ||
@@ -447,6 +448,10 @@ cat > "$work/HelperInfo.plist.xml" <<EOF
 EOF
 
 plutil -convert binary1 -o "$helper_app/Contents/Info.plist" "$work/HelperInfo.plist.xml"
+if $publish; then
+  plutil -insert PostHogAPIKey -string "$POSTHOG_API_KEY" "$app/Contents/Info.plist"
+  plutil -insert PostHogAPIKey -string "$POSTHOG_API_KEY" "$helper_app/Contents/Info.plist"
+fi
 codesign "${codesign_args[@]}" "$helper_app" >/dev/null
 mv "$helper_app" "$app/Contents/Library/LoginItems/$helper_app_name.app"
 codesign "${codesign_args[@]}" "$app" >/dev/null

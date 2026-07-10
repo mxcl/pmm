@@ -1,4 +1,5 @@
 .build/
 .swiftpm/
 DerivedData/
-dist/
+/dist/
+/.envrc

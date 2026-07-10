@@ -1,5 +1,6 @@
 import AppKit
 import AppUpdater
+import PMMCore
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -27,6 +28,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        PostHogTelemetry.shared.captureAppOpened()
         NSApp.mainMenu = makeMainMenu()
 #if DEBUG
         let isTerminalDemo = ProcessInfo.processInfo.environment["PMM_TERMINAL_DEMO"] == "1"
