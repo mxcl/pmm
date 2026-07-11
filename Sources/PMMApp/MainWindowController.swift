@@ -95,7 +95,10 @@ struct MainWindowRootView: View {
                             .frame(minWidth: 350, maxWidth: .infinity)
                     }
                     .navigationSplitViewColumnWidth(min: 602, ideal: 876)
-                    .toolbar { appUpdateToolbarItem }
+                    .toolbar {
+                        ToolbarSpacer() // or updateAllToolbarItem comes over here
+                        appUpdateToolbarItem
+                    }
                 }
                 .searchable(text: $model.searchText, placement: .sidebar, prompt: "Search")
                 .toolbar(removing: .title)
