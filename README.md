@@ -13,7 +13,11 @@ Use whatever you want without compromising visibility into what’s going on.
 
 ## Quickstart
 
-[`.dmg` Download](https://github.com/mxcl/pmm/releases/latest).
+```sh
+$ brew install --cask mxcl/made/package-manager-manager
+
+# no brew? download the .dmg: https://github.com/mxcl/pmm/releases/latest
+```
 
 ![Package Manager Manager screenshot](docs/pmm-promo-2.png)
 
@@ -34,37 +38,17 @@ pkg⋅mgr² currently inventories:
 
 It also pulls package summaries, categories, URLs, and latest-version metadata
 where the project has a source for it. If metadata is missing, the package still
-shows up. It just looks less informed. Fair.
+shows up. It just looks less informed.
 
-## Supported Package Managers
+## Adding New Package Managers
 
-The detail pane offers update and uninstall actions when pkg⋅mgr² knows the native
-command to run.
+Get your agent to add new package managers and give us a PR.
 
-Supported update paths:
+> [!NOTE]
+>
+> We want to support everything! Yes! Everything!
 
-- `brew upgrade`
-- `npm install --global package@latest`
-- `npm exec --yes --package package@version -- true`
-- `uv tool upgrade`
-- `uv python install`
-- `cargo install --force`
-
-Supported uninstall paths:
-
-- `brew uninstall`
-- `npm uninstall --global`
-- remove npx cache entries
-- `uv tool uninstall`
-- `uv python uninstall`
-- remove uvx cached environments
-- `cargo uninstall`
-
-> [!IMPORTANT]
-> `rustup` is inventory-only for now. pkg⋅mgr² will show `rustup` and toolchains,
-> but it will not update or uninstall them.
-
-### Adding New Package Managers
+### Instructions to Agents
 
 Keep new manager support boring and off the main thread. The menu bar helper
 runs `PackageScanner.inventory(database:)` in the background, writes a
