@@ -11,6 +11,7 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
     case casks
     case javascript
     case python
+    case skills
     case developerTools
     case cloudInfrastructure
     case networking
@@ -29,7 +30,7 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
     var id: String { rawValue }
 
     static let librarySections: [MainWindowSection] = [.home, .installed, .outdated]
-    static let managerSections: [MainWindowSection] = [.rust, .homebrew, .casks, .javascript, .python]
+    static let managerSections: [MainWindowSection] = [.rust, .homebrew, .casks, .javascript, .python, .skills]
         .sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
     static let categorySections: [MainWindowSection] = [
         .developerTools, .cloudInfrastructure, .networking, .system, .security,
@@ -48,6 +49,7 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
         case .casks: "Casks"
         case .javascript: "JavaScript"
         case .python: "Python"
+        case .skills: "Skills"
         case .developerTools: "Developer Tools"
         case .cloudInfrastructure: "Cloud Infrastructure"
         case .networking: "Networking"
@@ -76,6 +78,7 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
         case .casks: "macwindow"
         case .javascript: "curlybraces"
         case .python: "arrow.forward.to.line"
+        case .skills: "wand.and.stars"
         case .developerTools: "chevron.left.forwardslash.chevron.right"
         case .cloudInfrastructure: "cloud"
         case .networking: "network"
@@ -109,6 +112,7 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
         case .homebrew, .casks: [.homebrew]
         case .javascript: [.npm, .npx]
         case .python: [.uv, .uvx]
+        case .skills: [.skills]
         default: []
         }
     }
@@ -196,6 +200,12 @@ struct MainWindowPackageURLRequest: Equatable {
         } else if identifier.hasPrefix("npx:") {
             manager = .npx
             name = String(identifier.trimmingPrefix("npx:"))
+        } else if identifier.hasPrefix("skills:project:") {
+            manager = .skills
+            name = String(identifier.trimmingPrefix("skills:project:"))
+        } else if identifier.hasPrefix("skills:global:") {
+            manager = .skills
+            name = String(identifier.trimmingPrefix("skills:global:"))
         } else if identifier.hasPrefix("uv:") {
             manager = .uv
             name = String(identifier.trimmingPrefix("uv:")).replacingOccurrences(of: ":", with: "/")
@@ -235,6 +245,9 @@ struct MainWindowPackageURLRequest: Equatable {
         case "npx":
             manager = .npx
             identifier = "npx:\(name)"
+        case "skills":
+            manager = .skills
+            identifier = "skills:project:\(name)"
         case "uv":
             manager = .uv
             identifier = "uv:\(name.replacingOccurrences(of: "/", with: ":"))"
@@ -254,6 +267,7 @@ struct MainWindowPackageURLRequest: Equatable {
         case .cargoInstall, .rustup: .rust
         case .homebrew: .homebrew
         case .npm, .npx: .javascript
+        case .skills: .skills
         case .uv, .uvx: .python
         }
     }
@@ -334,6 +348,8 @@ func mainWindowRegistryURLString(for package: ManagedPackage) -> String? {
         guard package.identifier.hasPrefix("uv:tool:") || package.manager == .uvx else { return nil }
         return "https://pypi.org/project/\(package.packageToken)/"
     case .rustup:
+        return nil
+    case .skills:
         return nil
     }
 }
@@ -936,6 +952,7 @@ struct PackageIndex: Sendable {
             .casks: packages.filter { $0.identifier.hasPrefix("brew:cask:") }.sorted(by: Self.alphabetical),
             .javascript: packages.filter { [.npm, .npx].contains($0.manager) }.sorted(by: Self.alphabetical),
             .python: packages.filter { [.uv, .uvx].contains($0.manager) }.sorted(by: Self.alphabetical),
+            .skills: packages.filter { $0.manager == .skills }.sorted(by: Self.alphabetical),
         ]
 
         for section in MainWindowSection.categorySections {

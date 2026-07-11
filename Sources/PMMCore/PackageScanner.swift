@@ -197,6 +197,23 @@ public struct PackageScanner: @unchecked Sendable {
         return ManagedPackage.consolidatingInstalledVersions(in: packages)
     }
 
+    public func scanSkills(database: PackageDatabase) throws -> [ManagedPackage] {
+        let result: CommandResult
+        if let skills = toolPaths["skills"] {
+            result = try runner.run(skills, ["list"])
+        } else if let npx = toolPaths["npx"] {
+            result = try runner.run(npx, ["--yes", "skills", "list"])
+        } else if let skills = ["/opt/homebrew/bin/skills", "/usr/local/bin/skills"].first(where: fileManager.isExecutableFile) {
+            result = try runner.run(skills, ["list"])
+        } else if let npx = firstExecutable(named: "npx", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"]) {
+            result = try runner.run(npx, ["--yes", "skills", "list"])
+        } else {
+            return []
+        }
+        guard result.status == 0 else { return [] }
+        return parseSkillsList(result.stdout)
+    }
+
     public func scanNPX(database: PackageDatabase, npmRegistryClient: NPMRegistryClient) async throws -> [ManagedPackage] {
         let packages = try scanNPX(database: database)
         let names = Set(packages.map(\.packageToken))
@@ -691,6 +708,36 @@ public struct PackageScanner: @unchecked Sendable {
         }
     }
 
+    private func parseSkillsList(_ output: String) -> [ManagedPackage] {
+        var scope = "project"
+        return output
+            .replacingOccurrences(of: "\u{001B}\\[[0-9;]*m", with: "", options: .regularExpression)
+            .split(whereSeparator: \.isNewline)
+            .compactMap { rawLine in
+                let line = String(rawLine)
+                if line == "Project Skills" { scope = "project"; return nil }
+                if line == "Global Skills" { scope = "global"; return nil }
+                guard let nameEnd = line.firstIndex(where: \.isWhitespace),
+                      let agents = line.range(of: " Agents:") else { return nil }
+                let name = String(line[..<nameEnd])
+                let path = line[nameEnd..<agents.lowerBound].trimmingCharacters(in: .whitespaces)
+                guard !name.isEmpty, !path.isEmpty else { return nil }
+                let expandedPath = path.hasPrefix("~/")
+                    ? homeDirectory.appendingPathComponent(String(path.dropFirst(2))).path
+                    : path
+                return ManagedPackage(
+                    manager: .skills,
+                    identifier: "skills:\(scope):\(name)",
+                    displayName: name,
+                    installedVersion: "installed",
+                    latestVersion: nil,
+                    summary: scope == "global" ? "Global agent skill" : "Project agent skill",
+                    category: "developer-tools",
+                    installLocation: expandedPath
+                )
+            }
+    }
+
     private func uvToolHeader(_ line: String) -> (name: String, version: String?, latest: String?)? {
         let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.hasPrefix("/") else { return nil }
@@ -771,6 +818,7 @@ public struct PackageScanner: @unchecked Sendable {
                     case .homebrew: packages = try scanHomebrew(database: database, mode: mode)
                     case .npm: packages = try scanNPM(database: database, mode: mode)
                     case .npx: packages = try scanNPX(database: database)
+                    case .skills: packages = try scanSkills(database: database)
                     case .uv: packages = try scanUV(database: database, mode: mode)
                     case .uvx: packages = try scanUVX(database: database)
                     }

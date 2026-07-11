@@ -28,6 +28,8 @@ public struct PackageUninstaller: Sendable {
             try run("npm", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["uninstall", "-g", package.packageToken], onProgress: onProgress)
         case .npx:
             try removeCachedPackage(package, root: homeDirectory.appendingPathComponent(".npm/_npx", isDirectory: true))
+        case .skills:
+            try removeSkill(package, onProgress: onProgress)
         case .uv:
             let arguments = package.summary == "uv-managed Python"
                 ? ["python", "uninstall", package.installedVersion ?? package.packageToken, "--color", "always"]
@@ -40,7 +42,7 @@ public struct PackageUninstaller: Sendable {
 
     public static func supports(_ package: ManagedPackage) -> Bool {
         switch package.manager {
-        case .cargoInstall, .homebrew, .npm, .npx, .uv, .uvx:
+        case .cargoInstall, .homebrew, .npm, .npx, .skills, .uv, .uvx:
             package.installedVersion != nil
         case .rustup:
             false
@@ -78,6 +80,22 @@ public struct PackageUninstaller: Sendable {
             url.deleteLastPathComponent()
         }
         try FileManager.default.removeItem(atPath: path)
+    }
+
+    private func removeSkill(
+        _ package: ManagedPackage,
+        onProgress: (@Sendable (PackageCommandProgress) -> Void)?
+    ) throws {
+        let arguments = ["remove", package.packageToken] + (package.identifier.hasPrefix("skills:global:") ? ["--global"] : []) + ["--yes"]
+        if toolPaths["skills"] != nil {
+            try run("skills", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin"], arguments, onProgress: onProgress)
+        } else if toolPaths["npx"] != nil {
+            try run("npx", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["--yes", "skills"] + arguments, onProgress: onProgress)
+        } else if ["/opt/homebrew/bin/skills", "/usr/local/bin/skills"].contains(where: FileManager.default.isExecutableFile) {
+            try run("skills", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin"], arguments, onProgress: onProgress)
+        } else {
+            try run("npx", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["--yes", "skills"] + arguments, onProgress: onProgress)
+        }
     }
 
     private func removeInstallLocation(_ package: ManagedPackage) throws {

@@ -94,6 +94,19 @@ private final class ProgressRecorder: @unchecked Sendable {
     #expect(!FileManager.default.fileExists(atPath: home.appendingPathComponent(".npm/_npx/cache-id").path))
 }
 
+@Test func packageUninstallerRemovesSkillsWithInstalledCLIOrNPX() throws {
+    let directRunner = RecordingRunner()
+    let direct = PackageUninstaller(runner: directRunner, toolPaths: ["skills": "/fake/skills"])
+    try direct.uninstall(package(.skills, "skills:project:local-skill"))
+
+    let npxRunner = RecordingRunner()
+    let fallback = PackageUninstaller(runner: npxRunner, toolPaths: ["npx": "/fake/npx"])
+    try fallback.uninstall(package(.skills, "skills:global:global-skill"))
+
+    #expect(directRunner.commands == ["/fake/skills remove local-skill --yes"])
+    #expect(npxRunner.commands == ["/fake/npx --yes skills remove global-skill --global --yes"])
+}
+
 @Test func packageUninstallerThrowsOnFailedCommand() throws {
     let runner = RecordingRunner()
     runner.result = CommandResult(stdout: "", stderr: "refusing\n", status: 1)

@@ -820,6 +820,7 @@ struct PackageEcosystemMark: View {
         case .cargoInstall, .rustup: return .rust
         case .homebrew: return .homebrew
         case .npm, .npx: return .javascript
+        case .skills: return .skills
         case .uv, .uvx: return .python
         }
     }
@@ -831,6 +832,7 @@ struct PackageEcosystemMark: View {
         case .javascript: .yellow
         case .python: .blue
         case .rust: .red
+        case .skills: .purple
         default: SystemColor.secondaryText
         }
     }

@@ -6,6 +6,7 @@ public enum PackageManagerKind: String, Codable, CaseIterable, Sendable {
     case homebrew
     case npm
     case npx
+    case skills
     case uv
     case uvx
 
@@ -16,6 +17,7 @@ public enum PackageManagerKind: String, Codable, CaseIterable, Sendable {
         case .homebrew: "Homebrew"
         case .npm: "npm"
         case .npx: "npx"
+        case .skills: "Skills"
         case .uv: "uv"
         case .uvx: "uvx"
         }
