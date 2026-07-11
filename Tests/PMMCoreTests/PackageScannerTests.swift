@@ -737,6 +737,30 @@ private final class EmptyNPMRegistryURLProtocol: URLProtocol, @unchecked Sendabl
     #expect(packages.first?.homepage == "https://example.com/acorn")
 }
 
+@Test func freshManagerScanResolvesNPXLatestVersion() async throws {
+    let home = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    let package = home.appendingPathComponent(".npm/_npx/a/node_modules/acorn", isDirectory: true)
+    try FileManager.default.createDirectory(at: package, withIntermediateDirectories: true)
+    try #"{"packages":{"":{"dependencies":{"acorn":"1.0.0"}}}}"#
+        .write(to: home.appendingPathComponent(".npm/_npx/a/package-lock.json"), atomically: true, encoding: .utf8)
+    try #"{"name":"acorn","version":"1.0.0"}"#
+        .write(to: package.appendingPathComponent("package.json"), atomically: true, encoding: .utf8)
+    defer { try? FileManager.default.removeItem(at: home) }
+
+    let scanner = PackageScanner(
+        runner: NPMResolveRunner(version: "1.1.0"),
+        homeDirectory: home,
+        toolPaths: ["npm": "/fake/npm"]
+    )
+    var result: PackageManagerScanResult?
+    for await value in scanner.results(for: [.npx], database: PackageDatabase(), mode: .fresh) {
+        result = value
+    }
+
+    #expect(result?.packages.first?.latestVersion == "1.1.0")
+    #expect(result?.packages.first?.isOutdated == true)
+}
+
 @Test func npxScannerIgnoresRegistryLatestWhenNPMResolutionFails() async throws {
     let home = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
     let package = home.appendingPathComponent(".npm/_npx/a/node_modules/acorn", isDirectory: true)

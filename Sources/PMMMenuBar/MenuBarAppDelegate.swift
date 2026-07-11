@@ -135,7 +135,7 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
             let scanner = PackageScanner()
-            for await result in scanner.results(for: [.npm, .uv], database: database, mode: .fresh) {
+            for await result in scanner.results(for: [.npm, .npx, .uv], database: database, mode: .fresh) {
                 guard !Task.isCancelled else { return }
                 self.applyScanResult(
                     result,

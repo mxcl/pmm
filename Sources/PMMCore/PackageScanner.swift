@@ -856,7 +856,16 @@ public struct PackageScanner: @unchecked Sendable {
                     case .rustup: packages = try scanRustup(database: database)
                     case .homebrew: packages = try scanHomebrew(database: database, mode: mode)
                     case .npm: packages = try scanNPM(database: database, mode: mode)
-                    case .npx: packages = try scanNPX(database: database)
+                    case .npx:
+                        let cached = try scanNPX(database: database)
+                        if mode == .fresh {
+                            let latest = npxResolvedLatestVersions(for: Set(cached.map(\.packageToken)))
+                            packages = cached.map {
+                                $0.applyingNPXSourceMetadata(nil, latestVersion: latest[$0.packageToken])
+                            }
+                        } else {
+                            packages = cached
+                        }
                     case .skills: packages = try scanSkills(database: database)
                     case .uv: packages = try scanUV(database: database, mode: mode)
                     case .uvx: packages = try scanUVX(database: database)
