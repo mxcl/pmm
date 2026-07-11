@@ -97,14 +97,23 @@ private final class ProgressRecorder: @unchecked Sendable {
 @Test func packageUninstallerRemovesSkillsWithInstalledCLIOrNPX() throws {
     let directRunner = RecordingRunner()
     let direct = PackageUninstaller(runner: directRunner, toolPaths: ["skills": "/fake/skills"])
-    try direct.uninstall(package(.skills, "skills:project:local-skill"))
+    try direct.uninstall(package(.skills, "skills:global:local-skill"))
 
     let npxRunner = RecordingRunner()
     let fallback = PackageUninstaller(runner: npxRunner, toolPaths: ["npx": "/fake/npx"])
     try fallback.uninstall(package(.skills, "skills:global:global-skill"))
 
-    #expect(directRunner.commands == ["/fake/skills remove local-skill --yes"])
+    #expect(directRunner.commands == ["/fake/skills remove local-skill --global --yes"])
     #expect(npxRunner.commands == ["/fake/npx --yes skills remove global-skill --global --yes"])
+}
+
+@Test func packageUninstallerRejectsProjectSkills() throws {
+    let package = package(.skills, "skills:project:local-skill")
+
+    #expect(!PackageUninstaller.supports(package))
+    #expect(throws: PackageUninstallError.unsupportedManager(.skills)) {
+        try PackageUninstaller().uninstall(package)
+    }
 }
 
 @Test func packageUninstallerThrowsOnFailedCommand() throws {

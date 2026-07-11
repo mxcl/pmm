@@ -435,6 +435,12 @@ import Testing
     #expect(python.manager == .homebrew)
     #expect(python.name == "python@3.13")
     #expect(python.identifier == "brew:python@3.13")
+
+    let skill = try #require(MainWindowPackageURLRequest(identifier: "skills:global:find-skills"))
+    #expect(skill.manager == .skills)
+    #expect(skill.name == "find-skills")
+    #expect(skill.section == .skills)
+    #expect(MainWindowPackageURLRequest(identifier: "skills:project:local-skill") == nil)
 }
 
 @Test func dashboardBlogIndexDecodesCategoriesAndIcons() throws {

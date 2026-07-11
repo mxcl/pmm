@@ -656,16 +656,11 @@ private final class EmptyNPMRegistryURLProtocol: URLProtocol, @unchecked Sendabl
     #expect(packages.first?.repo == "https://github.com/acornjs/acorn")
 }
 
-@Test func skillsScannerPrefersInstalledExecutableAndParsesScopes() throws {
+@Test func skillsScannerPrefersInstalledExecutableAndScansOnlyGlobalScope() throws {
     let home = URL(fileURLWithPath: "/Users/test")
     let runner = RecordingRunner(responses: [
-        "/fake/skills list": CommandResult(stdout: """
-        \u{001B}[1mProject Skills\u{001B}[0m
-
-        \u{001B}[36mlocal-skill\u{001B}[0m  ~/project/.agents/skills/local-skill  \u{001B}[38;5;102mAgents:\u{001B}[0m Codex
-        """, stderr: "", status: 0),
         "/fake/skills list --global": CommandResult(stdout: """
-        global-skill  ~/.agents/skills/global-skill  Agents: Codex
+        \u{001B}[36mglobal-skill\u{001B}[0m  ~/.agents/skills/global-skill  \u{001B}[38;5;102mAgents:\u{001B}[0m Codex
         """, stderr: "", status: 0)
     ])
     let scanner = PackageScanner(
@@ -676,25 +671,21 @@ private final class EmptyNPMRegistryURLProtocol: URLProtocol, @unchecked Sendabl
 
     let packages = try scanner.scanSkills(database: PackageDatabase())
 
-    #expect(runner.calls.map(\.command) == ["/fake/skills list", "/fake/skills list --global"])
-    #expect(packages.map(\.identifier) == ["skills:project:local-skill", "skills:global:global-skill"])
-    #expect(packages.map(\.installLocation) == [
-        "/Users/test/project/.agents/skills/local-skill",
-        "/Users/test/.agents/skills/global-skill",
-    ])
+    #expect(runner.calls.map(\.command) == ["/fake/skills list --global"])
+    #expect(packages.map(\.identifier) == ["skills:global:global-skill"])
+    #expect(packages.map(\.installLocation) == ["/Users/test/.agents/skills/global-skill"])
 }
 
 @Test func skillsScannerFallsBackToNPX() throws {
     let runner = RecordingRunner(responses: [
-        "/fake/npx --yes skills list": CommandResult(stdout: "Project Skills\nexample  /tmp/example  Agents: Codex\n", stderr: "", status: 0),
-        "/fake/npx --yes skills list --global": CommandResult(stdout: "", stderr: "", status: 0),
+        "/fake/npx --yes skills list --global": CommandResult(stdout: "example  /tmp/example  Agents: Codex\n", stderr: "", status: 0),
     ])
     let scanner = PackageScanner(runner: runner, toolPaths: ["npx": "/fake/npx"])
 
     let packages = try scanner.scanSkills(database: PackageDatabase())
 
-    #expect(runner.calls.map(\.command) == ["/fake/npx --yes skills list", "/fake/npx --yes skills list --global"])
-    #expect(packages.map(\.identifier) == ["skills:project:example"])
+    #expect(runner.calls.map(\.command) == ["/fake/npx --yes skills list --global"])
+    #expect(packages.map(\.identifier) == ["skills:global:example"])
 }
 
 @Test func npxScannerUsesNPMResolvedLatestVersion() async throws {

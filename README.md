@@ -31,7 +31,7 @@ pkg⋅mgr² currently inventories:
 - Homebrew formulae and casks
 - global npm packages
 - npx cache entries
-- agent skills installed with `skills` or `npx skills`
+- global agent skills installed with `skills` or `npx skills`
 - `uv tool` tools and `uv` Python installs
 - `uvx` cached environments
 - `cargo install` binaries

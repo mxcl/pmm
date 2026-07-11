@@ -200,9 +200,6 @@ struct MainWindowPackageURLRequest: Equatable {
         } else if identifier.hasPrefix("npx:") {
             manager = .npx
             name = String(identifier.trimmingPrefix("npx:"))
-        } else if identifier.hasPrefix("skills:project:") {
-            manager = .skills
-            name = String(identifier.trimmingPrefix("skills:project:"))
         } else if identifier.hasPrefix("skills:global:") {
             manager = .skills
             name = String(identifier.trimmingPrefix("skills:global:"))
@@ -247,7 +244,7 @@ struct MainWindowPackageURLRequest: Equatable {
             identifier = "npx:\(name)"
         case "skills":
             manager = .skills
-            identifier = "skills:project:\(name)"
+            identifier = "skills:global:\(name)"
         case "uv":
             manager = .uv
             identifier = "uv:\(name.replacingOccurrences(of: "/", with: ":"))"

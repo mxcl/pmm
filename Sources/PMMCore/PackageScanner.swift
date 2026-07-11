@@ -215,10 +215,8 @@ public struct PackageScanner: @unchecked Sendable {
         } else {
             return []
         }
-        let project = try runner.run(executable, prefix + ["list"])
         let global = try runner.run(executable, prefix + ["list", "--global"])
-        return (project.status == 0 ? parseSkillsList(project.stdout, defaultScope: "project") : [])
-            + (global.status == 0 ? parseSkillsList(global.stdout, defaultScope: "global") : [])
+        return global.status == 0 ? parseSkillsList(global.stdout) : []
     }
 
     public func scanNPX(database: PackageDatabase, npmRegistryClient: NPMRegistryClient) async throws -> [ManagedPackage] {
@@ -715,15 +713,13 @@ public struct PackageScanner: @unchecked Sendable {
         }
     }
 
-    private func parseSkillsList(_ output: String, defaultScope: String) -> [ManagedPackage] {
-        var scope = defaultScope
+    private func parseSkillsList(_ output: String) -> [ManagedPackage] {
         return output
             .replacingOccurrences(of: "\u{001B}\\[[0-9;]*m", with: "", options: .regularExpression)
             .split(whereSeparator: \.isNewline)
             .compactMap { rawLine in
                 let line = String(rawLine)
-                if line == "Project Skills" { scope = "project"; return nil }
-                if line == "Global Skills" { scope = "global"; return nil }
+                if line == "Global Skills" { return nil }
                 guard let nameEnd = line.firstIndex(where: \.isWhitespace),
                       let agents = line.range(of: " Agents:") else { return nil }
                 let name = String(line[..<nameEnd])
@@ -734,11 +730,11 @@ public struct PackageScanner: @unchecked Sendable {
                     : path
                 return ManagedPackage(
                     manager: .skills,
-                    identifier: "skills:\(scope):\(name)",
+                    identifier: "skills:global:\(name)",
                     displayName: name,
                     installedVersion: "installed",
                     latestVersion: nil,
-                    summary: scope == "global" ? "Global agent skill" : "Project agent skill",
+                    summary: "Global agent skill",
                     category: "developer-tools",
                     installLocation: expandedPath
                 )

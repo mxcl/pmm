@@ -29,6 +29,9 @@ public struct PackageUninstaller: Sendable {
         case .npx:
             try removeCachedPackage(package, root: homeDirectory.appendingPathComponent(".npm/_npx", isDirectory: true))
         case .skills:
+            guard package.identifier.hasPrefix("skills:global:") else {
+                throw PackageUninstallError.unsupportedManager(package.manager)
+            }
             try removeSkill(package, onProgress: onProgress)
         case .uv:
             let arguments = package.summary == "uv-managed Python"
@@ -42,8 +45,10 @@ public struct PackageUninstaller: Sendable {
 
     public static func supports(_ package: ManagedPackage) -> Bool {
         switch package.manager {
-        case .cargoInstall, .homebrew, .npm, .npx, .skills, .uv, .uvx:
+        case .cargoInstall, .homebrew, .npm, .npx, .uv, .uvx:
             package.installedVersion != nil
+        case .skills:
+            package.installedVersion != nil && package.identifier.hasPrefix("skills:global:")
         case .rustup:
             false
         }
@@ -86,7 +91,7 @@ public struct PackageUninstaller: Sendable {
         _ package: ManagedPackage,
         onProgress: (@Sendable (PackageCommandProgress) -> Void)?
     ) throws {
-        let arguments = ["remove", package.packageToken] + (package.identifier.hasPrefix("skills:global:") ? ["--global"] : []) + ["--yes"]
+        let arguments = ["remove", package.packageToken, "--global", "--yes"]
         if toolPaths["skills"] != nil {
             try run("skills", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin"], arguments, onProgress: onProgress)
         } else if toolPaths["npx"] != nil {
