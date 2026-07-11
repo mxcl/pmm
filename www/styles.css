@@ -401,6 +401,24 @@ h1 {
   margin-top: 30px;
 }
 
+.install-command {
+  display: inline-flex;
+  max-width: 100%;
+  margin-top: 18px;
+  padding: 11px 15px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+.install-command code {
+  margin-left: 0.6em;
+}
+
 .button-large {
   min-height: 50px;
   padding: 0 20px;
