@@ -750,7 +750,7 @@ private struct PackageRow: View {
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(SystemColor.secondaryText)
                         .lineLimit(1)
-                        .truncationMode(.middle)
+                        .truncationMode(.tail)
                 }
                 Text(subtitle)
                     .font(.system(size: 12))
