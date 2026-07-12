@@ -14,12 +14,16 @@ public struct RemoteHost: Codable, Equatable, Identifiable, Sendable {
         self.destination = destination
     }
 
-    public var displayName: String { name ?? destination }
+    public var displayName: String { Self.droppingLocalSuffix(name ?? destination) }
 
     public static func isValidDestination(_ destination: String) -> Bool {
         guard !destination.isEmpty, destination.count <= 255, !destination.hasPrefix("-") else { return false }
         let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "._@:%+-[]"))
         return destination.unicodeScalars.allSatisfy(allowed.contains)
+    }
+
+    private static func droppingLocalSuffix(_ value: String) -> String {
+        value.lowercased().hasSuffix(".local") ? String(value.dropLast(6)) : value
     }
 }
 

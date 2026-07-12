@@ -1141,7 +1141,8 @@ private func package(
     #expect(!model.showsHostManagement)
 
     let host = try model.saveRemoteHost(name: "Build Mac", destination: "builder")
-    #expect(model.ecosystemsSidebarTitle == ProcessInfo.processInfo.hostName)
+    #expect(model.ecosystemsSidebarTitle == MainWindowModel.droppingLocalSuffix(ProcessInfo.processInfo.hostName))
+    #expect(MainWindowModel.droppingLocalSuffix("workstation.local") == "workstation")
     model.showHostManagement()
     #expect(model.showsHostManagement)
     #expect(throws: RemoteHostConfigurationError.duplicateDestination) {

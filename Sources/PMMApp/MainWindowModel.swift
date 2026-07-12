@@ -533,7 +533,11 @@ final class MainWindowModel: NSObject, ObservableObject {
     }
 
     var ecosystemsSidebarTitle: String {
-        remoteHosts.isEmpty ? "Ecosystems" : ProcessInfo.processInfo.hostName
+        remoteHosts.isEmpty ? "Ecosystems" : Self.droppingLocalSuffix(ProcessInfo.processInfo.hostName)
+    }
+
+    nonisolated static func droppingLocalSuffix(_ value: String) -> String {
+        value.lowercased().hasSuffix(".local") ? String(value.dropLast(6)) : value
     }
 
     var displayedPackagesAreLoading: Bool {
