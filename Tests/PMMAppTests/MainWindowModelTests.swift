@@ -1181,7 +1181,7 @@ private func package(
     model.searchText = ""
     model.updateAllOutdatedPackages()
     await waitForRemoteModel { runner.invocationCount == 2 }
-    #expect(runner.lastArguments?.last?.contains("'update-all'") == true)
+    #expect(runner.lastArguments?.last?.contains("'remote' 'update-all'") == true)
 }
 
 @MainActor
@@ -1204,7 +1204,7 @@ private func package(
     model.confirmRemoteUninstall()
     await waitForRemoteModel { runner.invocationCount == 2 }
     #expect(model.pendingRemoteUninstall == nil)
-    #expect(runner.lastArguments?.last?.contains("'uninstall'") == true)
+    #expect(runner.lastArguments?.last?.contains("'remote' 'uninstall'") == true)
     #expect(model.packageActionCommand?.contains("Server") == false)
     #expect(model.packageActionCommand?.contains("server") == true)
 }

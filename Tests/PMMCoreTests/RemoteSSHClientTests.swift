@@ -21,7 +21,7 @@ import Testing
     #expect(arguments.contains("StrictHostKeyChecking=yes"))
     #expect(arguments.contains("--"))
     #expect(arguments[arguments.count - 2] == "mac-mini")
-    #expect(arguments.last == "'/Applications/Package Manager Manager.app/Contents/Helpers/pmmctl' 'update' '--id' 'npm:it'\"'\"'s-a-package'")
+    #expect(arguments.last == "'/Applications/Package Manager Manager.app/Contents/Helpers/pmmctl' 'remote' 'update' '--id' 'npm:it'\"'\"'s-a-package'")
 }
 
 @Test @MainActor func remoteSSHExecutionLeavesMainThreadAndDecodesResponse() async throws {

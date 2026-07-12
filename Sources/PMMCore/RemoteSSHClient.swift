@@ -72,7 +72,8 @@ public struct RemoteSSHClient: Sendable {
     }
 
     public func sshArguments(for host: RemoteHost, remoteArguments: [String]) -> [String] {
-        [
+        let controlArguments = ["remote"] + remoteArguments
+        return [
             "-T",
             "-o", "BatchMode=yes",
             "-o", "StrictHostKeyChecking=yes",
@@ -81,7 +82,7 @@ public struct RemoteSSHClient: Sendable {
             "-o", "ServerAliveCountMax=3",
             "--",
             host.destination,
-            ([Self.controlExecutable] + remoteArguments).map(Self.shellQuote).joined(separator: " "),
+            ([Self.controlExecutable] + controlArguments).map(Self.shellQuote).joined(separator: " "),
         ]
     }
 
