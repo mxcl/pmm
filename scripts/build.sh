@@ -7,6 +7,7 @@ app_name="Package Manager Manager"
 executable="PMMApp"
 helper_app_name="Package Manager Manager Menu"
 helper_executable="PMMMenuBar"
+control_executable="pmmctl"
 identifier="${PRODUCT_BUNDLE_IDENTIFIER:-dev.mxcl.pmm}"
 helper_identifier="${HELPER_BUNDLE_IDENTIFIER:-$identifier.menu}"
 version="${MARKETING_VERSION:-0.9.1}"
@@ -330,14 +331,16 @@ cleanup() {
 
 swift build -c "$configuration" --product "$executable"
 swift build -c "$configuration" --product "$helper_executable"
+swift build -c "$configuration" --product "$control_executable"
 bin_dir="$(swift build -c "$configuration" --show-bin-path)"
 
 rm -rf "$app" "$helper_app"
-mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources" "$app/Contents/Library/LoginItems"
+mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources" "$app/Contents/Helpers" "$app/Contents/Library/LoginItems"
 mkdir -p "$helper_app/Contents/MacOS"
 
 cp "$bin_dir/$executable" "$app/Contents/MacOS/$executable"
 cp "$bin_dir/$helper_executable" "$helper_app/Contents/MacOS/$helper_executable"
+cp "$bin_dir/$control_executable" "$app/Contents/Helpers/$control_executable"
 
 work="$(mktemp -d)"
 trap cleanup EXIT
@@ -453,6 +456,7 @@ if $publish; then
   plutil -insert PostHogAPIKey -string "$POSTHOG_API_KEY" "$helper_app/Contents/Info.plist"
 fi
 codesign "${codesign_args[@]}" "$helper_app" >/dev/null
+codesign "${codesign_args[@]}" "$app/Contents/Helpers/$control_executable" >/dev/null
 mv "$helper_app" "$app/Contents/Library/LoginItems/$helper_app_name.app"
 codesign "${codesign_args[@]}" "$app" >/dev/null
 
