@@ -630,7 +630,11 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private var mainAppURL: URL {
-        Bundle.main.bundleURL
+        Self.mainAppURL(containing: Bundle.main.bundleURL)
+    }
+
+    nonisolated static func mainAppURL(containing helperBundleURL: URL) -> URL {
+        helperBundleURL
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
