@@ -10,10 +10,16 @@ public struct CommandResult: Sendable {
 public struct CommandRunOptions: Sendable, Equatable {
     public var terminal: Bool
     public var environment: [String: String]
+    public var streamsStandardOutput: Bool
 
-    public init(terminal: Bool = false, environment: [String: String] = [:]) {
+    public init(
+        terminal: Bool = false,
+        environment: [String: String] = [:],
+        streamsStandardOutput: Bool = true
+    ) {
         self.terminal = terminal
         self.environment = environment
+        self.streamsStandardOutput = streamsStandardOutput
     }
 }
 
@@ -76,7 +82,7 @@ public struct SystemCommandRunner: CommandRunning {
         process.standardError = error
 
         try process.run()
-        let stdout = AsyncPipeReader(output, onOutput: onOutput)
+        let stdout = AsyncPipeReader(output, onOutput: options.streamsStandardOutput ? onOutput : nil)
         let stderr = AsyncPipeReader(error, onOutput: onOutput)
         stdout.start()
         stderr.start()
