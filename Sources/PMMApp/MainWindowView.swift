@@ -114,11 +114,13 @@ struct MainWindowSidebarView: View {
 
     private func remoteHostLabel(_ host: RemoteHost) -> some View {
         HStack(spacing: 8) {
-            Text(host.displayName).lineLimit(1)
-            Image(systemName: "globe")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-                .accessibilityHidden(true)
+            HStack(spacing: 3) {
+                Text(host.displayName).lineLimit(1)
+                Image(systemName: "globe")
+                    .font(.caption2.weight(.light))
+                    .foregroundStyle(Color.secondary.opacity(0.5))
+                    .accessibilityHidden(true)
+            }
             Spacer(minLength: 6)
             if let error = model.error(for: host.id) {
                 Image(systemName: "exclamationmark.triangle.fill")
