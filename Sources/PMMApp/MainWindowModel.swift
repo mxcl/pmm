@@ -380,8 +380,8 @@ private func mainWindowGitHubRepoReleaseNotesURL(_ string: String?) -> URL? {
 }
 
 enum RemoteHostSection: String, CaseIterable, Identifiable, Sendable {
-    case outdated
     case installed
+    case outdated
 
     var id: String { rawValue }
     var title: String { rawValue.capitalized }

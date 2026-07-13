@@ -10,6 +10,7 @@ import Testing
 
     #expect(model.selectedSection == .home)
     #expect(MainWindowSection.librarySections.first == .home)
+    #expect(RemoteHostSection.allCases == [.installed, .outdated])
 }
 
 @Test func terminalOutputStripsANSIEscapesAndReplacesCarriageReturnLine() {
