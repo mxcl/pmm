@@ -16,6 +16,7 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
     private var rescanTask: Task<Void, Never>?
     private var lastActionOutputPublishAt = Date.distantPast
     private var pendingActionOutputPublishTask: Task<Void, Never>?
+    private var hasUnpublishedActionOutput = false
     private var appUpdateTask: Task<Void, Never>?
     private var pendingAppUpdateInstall = false
     private static let actionOutputLimit = 100_000
@@ -255,7 +256,7 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
         snapshot.runningAction = PackageHostRunningAction(kind: kind, packageID: package.id, displayName: package.displayName)
         snapshot.errorMessage = nil
         publishSnapshot()
-        let progressHandler = actionProgressHandler()
+        let progressHandler = actionProgressHandler(kind: kind, packageID: package.id)
 
         actionTask = Task { [weak self] in
             let result = await Task.detached(priority: .background) {
@@ -272,6 +273,7 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
             }.value
 
             guard let self, !Task.isCancelled else { return }
+            self.flushActionOutput()
             self.actionTask = nil
             self.snapshot.runningAction = nil
             switch result {
@@ -399,14 +401,14 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
         cancelBackgroundRefresh()
         snapshot.errorMessage = nil
         publishSnapshot()
-        let progressHandler = actionProgressHandler()
-
         actionTask = Task { [weak self] in
             var errors: [String] = []
             for package in packages {
                 guard let self, !Task.isCancelled else { return }
+                self.flushActionOutput()
                 self.snapshot.runningAction = PackageHostRunningAction(kind: .update, packageID: package.id, displayName: package.displayName)
                 self.publishSnapshot()
+                let progressHandler = self.actionProgressHandler(kind: .update, packageID: package.id)
 
                 let result = await Task.detached(priority: .background) {
                     Result {
@@ -421,6 +423,7 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
             }
 
             guard let self, !Task.isCancelled else { return }
+            self.flushActionOutput()
             let errorMessage = errors.isEmpty ? nil : errors.joined(separator: "\n")
             self.actionTask = nil
             self.snapshot.runningAction = nil
@@ -430,16 +433,18 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func actionProgressHandler() -> @Sendable (PackageCommandProgress) -> Void {
+    private func actionProgressHandler(kind: PackageHostActionKind, packageID: String) -> @Sendable (PackageCommandProgress) -> Void {
         { [weak self] progress in
             Task { @MainActor in
-                self?.applyActionProgress(progress)
+                self?.applyActionProgress(progress, kind: kind, packageID: packageID)
             }
         }
     }
 
-    private func applyActionProgress(_ progress: PackageCommandProgress) {
-        guard var action = snapshot.runningAction else { return }
+    private func applyActionProgress(_ progress: PackageCommandProgress, kind: PackageHostActionKind, packageID: String) {
+        guard var action = snapshot.runningAction,
+              action.kind == kind,
+              action.packageID == packageID else { return }
         switch progress {
         case .started(let command):
             action.command = command
@@ -448,10 +453,13 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
             lastActionOutputPublishAt = Date.distantPast
             pendingActionOutputPublishTask?.cancel()
             pendingActionOutputPublishTask = nil
+            hasUnpublishedActionOutput = false
             publishSnapshot()
         case .output(let text):
+            guard !text.isEmpty else { return }
             action.output = String(((action.output ?? "") + text).suffix(Self.actionOutputLimit))
             snapshot.runningAction = action
+            hasUnpublishedActionOutput = true
             publishActionOutputSoon()
         }
     }
@@ -459,20 +467,38 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
     private func publishActionOutputSoon() {
         let now = Date()
         if now.timeIntervalSince(lastActionOutputPublishAt) >= Self.actionOutputPublishInterval {
-            lastActionOutputPublishAt = now
-            publishSnapshot()
+            publishActionOutputNow(at: now)
             return
         }
         guard pendingActionOutputPublishTask == nil else { return }
-        pendingActionOutputPublishTask = Task { [weak self] in
-            try? await Task.sleep(for: .milliseconds(100))
-            await MainActor.run {
-                guard let self else { return }
-                self.pendingActionOutputPublishTask = nil
-                self.lastActionOutputPublishAt = Date()
-                self.publishSnapshot()
+        let delay = Self.actionOutputPublishInterval - now.timeIntervalSince(lastActionOutputPublishAt)
+        pendingActionOutputPublishTask = Task { @MainActor [weak self] in
+            do {
+                try await Task.sleep(for: .seconds(delay))
+            } catch {
+                return
             }
+            guard let self else { return }
+            self.pendingActionOutputPublishTask = nil
+            self.publishActionOutputNow(at: Date())
         }
+    }
+
+    private func publishActionOutputNow(at date: Date) {
+        guard hasUnpublishedActionOutput, let action = snapshot.runningAction else { return }
+        hasUnpublishedActionOutput = false
+        lastActionOutputPublishAt = date
+        PackageHostNotifications.postActionOutputChanged(
+            kind: action.kind,
+            packageID: action.packageID,
+            output: action.output ?? ""
+        )
+    }
+
+    private func flushActionOutput() {
+        pendingActionOutputPublishTask?.cancel()
+        pendingActionOutputPublishTask = nil
+        publishActionOutputNow(at: Date())
     }
 
     private func runInstallMany(packageIDs: [String]) {
@@ -482,14 +508,14 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
         cancelBackgroundRefresh()
         snapshot.errorMessage = nil
         publishSnapshot()
-        let progressHandler = actionProgressHandler()
-
         actionTask = Task { [weak self] in
             var errors: [String] = []
             for package in packages {
                 guard let self, !Task.isCancelled else { return }
+                self.flushActionOutput()
                 self.snapshot.runningAction = PackageHostRunningAction(kind: .install, packageID: package.id, displayName: package.displayName)
                 self.publishSnapshot()
+                let progressHandler = self.actionProgressHandler(kind: .install, packageID: package.id)
 
                 let result = await Task.detached(priority: .background) {
                     Result {
@@ -504,6 +530,7 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
             }
 
             guard let self, !Task.isCancelled else { return }
+            self.flushActionOutput()
             let errorMessage = errors.isEmpty ? nil : errors.joined(separator: "\n")
             self.actionTask = nil
             self.snapshot.runningAction = nil

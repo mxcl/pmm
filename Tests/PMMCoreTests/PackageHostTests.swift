@@ -2,6 +2,22 @@ import Foundation
 import Testing
 @testable import PMMCore
 
+@Test func actionOutputNotificationPayloadRoundTrips() throws {
+    let notification = Notification(
+        name: PackageHostNotifications.actionOutputChanged,
+        userInfo: [
+            PackageHostNotifications.actionKindKey: PackageHostActionKind.update.rawValue,
+            PackageHostNotifications.packageIDKey: "brew:git",
+            PackageHostNotifications.actionOutputKey: "progress\n",
+        ]
+    )
+
+    let payload = try #require(PackageHostNotifications.actionOutput(from: notification))
+    #expect(payload.0 == .update)
+    #expect(payload.1 == "brew:git")
+    #expect(payload.2 == "progress\n")
+}
+
 @Test func packageHostSnapshotRoundTripsJSON() throws {
     let package = ManagedPackage(manager: .homebrew, name: "git", installedVersion: "1", latestVersion: "2")
     let snapshot = PackageHostSnapshot(

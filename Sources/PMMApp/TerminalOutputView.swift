@@ -52,7 +52,7 @@ func mainWindowTerminalAttributedOutput(_ output: String) -> NSAttributedString 
     return screen.attributedString()
 }
 
-private struct TerminalStyle {
+private struct TerminalStyle: Equatable {
     var color = NSColor.labelColor
     var bold = false
 }
@@ -95,8 +95,30 @@ private struct TerminalScreen {
 
     func attributedString() -> NSAttributedString {
         let result = NSMutableAttributedString()
+        var run = ""
+        var runStyle: TerminalStyle?
         let lastContentRow = lines.lastIndex { $0.contains { $0 != nil } } ?? 0
         let lastRow = min(max(lastContentRow, cursorRow), lines.count - 1)
+
+        func flushRun() {
+            guard let runStyle, !run.isEmpty else { return }
+            result.append(NSAttributedString(
+                string: run,
+                attributes: [
+                    .font: runStyle.bold ? TerminalOutputTextView.boldFont : TerminalOutputTextView.font,
+                    .foregroundColor: runStyle.color,
+                ]
+            ))
+            run = ""
+        }
+
+        func append(_ character: Character, style: TerminalStyle) {
+            if runStyle != style {
+                flushRun()
+                runStyle = style
+            }
+            run.append(character)
+        }
 
         for rowIndex in 0...lastRow {
             let line = lines[rowIndex]
@@ -104,22 +126,14 @@ private struct TerminalScreen {
             if lastCell >= 0 {
                 for column in 0...lastCell {
                     guard let cell = line[column], !cell.isContinuation else { continue }
-                    result.append(NSAttributedString(
-                        string: String(cell.character ?? " "),
-                        attributes: [
-                            .font: cell.style.bold ? TerminalOutputTextView.boldFont : TerminalOutputTextView.font,
-                            .foregroundColor: cell.style.color,
-                        ]
-                    ))
+                    append(cell.character ?? " ", style: cell.style)
                 }
             }
             if rowIndex < lastRow {
-                result.append(NSAttributedString(
-                    string: "\n",
-                    attributes: [.font: TerminalOutputTextView.font, .foregroundColor: NSColor.labelColor]
-                ))
+                append("\n", style: TerminalStyle())
             }
         }
+        flushRun()
         return result
     }
 

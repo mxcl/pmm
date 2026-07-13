@@ -416,6 +416,11 @@ private enum RemotePackageAction {
     case updateAll
 }
 
+private struct PackageActionIdentity: Equatable {
+    let kind: PackageHostActionKind
+    let packageID: String
+}
+
 @MainActor
 final class MainWindowModel: NSObject, ObservableObject {
     static let defaultDashboardBlogURL = URL(string: "https://mxcl.dev/package-manager-manager/blog/index.json")!
@@ -468,7 +473,15 @@ final class MainWindowModel: NSObject, ObservableObject {
     private var remoteTasks: [UUID: Task<Void, Never>] = [:]
     private var remoteActionTask: Task<Void, Never>?
     private var remoteActionHostID: UUID?
+    private var remoteActionID: UUID?
+    private var localActionIdentity: PackageActionIdentity?
+    private var remoteActionBufferedOutput = ""
+    private var lastRemoteActionOutputPublishAt = Date.distantPast
+    private var pendingRemoteActionOutputPublishTask: Task<Void, Never>?
+    private var hasUnpublishedRemoteActionOutput = false
     private let notificationCenter = DistributedNotificationCenter.default()
+    private static let actionOutputLimit = 100_000
+    private static let actionOutputPublishInterval: TimeInterval = 0.1
 
     init(
         userDefaults: UserDefaults = .standard,
@@ -495,6 +508,7 @@ final class MainWindowModel: NSObject, ObservableObject {
                 loadDashboardBlogEntries(from: dashboardBlogURL)
             }
             notificationCenter.addObserver(self, selector: #selector(hostSnapshotChanged(_:)), name: PackageHostNotifications.snapshotChanged, object: nil)
+            notificationCenter.addObserver(self, selector: #selector(hostActionOutputChanged(_:)), name: PackageHostNotifications.actionOutputChanged, object: nil)
             reloadRemoteHosts()
         }
 #else
@@ -503,6 +517,7 @@ final class MainWindowModel: NSObject, ObservableObject {
             loadDashboardBlogEntries(from: dashboardBlogURL)
         }
         notificationCenter.addObserver(self, selector: #selector(hostSnapshotChanged(_:)), name: PackageHostNotifications.snapshotChanged, object: nil)
+        notificationCenter.addObserver(self, selector: #selector(hostActionOutputChanged(_:)), name: PackageHostNotifications.actionOutputChanged, object: nil)
         reloadRemoteHosts()
 #endif
     }
@@ -512,6 +527,7 @@ final class MainWindowModel: NSObject, ObservableObject {
         dashboardBlogEntriesTask?.cancel()
         remoteTasks.values.forEach { $0.cancel() }
         remoteActionTask?.cancel()
+        pendingRemoteActionOutputPublishTask?.cancel()
         notificationCenter.removeObserver(self)
     }
 
@@ -857,7 +873,14 @@ final class MainWindowModel: NSObject, ObservableObject {
         case .updateAll: break
         }
         remoteTasks.removeValue(forKey: host.id)?.cancel()
+        let actionID = UUID()
         remoteActionHostID = host.id
+        remoteActionID = actionID
+        remoteActionBufferedOutput = ""
+        pendingRemoteActionOutputPublishTask?.cancel()
+        pendingRemoteActionOutputPublishTask = nil
+        lastRemoteActionOutputPublishAt = .distantPast
+        hasUnpublishedRemoteActionOutput = false
         packageActionOutput = ""
         packageActionError = nil
         switch action {
@@ -874,7 +897,7 @@ final class MainWindowModel: NSObject, ObservableObject {
 
         let remoteClient = remoteClient
         let progress: @Sendable (String) -> Void = { [weak self] chunk in
-            Task { @MainActor in self?.packageActionOutput += chunk }
+            Task { @MainActor in self?.applyRemoteActionOutput(chunk, actionID: actionID) }
         }
         remoteActionTask = Task { [weak self] in
             guard let self else { return }
@@ -906,11 +929,53 @@ final class MainWindowModel: NSObject, ObservableObject {
                 remoteHostStates[host.id] = state
                 packageActionError = error.localizedDescription
             }
+            flushRemoteActionOutput()
             updatingPackageName = nil
             uninstallingPackageName = nil
             remoteActionHostID = nil
+            remoteActionID = nil
             remoteActionTask = nil
         }
+    }
+
+    private func applyRemoteActionOutput(_ chunk: String, actionID: UUID) {
+        guard remoteActionID == actionID, !chunk.isEmpty else { return }
+        remoteActionBufferedOutput = String((remoteActionBufferedOutput + chunk).suffix(Self.actionOutputLimit))
+        hasUnpublishedRemoteActionOutput = true
+        publishRemoteActionOutputSoon()
+    }
+
+    private func publishRemoteActionOutputSoon() {
+        let now = Date()
+        if now.timeIntervalSince(lastRemoteActionOutputPublishAt) >= Self.actionOutputPublishInterval {
+            publishRemoteActionOutputNow(at: now)
+            return
+        }
+        guard pendingRemoteActionOutputPublishTask == nil else { return }
+        let delay = Self.actionOutputPublishInterval - now.timeIntervalSince(lastRemoteActionOutputPublishAt)
+        pendingRemoteActionOutputPublishTask = Task { @MainActor [weak self] in
+            do {
+                try await Task.sleep(for: .seconds(delay))
+            } catch {
+                return
+            }
+            guard let self else { return }
+            self.pendingRemoteActionOutputPublishTask = nil
+            self.publishRemoteActionOutputNow(at: Date())
+        }
+    }
+
+    private func publishRemoteActionOutputNow(at date: Date) {
+        guard hasUnpublishedRemoteActionOutput else { return }
+        hasUnpublishedRemoteActionOutput = false
+        lastRemoteActionOutputPublishAt = date
+        packageActionOutput = remoteActionBufferedOutput
+    }
+
+    private func flushRemoteActionOutput() {
+        pendingRemoteActionOutputPublishTask?.cancel()
+        pendingRemoteActionOutputPublishTask = nil
+        publishRemoteActionOutputNow(at: Date())
     }
 
     func dismissPackageAction() {
@@ -1163,12 +1228,15 @@ final class MainWindowModel: NSObject, ObservableObject {
         uninstallingPackageName = snapshot.runningAction?.kind == .uninstall ? snapshot.runningAction?.displayName : nil
         updatingPackageName = snapshot.runningAction?.kind == .update ? snapshot.runningAction?.displayName : nil
         if let runningAction = snapshot.runningAction {
+            localActionIdentity = PackageActionIdentity(kind: runningAction.kind, packageID: runningAction.packageID)
             packageActionCommand = runningAction.command
             packageActionOutput = runningAction.output ?? ""
             packageActionError = nil
         } else if packageActionWasRunning, let errorMessage = snapshot.errorMessage {
+            localActionIdentity = nil
             packageActionError = errorMessage
         } else if packageActionError == nil {
+            localActionIdentity = nil
             packageActionCommand = nil
             packageActionOutput = ""
         }
@@ -1176,6 +1244,17 @@ final class MainWindowModel: NSObject, ObservableObject {
 
     @objc private func hostSnapshotChanged(_ notification: Notification) {
         syncFromHost()
+    }
+
+    @objc private func hostActionOutputChanged(_ notification: Notification) {
+        guard let (kind, packageID, output) = PackageHostNotifications.actionOutput(from: notification) else { return }
+        applyHostActionOutput(kind: kind, packageID: packageID, output: output)
+    }
+
+    func applyHostActionOutput(kind: PackageHostActionKind, packageID: String, output: String) {
+        guard remoteActionHostID == nil,
+              localActionIdentity == PackageActionIdentity(kind: kind, packageID: packageID) else { return }
+        packageActionOutput = output
     }
 
     private func clearDossier() {

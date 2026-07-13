@@ -80,6 +80,20 @@ import Testing
     #expect(output.attribute(.foregroundColor, at: 0, effectiveRange: nil) is NSColor)
 }
 
+@Test func terminalOutputGroupsContiguousStylesIntoRuns() {
+    let uniform = mainWindowTerminalAttributedOutput(String(repeating: "a", count: 10_000))
+    let mixed = mainWindowTerminalAttributedOutput("plain \u{1B}[1;32mbold green\u{1B}[0m plain")
+
+    #expect(attributeRunCount(in: uniform) == 1)
+    #expect(attributeRunCount(in: mixed) == 3)
+}
+
+private func attributeRunCount(in string: NSAttributedString) -> Int {
+    var count = 0
+    string.enumerateAttributes(in: NSRange(location: 0, length: string.length)) { _, _, _ in count += 1 }
+    return count
+}
+
 @Test func terminalOutputRewritesExactlyEightyColumnProgressRows() {
     func progress(_ name: String, marks: Int, status: String) -> String {
         let prefix = "\u{1B}[34m: \u{1B}[0mBottle \(name)"
@@ -243,6 +257,35 @@ import Testing
     #expect(model.packageActionCommand == nil)
     #expect(model.packageActionOutput == "")
     #expect(model.packageActionError == nil)
+}
+
+@MainActor
+@Test func localActionOutputAcceptsOnlyTheCurrentAction() {
+    let model = MainWindowModel(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
+    let git = package(.homebrew, "git", installedVersion: "1", latestVersion: "2")
+    let curl = package(.homebrew, "curl", installedVersion: "1", latestVersion: "2")
+    let inventory = PackageInventory(packages: [git, curl])
+
+    model.apply(snapshot: PackageHostSnapshot(
+        inventory: inventory,
+        runningAction: PackageHostRunningAction(kind: .update, packageID: git.id, displayName: git.displayName)
+    ))
+    model.applyHostActionOutput(kind: .update, packageID: git.id, output: "first")
+    model.applyHostActionOutput(kind: .uninstall, packageID: git.id, output: "wrong kind")
+    model.applyHostActionOutput(kind: .update, packageID: curl.id, output: "wrong package")
+    #expect(model.packageActionOutput == "first")
+
+    model.apply(snapshot: PackageHostSnapshot(
+        inventory: inventory,
+        runningAction: PackageHostRunningAction(kind: .update, packageID: curl.id, displayName: curl.displayName)
+    ))
+    model.applyHostActionOutput(kind: .update, packageID: git.id, output: "stale")
+    model.applyHostActionOutput(kind: .update, packageID: curl.id, output: "second")
+    #expect(model.packageActionOutput == "second")
+
+    model.apply(snapshot: PackageHostSnapshot(inventory: inventory))
+    model.applyHostActionOutput(kind: .update, packageID: curl.id, output: "late")
+    #expect(model.packageActionOutput == "")
 }
 
 @MainActor
@@ -1222,6 +1265,29 @@ private func package(
 }
 
 @MainActor
+@Test func remoteActionOutputIsCappedAndFinallyFlushed() async throws {
+    let outdated = package(.npm, "eslint", installedVersion: "1.0.0", latestVersion: "2.0.0")
+    let response = RemoteControlResponse(inventory: PackageInventory(packages: [outdated]))
+    let runner = MainWindowRemoteRunner(
+        response: response,
+        progressChunks: ["prefix", String(repeating: "x", count: 100_001)]
+    )
+    let model = MainWindowModel(
+        userDefaults: UserDefaults(suiteName: UUID().uuidString)!,
+        remoteClient: RemoteSSHClient(runner: runner)
+    )
+    let host = try model.saveRemoteHost(name: "Server", destination: "server")
+    await waitForRemoteModel { model.remoteHostStates[host.id]?.inventory != nil }
+    model.selectRemoteHost(host.id, section: .outdated)
+
+    model.update(outdated)
+    await waitForRemoteModel { !model.isRunningAction(on: host.id) && runner.invocationCount == 2 }
+
+    #expect(model.packageActionOutput.count == 100_000)
+    #expect(model.packageActionOutput == String(repeating: "x", count: 100_000))
+}
+
+@MainActor
 private func waitForRemoteModel(_ predicate: @MainActor () -> Bool) async {
     for _ in 0..<1_000 {
         if predicate() { return }
@@ -1232,11 +1298,13 @@ private func waitForRemoteModel(_ predicate: @MainActor () -> Bool) async {
 
 private final class MainWindowRemoteRunner: CommandRunning, @unchecked Sendable {
     private let response: RemoteControlResponse
+    private let progressChunks: [String]
     private let lock = NSLock()
     private var invocations = [[String]]()
 
-    init(response: RemoteControlResponse) {
+    init(response: RemoteControlResponse, progressChunks: [String] = ["remote progress\n"]) {
         self.response = response
+        self.progressChunks = progressChunks
     }
 
     var invocationCount: Int { lock.withLock { invocations.count } }
@@ -1252,7 +1320,7 @@ private final class MainWindowRemoteRunner: CommandRunning, @unchecked Sendable 
         options: CommandRunOptions,
         onOutput: (@Sendable (String) -> Void)?
     ) throws -> CommandResult {
-        onOutput?("remote progress\n")
+        for chunk in progressChunks { onOutput?(chunk) }
         return try result(arguments)
     }
 

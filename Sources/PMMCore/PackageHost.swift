@@ -116,6 +116,7 @@ public struct PackageHostStore: Sendable {
 
 public enum PackageHostNotifications {
     public static let snapshotChanged = Notification.Name("dev.mxcl.pmm.packageHost.snapshotChanged")
+    public static let actionOutputChanged = Notification.Name("dev.mxcl.pmm.packageHost.actionOutputChanged")
     public static let refreshRequested = Notification.Name("dev.mxcl.pmm.packageHost.refreshRequested")
     public static let installRequested = Notification.Name("dev.mxcl.pmm.packageHost.installRequested")
     public static let installManyRequested = Notification.Name("dev.mxcl.pmm.packageHost.installManyRequested")
@@ -128,9 +129,24 @@ public enum PackageHostNotifications {
 
     public static let packageIDKey = "packageID"
     public static let packageIDsKey = "packageIDs"
+    public static let actionKindKey = "actionKind"
+    public static let actionOutputKey = "actionOutput"
 
     public static func postSnapshotChanged() {
         DistributedNotificationCenter.default().postNotificationName(snapshotChanged, object: nil, deliverImmediately: true)
+    }
+
+    public static func postActionOutputChanged(kind: PackageHostActionKind, packageID: String, output: String) {
+        DistributedNotificationCenter.default().postNotificationName(
+            actionOutputChanged,
+            object: nil,
+            userInfo: [
+                actionKindKey: kind.rawValue,
+                packageIDKey: packageID,
+                actionOutputKey: output,
+            ],
+            deliverImmediately: true
+        )
     }
 
     public static func postRefreshRequested() {
@@ -180,6 +196,14 @@ public enum PackageHostNotifications {
 
     public static func packageIDs(from notification: Notification) -> [String] {
         notification.userInfo?[packageIDsKey] as? [String] ?? []
+    }
+
+    public static func actionOutput(from notification: Notification) -> (PackageHostActionKind, String, String)? {
+        guard let rawKind = notification.userInfo?[actionKindKey] as? String,
+              let kind = PackageHostActionKind(rawValue: rawKind),
+              let packageID = packageID(from: notification),
+              let output = notification.userInfo?[actionOutputKey] as? String else { return nil }
+        return (kind, packageID, output)
     }
 
     private static func postPackageCommand(_ name: Notification.Name, packageID: String) {
