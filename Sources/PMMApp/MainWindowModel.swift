@@ -533,9 +533,7 @@ final class MainWindowModel: NSObject, ObservableObject {
         return "\(host.displayName) · \(selectedRemoteSection.title)"
     }
 
-    var ecosystemsSidebarTitle: String {
-        remoteHosts.isEmpty ? "Ecosystems" : Self.localSidebarHostName
-    }
+    var hasMultipleHosts: Bool { !remoteHosts.isEmpty }
 
     nonisolated static var localSidebarHostName: String {
         sidebarHostName(

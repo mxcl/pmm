@@ -1137,11 +1137,11 @@ private func package(
     let response = RemoteControlResponse(inventory: PackageInventory(packages: []))
     let runner = MainWindowRemoteRunner(response: response)
     let model = MainWindowModel(userDefaults: defaults, remoteClient: RemoteSSHClient(runner: runner))
-    #expect(model.ecosystemsSidebarTitle == "Ecosystems")
+    #expect(!model.hasMultipleHosts)
     #expect(!model.showsHostManagement)
 
     let host = try model.saveRemoteHost(name: "Build Mac", destination: "builder")
-    #expect(model.ecosystemsSidebarTitle == MainWindowModel.localSidebarHostName)
+    #expect(model.hasMultipleHosts)
     #expect(MainWindowModel.sidebarHostName(
         localHostName: "maliwan",
         fallback: "customer.example.isp.invalid"
@@ -1158,7 +1158,7 @@ private func package(
     model.selectRemoteHost(host.id, section: .installed)
     model.removeRemoteHost(host.id)
     #expect(model.remoteHosts.isEmpty)
-    #expect(model.ecosystemsSidebarTitle == "Ecosystems")
+    #expect(!model.hasMultipleHosts)
     #expect(!model.isRemoteSelection)
     #expect(model.selectedSection == .home)
 }

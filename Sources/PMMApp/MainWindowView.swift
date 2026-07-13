@@ -9,12 +9,28 @@ struct MainWindowSidebarView: View {
 
     var body: some View {
         List(selection: sidebarSelection) {
-            Section {
-                ForEach(MainWindowSection.librarySections) { sidebarRow($0) }
+            if model.hasMultipleHosts {
+                Section {
+                    sidebarRow(.home)
+                }
+                Section(MainWindowModel.localSidebarHostName) {
+                    sidebarRow(.installed)
+                    sidebarRow(.outdated)
+                }
+            } else {
+                Section {
+                    ForEach(MainWindowSection.librarySections) { sidebarRow($0) }
+                }
             }
             if !model.visibleManagerSections.isEmpty {
-                Section(model.ecosystemsSidebarTitle) {
-                    ForEach(model.visibleManagerSections) { sidebarRow($0) }
+                if model.hasMultipleHosts {
+                    Section {
+                        ForEach(model.visibleManagerSections) { sidebarRow($0) }
+                    }
+                } else {
+                    Section("Ecosystems") {
+                        ForEach(model.visibleManagerSections) { sidebarRow($0) }
+                    }
                 }
             }
             ForEach(model.remoteHosts) { host in
