@@ -1,4 +1,4 @@
-![Package Manager Manager screenshot](docs/pmm-promo-1.png)
+![Package Manager Manager screenshot](www/pmm-promo-1@dark.png)
 
 # Package Manager Manager
 
@@ -19,7 +19,7 @@ brew install --cask mxcl/made/package-manager-manager
 
 > No brew? [Download the `.dmg` from `./releases/`](https://github.com/mxcl/pmm/releases/latest).
 
-![Package Manager Manager screenshot](docs/pmm-promo-2.png)
+![Package Manager Manager screenshot](www/pmm-promo-2@dark.png)
 
 &nbsp;
 
