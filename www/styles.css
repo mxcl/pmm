@@ -529,42 +529,14 @@ h1 {
   grid-template-columns: minmax(0, 1.28fr) minmax(300px, 0.72fr);
 }
 
-.remote-hosts-card {
-  display: grid;
-  gap: 14px;
-  padding: clamp(24px, 5vw, 48px);
-  border: 1px solid var(--line);
+.remote-shot {
+  width: min(100%, 620px);
+  justify-self: center;
+}
+
+.remote-shot img {
+  aspect-ratio: 4 / 5;
   border-radius: 22px;
-  background: var(--panel);
-  box-shadow: 0 22px 70px rgb(44 35 24 / 0.1);
-}
-
-.remote-hosts-card article {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  gap: 24px;
-  align-items: center;
-  padding: 18px 20px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--bg);
-}
-
-.remote-hosts-card strong {
-  font-size: 1.05rem;
-}
-
-.remote-hosts-card span {
-  color: var(--muted);
-  font-size: 0.86rem;
-  font-weight: 700;
-}
-
-.remote-hosts-card p {
-  margin-top: 8px;
-  color: var(--muted);
-  font-size: 0.88rem;
-  text-align: center;
 }
 
 .story-copy h2 {
