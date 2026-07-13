@@ -4,11 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>The Package Manager Manager — Every package. One place.</title>
-  <meta name="description" content="The Package Manager Manager inventories Homebrew, npm, npx, uv, uvx, Cargo, and rustup packages in one Mac app.">
+  <meta name="description" content="Inventory and update Homebrew, npm, npx, uv, Cargo, and rustup packages across your Macs over SSH.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="The Package Manager Manager">
   <meta property="og:title" content="The Package Manager Manager — Every package. One place.">
-  <meta property="og:description" content="See what every package manager installed, what is outdated, and where it came from.">
+  <meta property="og:description" content="See what every package manager installed and manage updates across your Macs over SSH.">
   <meta property="og:url" content="https://mxcl.dev/package-manager-manager/">
   <meta property="og:image" content="https://mxcl.dev/package-manager-manager/preview.png">
   <meta property="og:image:secure_url" content="https://mxcl.dev/package-manager-manager/preview.png">
@@ -18,7 +18,7 @@
   <meta property="og:image:alt" content="The Package Manager Manager showing every package in one Mac app">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="The Package Manager Manager — Every package. One place.">
-  <meta name="twitter:description" content="See what every package manager installed, what is outdated, and where it came from.">
+  <meta name="twitter:description" content="See what every package manager installed and manage updates across your Macs over SSH.">
   <meta name="twitter:image" content="https://mxcl.dev/package-manager-manager/preview.png">
   <meta name="twitter:image:alt" content="The Package Manager Manager showing every package in one Mac app">
   <link rel="canonical" href="https://mxcl.dev/package-manager-manager/">
@@ -54,7 +54,7 @@
         <div class="hero-copy">
           <p class="eyebrow">Package Manager Manager for macOS</p>
           <h1 id="product-title">Every package.<br><span>One place.</span></h1>
-          <p class="lede">Package Manager Manager inventories the tools scattered across your package managers, so you can see what you have, what needs an update, and where everything came from.</p>
+          <p class="lede">Package Manager Manager inventories the tools scattered across your package managers, on this Mac or your other Macs over SSH. See what you have, what needs an update, and where everything came from.</p>
           <div class="hero-actions">
             <a class="button primary button-large" href="https://github.com/mxcl/pmm/releases/latest">Download the latest .dmg</a>
             <a class="button button-large" href="https://github.com/mxcl/pmm">Browse the source <span aria-hidden="true">↗</span></a>
@@ -108,6 +108,32 @@
         <figure class="product-shot detail-shot">
           <img src="./pmm-promo-2.webp" alt="Package Manager Manager package detail screen for rustup beside the rustup project website" width="2980" height="1872" loading="lazy" decoding="async">
         </figure>
+      </section>
+
+      <section class="package-story remote-story" id="remote-hosts" aria-labelledby="remote-hosts-title">
+        <div class="story-copy">
+          <p class="eyebrow">One app, more Macs</p>
+          <h2 id="remote-hosts-title">Update the Macs you already SSH into.</h2>
+          <p>Add a Mac from the Package Manager Manager menu. Its Installed and Outdated lists appear in the sidebar, ready for updates and uninstalls.</p>
+          <ul class="check-list">
+            <li>Local network and Tailscale hosts</li>
+            <li>Your existing SSH config, keys, agent, and known_hosts</li>
+            <li>Individual updates, Update All, and uninstalls</li>
+          </ul>
+        </div>
+        <div class="remote-hosts-card" aria-label="Two Macs managed from the Package Manager Manager sidebar">
+          <article>
+            <strong>Maliwan</strong>
+            <span>Installed</span>
+            <span>Outdated</span>
+          </article>
+          <article>
+            <strong>Pangolin</strong>
+            <span>Installed</span>
+            <span>Outdated</span>
+          </article>
+          <p><code>ssh pangolin true</code></p>
+        </div>
       </section>
 
       <section class="package-story release-story" id="release-notes" aria-labelledby="release-story-title">
