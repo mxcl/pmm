@@ -417,6 +417,7 @@ private enum RemotePackageAction {
 }
 
 private struct PackageActionIdentity: Equatable {
+    let runID: UUID?
     let kind: PackageHostActionKind
     let packageID: String
 }
@@ -432,11 +433,15 @@ private final class CappedActionOutputBuffer: @unchecked Sendable {
 
     func append(_ chunk: String) -> Bool {
         guard !chunk.isEmpty else { return false }
-        lock.withLock { output = String((output + chunk).suffix(limit)) }
+        lock.withLock {
+            output.append(contentsOf: chunk)
+            let threshold = limit + min(limit / 4, 16_384)
+            if output.count > threshold { output = String(output.suffix(limit)) }
+        }
         return true
     }
 
-    var value: String { lock.withLock { output } }
+    var value: String { lock.withLock { output.count > limit ? String(output.suffix(limit)) : output } }
 }
 
 @MainActor
@@ -1249,7 +1254,7 @@ final class MainWindowModel: NSObject, ObservableObject {
         uninstallingPackageName = snapshot.runningAction?.kind == .uninstall ? snapshot.runningAction?.displayName : nil
         updatingPackageName = snapshot.runningAction?.kind == .update ? snapshot.runningAction?.displayName : nil
         if let runningAction = snapshot.runningAction {
-            localActionIdentity = PackageActionIdentity(kind: runningAction.kind, packageID: runningAction.packageID)
+            localActionIdentity = PackageActionIdentity(runID: runningAction.runID, kind: runningAction.kind, packageID: runningAction.packageID)
             packageActionCommand = runningAction.command
             packageActionOutput = runningAction.output ?? ""
             packageActionError = nil
@@ -1268,13 +1273,13 @@ final class MainWindowModel: NSObject, ObservableObject {
     }
 
     @objc private func hostActionOutputChanged(_ notification: Notification) {
-        guard let (kind, packageID, output) = PackageHostNotifications.actionOutput(from: notification) else { return }
-        applyHostActionOutput(kind: kind, packageID: packageID, output: output)
+        guard let (kind, packageID, runID, output) = PackageHostNotifications.actionOutput(from: notification) else { return }
+        applyHostActionOutput(runID: runID, kind: kind, packageID: packageID, output: output)
     }
 
-    func applyHostActionOutput(kind: PackageHostActionKind, packageID: String, output: String) {
+    func applyHostActionOutput(runID: UUID? = nil, kind: PackageHostActionKind, packageID: String, output: String) {
         guard remoteActionHostID == nil,
-              localActionIdentity == PackageActionIdentity(kind: kind, packageID: packageID) else { return }
+              localActionIdentity == PackageActionIdentity(runID: runID, kind: kind, packageID: packageID) else { return }
         packageActionOutput = output
     }
 

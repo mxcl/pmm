@@ -3,10 +3,12 @@ import Testing
 @testable import PMMCore
 
 @Test func actionOutputNotificationPayloadRoundTrips() throws {
+    let runID = UUID()
     let notification = Notification(
         name: PackageHostNotifications.actionOutputChanged,
         userInfo: [
             PackageHostNotifications.actionKindKey: PackageHostActionKind.update.rawValue,
+            PackageHostNotifications.actionRunIDKey: runID.uuidString,
             PackageHostNotifications.packageIDKey: "brew:git",
             PackageHostNotifications.actionOutputKey: "progress\n",
         ]
@@ -15,7 +17,8 @@ import Testing
     let payload = try #require(PackageHostNotifications.actionOutput(from: notification))
     #expect(payload.0 == .update)
     #expect(payload.1 == "brew:git")
-    #expect(payload.2 == "progress\n")
+    #expect(payload.2 == runID)
+    #expect(payload.3 == "progress\n")
 }
 
 @Test func packageHostSnapshotRoundTripsJSON() throws {
@@ -73,6 +76,7 @@ import Testing
 
     #expect(decoded.command == nil)
     #expect(decoded.output == nil)
+    #expect(decoded.runID == nil)
 }
 
 @Test func packageHostSnapshotTracksInstalledPackageFirstSeenDates() {

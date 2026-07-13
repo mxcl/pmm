@@ -289,6 +289,41 @@ private func attributeRunCount(in string: NSAttributedString) -> Int {
 }
 
 @MainActor
+@Test func consecutiveRunsOfTheSamePackageRejectStaleOutput() {
+    let model = MainWindowModel(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
+    let git = package(.homebrew, "git", installedVersion: "1", latestVersion: "2")
+    let inventory = PackageInventory(packages: [git])
+    let firstRunID = UUID()
+    let secondRunID = UUID()
+
+    model.apply(snapshot: PackageHostSnapshot(
+        inventory: inventory,
+        runningAction: PackageHostRunningAction(
+            runID: firstRunID,
+            kind: .update,
+            packageID: git.id,
+            displayName: git.displayName
+        )
+    ))
+    model.applyHostActionOutput(runID: firstRunID, kind: .update, packageID: git.id, output: "first run")
+
+    model.apply(snapshot: PackageHostSnapshot(
+        inventory: inventory,
+        runningAction: PackageHostRunningAction(
+            runID: secondRunID,
+            kind: .update,
+            packageID: git.id,
+            displayName: git.displayName
+        )
+    ))
+    model.applyHostActionOutput(runID: firstRunID, kind: .update, packageID: git.id, output: "stale first run")
+    #expect(model.packageActionOutput == "")
+
+    model.applyHostActionOutput(runID: secondRunID, kind: .update, packageID: git.id, output: "second run")
+    #expect(model.packageActionOutput == "second run")
+}
+
+@MainActor
 @Test func modelCanInstallOnlyCatalogPackagesNotAlreadyInstalled() {
     let model = MainWindowModel(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
     let installed = ManagedPackage(manager: .homebrew, name: "git", installedVersion: "1", latestVersion: "1")

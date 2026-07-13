@@ -3,6 +3,30 @@ import PMMCore
 import Testing
 @testable import PMMMenuBar
 
+@Test func localProgressRelayCoalescesBurstAndFinishesWithDelayedFinalChunk() {
+    let published = LockedStrings()
+    let relay = MenuBarActionProgressRelay(interval: 60) { published.append($0) }
+    relay.recordStarted(command: "brew upgrade git")
+
+    relay.append("first\n")
+    relay.append("delayed final\n")
+
+    #expect(published.values == ["first\n"])
+    #expect(relay.finish() == MenuBarActionProgressResult(
+        command: "brew upgrade git",
+        output: "first\ndelayed final\n"
+    ))
+    #expect(published.values == ["first\n"])
+}
+
+private final class LockedStrings: @unchecked Sendable {
+    private let lock = NSLock()
+    private var storage = [String]()
+
+    func append(_ value: String) { lock.withLock { storage.append(value) } }
+    var values: [String] { lock.withLock { storage } }
+}
+
 @Test func menuStateShowsLoadingBeforeInventoryExists() {
     let state = MenuBarMenuState()
 

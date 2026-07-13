@@ -7,6 +7,7 @@ public enum PackageHostActionKind: String, Codable, Sendable {
 }
 
 public struct PackageHostRunningAction: Codable, Equatable, Sendable {
+    public let runID: UUID?
     public let kind: PackageHostActionKind
     public let packageID: String
     public let displayName: String
@@ -14,12 +15,14 @@ public struct PackageHostRunningAction: Codable, Equatable, Sendable {
     public var output: String?
 
     public init(
+        runID: UUID? = nil,
         kind: PackageHostActionKind,
         packageID: String,
         displayName: String,
         command: String? = nil,
         output: String? = nil
     ) {
+        self.runID = runID
         self.kind = kind
         self.packageID = packageID
         self.displayName = displayName
@@ -130,21 +133,29 @@ public enum PackageHostNotifications {
     public static let packageIDKey = "packageID"
     public static let packageIDsKey = "packageIDs"
     public static let actionKindKey = "actionKind"
+    public static let actionRunIDKey = "actionRunID"
     public static let actionOutputKey = "actionOutput"
 
     public static func postSnapshotChanged() {
         DistributedNotificationCenter.default().postNotificationName(snapshotChanged, object: nil, deliverImmediately: true)
     }
 
-    public static func postActionOutputChanged(kind: PackageHostActionKind, packageID: String, output: String) {
+    public static func postActionOutputChanged(
+        runID: UUID? = nil,
+        kind: PackageHostActionKind,
+        packageID: String,
+        output: String
+    ) {
+        var userInfo: [String: Any] = [
+            actionKindKey: kind.rawValue,
+            packageIDKey: packageID,
+            actionOutputKey: output,
+        ]
+        if let runID { userInfo[actionRunIDKey] = runID.uuidString }
         DistributedNotificationCenter.default().postNotificationName(
             actionOutputChanged,
             object: nil,
-            userInfo: [
-                actionKindKey: kind.rawValue,
-                packageIDKey: packageID,
-                actionOutputKey: output,
-            ],
+            userInfo: userInfo,
             deliverImmediately: true
         )
     }
@@ -198,12 +209,13 @@ public enum PackageHostNotifications {
         notification.userInfo?[packageIDsKey] as? [String] ?? []
     }
 
-    public static func actionOutput(from notification: Notification) -> (PackageHostActionKind, String, String)? {
+    public static func actionOutput(from notification: Notification) -> (PackageHostActionKind, String, UUID?, String)? {
         guard let rawKind = notification.userInfo?[actionKindKey] as? String,
               let kind = PackageHostActionKind(rawValue: rawKind),
               let packageID = packageID(from: notification),
               let output = notification.userInfo?[actionOutputKey] as? String else { return nil }
-        return (kind, packageID, output)
+        let runID = (notification.userInfo?[actionRunIDKey] as? String).flatMap(UUID.init(uuidString:))
+        return (kind, packageID, runID, output)
     }
 
     private static func postPackageCommand(_ name: Notification.Name, packageID: String) {
