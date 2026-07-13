@@ -336,7 +336,7 @@ bin_dir="$(swift build -c "$configuration" --show-bin-path)"
 
 rm -rf "$app" "$helper_app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources" "$app/Contents/Helpers" "$app/Contents/Library/LoginItems"
-mkdir -p "$helper_app/Contents/MacOS"
+mkdir -p "$helper_app/Contents/MacOS" "$helper_app/Contents/Resources"
 
 cp "$bin_dir/$executable" "$app/Contents/MacOS/$executable"
 cp "$bin_dir/$helper_executable" "$helper_app/Contents/MacOS/$helper_executable"
@@ -357,6 +357,7 @@ xcrun actool "$icon" "$assets" \
   --output-partial-info-plist "$work/IconInfo.plist" >/dev/null
 
 cp "$work/assets/Assets.car" "$app/Contents/Resources/Assets.car"
+ln -s ../../../../../Resources/Assets.car "$helper_app/Contents/Resources/Assets.car"
 
 cat > "$work/Info.plist.xml" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -422,6 +423,8 @@ cat > "$work/HelperInfo.plist.xml" <<EOF
   <string>$helper_app_name</string>
   <key>CFBundleExecutable</key>
   <string>$helper_executable</string>
+  <key>CFBundleIconName</key>
+  <string>AppIcon</string>
   <key>CFBundleIdentifier</key>
   <string>$helper_identifier</string>
   <key>CFBundleInfoDictionaryVersion</key>
