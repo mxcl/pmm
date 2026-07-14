@@ -239,6 +239,10 @@ if $clobber && ! $publish; then
   die "--clobber requires --publish"
 fi
 
+if $dmg; then
+  require_tool create-dmg
+fi
+
 if $publish; then
   [[ -n "${POSTHOG_API_KEY:-}" ]] || die "Set POSTHOG_API_KEY in the environment for --publish"
   require_tool git
@@ -470,8 +474,16 @@ if $dmg; then
   rm -rf "$dmg_path" "$dmg_root"
   mkdir -p "$dmg_root"
   cp -R "$app" "$dmg_root/$app_name.app"
-  ln -s /Applications "$dmg_root/Applications"
-  hdiutil create -volname "$app_name" -srcfolder "$dmg_root" -ov -format UDZO "$dmg_path" >/dev/null
+  create-dmg \
+    --volname "$app_name" \
+    --window-size 500 300 \
+    --icon-size 128 \
+    --icon "$app_name.app" 125 120 \
+    --app-drop-link 375 120 \
+    --codesign "$sign_identity" \
+    --overwrite \
+    "$dmg_path" \
+    "$dmg_root"
 fi
 
 if $notarize; then
