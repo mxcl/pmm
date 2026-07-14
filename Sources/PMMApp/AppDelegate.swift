@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var checkForUpdatesItem: NSMenuItem?
     private var appUpdateTask: Task<Void, Never>?
     private var pendingAppUpdateInstall = false
+    private var appUpdateProgressAlert: NSAlert?
     private var appUpdatePresentation = AppUpdatePresentationState() {
         didSet {
             checkForUpdatesItem?.isEnabled = !appUpdatePresentation.host.isChecking
@@ -216,10 +217,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .available:
             showUpdateAvailableAlert()
         case .current:
+            hideAppUpdateProgress()
             showUpdateAlert(message: "pkg⋅mgr² is up to date.")
         case .checkFailed(let errorMessage):
             showUpdateAlert(message: "Unable to check for updates.", informativeText: errorMessage)
         case .installFailed(let errorMessage):
+            hideAppUpdateProgress()
             showUpdateAlert(message: "Unable to install update.", informativeText: errorMessage)
         case nil:
             break
@@ -239,6 +242,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func requestAppUpdateInstall() {
         appUpdatePresentation.beginInstall()
+        showAppUpdateProgress()
         guard appUpdateTask == nil else {
             pendingAppUpdateInstall = true
             return
@@ -278,6 +282,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func quiesceForAppUpdate() {
+        hideAppUpdateProgress()
         NSAppleEventManager.shared().removeEventHandler(
             forEventClass: AEEventClass(kInternetEventClass),
             andEventID: AEEventID(kAEGetURL)
@@ -285,6 +290,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window?.orderOut(nil)
         window?.contentViewController = nil
         NSApp.mainMenu = nil
+    }
+
+    private func showAppUpdateProgress() {
+        guard let window, appUpdateProgressAlert == nil else { return }
+        let spinner = NSProgressIndicator()
+        spinner.style = .spinning
+        spinner.controlSize = .large
+        spinner.startAnimation(nil)
+
+        let alert = NSAlert()
+        alert.messageText = "Installing update…"
+        alert.informativeText = "pkg⋅mgr² will restart when it’s ready."
+        alert.accessoryView = spinner
+        appUpdateProgressAlert = alert
+        alert.beginSheetModal(for: window)
+    }
+
+    private func hideAppUpdateProgress() {
+        guard let alert = appUpdateProgressAlert else { return }
+        alert.window.sheetParent?.endSheet(alert.window)
+        appUpdateProgressAlert = nil
     }
 
     private func showUpdateAlert(message: String, informativeText: String = "") {
