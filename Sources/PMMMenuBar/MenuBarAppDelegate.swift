@@ -451,7 +451,7 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
         refreshItem.target = self
         refreshItem.isEnabled = !state.isRefreshing && snapshot.runningAction == nil
 
-        let openItem = menu.addItem(withTitle: "Open Main Window", action: #selector(openMainWindow(_:)), keyEquivalent: "")
+        let openItem = menu.addItem(withTitle: "Open Package Manager Manager", action: #selector(openMainWindow(_:)), keyEquivalent: "")
         openItem.target = self
 
         let loginItem = menu.addItem(withTitle: "Start at Login", action: #selector(toggleStartAtLogin(_:)), keyEquivalent: "")
@@ -459,7 +459,7 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
         loginItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
 
         menu.addItem(.separator())
-        let quitItem = menu.addItem(withTitle: "Quit pkg⋅mgr²", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        let quitItem = menu.addItem(withTitle: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         quitItem.target = NSApp
 
         statusItem.menu = menu
