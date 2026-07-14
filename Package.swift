@@ -12,13 +12,13 @@ let package = Package(
         .library(name: "PMMCore", targets: ["PMMCore"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/mxcl/AppUpdater.git", from: "2.1.1"),
+        .package(url: "https://github.com/mxcl/AppUpdater.git", from: "3.0.0"),
     ],
     targets: [
         .target(name: "PMMCore"),
         .executableTarget(
             name: "PMMApp",
-            dependencies: ["PMMCore"],
+            dependencies: ["PMMCore", "AppUpdater"],
             resources: [
                 .copy("Resources/AppIcon.icon"),
                 .process("Resources/Assets.xcassets"),
@@ -26,7 +26,7 @@ let package = Package(
         ),
         .executableTarget(
             name: "PMMMenuBar",
-            dependencies: ["PMMCore", "AppUpdater"]
+            dependencies: ["PMMCore"]
         ),
         .executableTarget(
             name: "pmmctl",

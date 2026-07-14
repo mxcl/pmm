@@ -1,11 +1,12 @@
 import AppKit
+import AppUpdater
 import PMMCore
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private let store = PackageHostStore()
-    private let notificationCenter = DistributedNotificationCenter.default()
     private var checkForUpdatesItem: NSMenuItem?
+    private var appUpdateTask: Task<Void, Never>?
+    private var pendingAppUpdateInstall = false
     private var appUpdatePresentation = AppUpdatePresentationState() {
         didSet {
             checkForUpdatesItem?.isEnabled = !appUpdatePresentation.host.isChecking
@@ -13,6 +14,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
     private var window: NSWindow?
+    private lazy var appUpdater = AppUpdater(
+        owner: "mxcl",
+        repo: "package-manager-manager"
+    )
+    private lazy var appUpdateController = AppUpdateController(
+        checkForUpdate: { [weak self] in
+            guard let self, let update = try await self.appUpdater.check() else { return nil }
+            return AppUpdateInstallation {
+                let prepared = try await update.prepareInstallation()
+                return PreparedAppUpdateInstallation(
+                    install: { try await prepared.installAndRelaunch() },
+                    discard: { await prepared.discard() }
+                )
+            }
+        },
+        publish: { [weak self] state in self?.applyAppUpdateState(state) },
+        requestHelperQuit: PackageHostNotifications.postAppUpdateQuitRequested,
+        waitForHelperExit: { [weak self] in await self?.waitForMenuBarAppExit() ?? false },
+        quiesce: { [weak self] in self?.quiesceForAppUpdate() }
+    )
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         NSAppleEventManager.shared().setEventHandler(
@@ -26,7 +47,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         PostHogTelemetry.shared.captureAppOpened()
         NSApp.mainMenu = makeMainMenu()
-        observeAppUpdateHost()
 #if DEBUG
         let isTerminalDemo = ProcessInfo.processInfo.environment["PMM_TERMINAL_DEMO"] == "1"
         if !isTerminalDemo {
@@ -36,11 +56,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         launchMenuBarApp()
 #endif
         showMainWindow()
-        syncAppUpdateState()
+        startAppUpdateCheck()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        notificationCenter.removeObserver(self)
+        appUpdateTask?.cancel()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -173,7 +193,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func checkForUpdates(_ sender: Any?) {
         guard appUpdatePresentation.beginManualCheck() else { return }
-        PackageHostNotifications.postAppUpdateCheckRequested()
+        startAppUpdateCheck()
     }
 
     @objc private func showHostManagement(_ sender: Any?) {
@@ -191,21 +211,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window?.contentViewController as? MainWindowController
     }
 
-    private func observeAppUpdateHost() {
-        notificationCenter.addObserver(self, selector: #selector(hostSnapshotChanged(_:)), name: PackageHostNotifications.snapshotChanged, object: nil)
-        notificationCenter.addObserver(self, selector: #selector(appUpdateQuitRequested(_:)), name: PackageHostNotifications.appUpdateQuitRequested, object: nil)
-    }
-
-    @objc private func hostSnapshotChanged(_ notification: Notification) {
-        syncAppUpdateState()
-    }
-
-    @objc private func appUpdateQuitRequested(_ notification: Notification) {
-        NSApp.terminate(nil)
-    }
-
-    private func syncAppUpdateState() {
-        guard let state = try? store.load()?.appUpdate else { return }
+    private func applyAppUpdateState(_ state: AppUpdateHostState) {
         switch appUpdatePresentation.apply(state) {
         case .available:
             showUpdateAvailableAlert()
@@ -233,7 +239,52 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func requestAppUpdateInstall() {
         appUpdatePresentation.beginInstall()
-        PackageHostNotifications.postAppUpdateInstallRequested()
+        guard appUpdateTask == nil else {
+            pendingAppUpdateInstall = true
+            return
+        }
+        startAppUpdateTask { await $0.install() }
+    }
+
+    private func startAppUpdateCheck() {
+        startAppUpdateTask { await $0.check() }
+    }
+
+    private func startAppUpdateTask(_ operation: @escaping (AppUpdateController) async -> Void) {
+        guard appUpdateTask == nil else { return }
+        appUpdateTask = Task { [weak self] in
+            guard let self else { return }
+            await operation(self.appUpdateController)
+            self.appUpdateTask = nil
+            if self.pendingAppUpdateInstall {
+                self.pendingAppUpdateInstall = false
+                self.startAppUpdateTask { await $0.install() }
+            }
+        }
+    }
+
+    private func waitForMenuBarAppExit() async -> Bool {
+        let helper = Bundle.main.bundleURL
+            .appendingPathComponent("Contents/Library/LoginItems/Package Manager Manager Menu.app", isDirectory: true)
+        guard let identifier = Bundle(url: helper)?.bundleIdentifier else { return true }
+        for _ in 0..<100 {
+            if NSRunningApplication.runningApplications(withBundleIdentifier: identifier).isEmpty {
+                return true
+            }
+            try? await Task.sleep(for: .milliseconds(100))
+            guard !Task.isCancelled else { return false }
+        }
+        return false
+    }
+
+    private func quiesceForAppUpdate() {
+        NSAppleEventManager.shared().removeEventHandler(
+            forEventClass: AEEventClass(kInternetEventClass),
+            andEventID: AEEventID(kAEGetURL)
+        )
+        window?.orderOut(nil)
+        window?.contentViewController = nil
+        NSApp.mainMenu = nil
     }
 
     private func showUpdateAlert(message: String, informativeText: String = "") {

@@ -1,9 +1,14 @@
-import Foundation
 import PMMCore
 
 @MainActor
-struct AppUpdateInstallation {
+struct PreparedAppUpdateInstallation {
     let install: () async throws -> Void
+    let discard: () async -> Void
+}
+
+@MainActor
+struct AppUpdateInstallation {
+    let prepare: () async throws -> PreparedAppUpdateInstallation
 }
 
 @MainActor
@@ -12,8 +17,9 @@ final class AppUpdateController {
 
     private let checkForUpdate: Check
     private let publish: (AppUpdateHostState) -> Void
-    private let requestMainAppQuit: () -> Void
-    private let waitForMainAppExit: () async -> Bool
+    private let requestHelperQuit: () -> Void
+    private let waitForHelperExit: () async -> Bool
+    private let quiesce: () -> Void
     private var installation: AppUpdateInstallation?
 
     private(set) var state: AppUpdateHostState
@@ -22,14 +28,16 @@ final class AppUpdateController {
         initialState: AppUpdateHostState = AppUpdateHostState(),
         checkForUpdate: @escaping Check,
         publish: @escaping (AppUpdateHostState) -> Void,
-        requestMainAppQuit: @escaping () -> Void,
-        waitForMainAppExit: @escaping () async -> Bool
+        requestHelperQuit: @escaping () -> Void,
+        waitForHelperExit: @escaping () async -> Bool,
+        quiesce: @escaping () -> Void
     ) {
         state = initialState
         self.checkForUpdate = checkForUpdate
         self.publish = publish
-        self.requestMainAppQuit = requestMainAppQuit
-        self.waitForMainAppExit = waitForMainAppExit
+        self.requestHelperQuit = requestHelperQuit
+        self.waitForHelperExit = waitForHelperExit
+        self.quiesce = quiesce
     }
 
     func check() async {
@@ -44,21 +52,32 @@ final class AppUpdateController {
     }
 
     func install() async {
-        if installation == nil {
-            await check()
-        }
+        if installation == nil { await check() }
         guard let installation else { return }
 
-        requestMainAppQuit()
-        guard await waitForMainAppExit() else {
-            setState(AppUpdateHostState(isAvailable: true, errorMessage: "The main app did not quit in time."))
+        let prepared: PreparedAppUpdateInstallation
+        do {
+            prepared = try await installation.prepare()
+        } catch {
+            self.installation = nil
+            setState(AppUpdateHostState(errorMessage: error.localizedDescription))
             return
         }
 
+        requestHelperQuit()
+        guard await waitForHelperExit() else {
+            await prepared.discard()
+            self.installation = nil
+            setState(AppUpdateHostState(errorMessage: "The menu bar helper did not quit in time."))
+            return
+        }
+
+        quiesce()
+        self.installation = nil
         do {
-            try await installation.install()
+            try await prepared.install()
         } catch {
-            setState(AppUpdateHostState(isAvailable: true, errorMessage: error.localizedDescription))
+            setState(AppUpdateHostState(errorMessage: error.localizedDescription))
         }
     }
 
