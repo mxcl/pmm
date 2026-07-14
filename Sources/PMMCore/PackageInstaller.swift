@@ -19,9 +19,9 @@ public struct PackageInstaller: Sendable {
             let arguments = package.identifier.hasPrefix("brew:cask:")
                 ? ["install", "--cask", package.packageToken]
                 : ["install", package.packageToken]
-            try run("brew", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin"], arguments, onProgress: onProgress)
+            try run("brew", arguments, onProgress: onProgress)
         case .npm:
-            try run("npm", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["install", "-g", "\(package.packageToken)@latest"], onProgress: onProgress)
+            try run("npm", ["install", "-g", "\(package.packageToken)@latest"], onProgress: onProgress)
         case .cargoInstall, .rustup, .npx, .skills, .uv, .uvx:
             throw PackageInstallError.unsupportedManager(package.manager)
         }
@@ -33,11 +33,10 @@ public struct PackageInstaller: Sendable {
 
     private func run(
         _ executableName: String,
-        extraPaths: [String],
         _ arguments: [String],
         onProgress: (@Sendable (PackageCommandProgress) -> Void)?
     ) throws {
-        guard let executable = toolPaths[executableName] ?? firstExecutable(named: executableName, extraPaths: extraPaths) else {
+        guard let executable = toolPaths[executableName] ?? firstExecutable(named: executableName) else {
             throw PackageInstallError.missingExecutable(executableName)
         }
         let command = ([executableName] + arguments).joined(separator: " ")

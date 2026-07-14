@@ -19,13 +19,13 @@ public struct PackageUninstaller: Sendable {
         guard package.installedVersion != nil else { return }
         switch package.manager {
         case .cargoInstall:
-            try run("cargo", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["uninstall", package.packageToken, "--color", "always"], onProgress: onProgress)
+            try run("cargo", ["uninstall", package.packageToken, "--color", "always"], onProgress: onProgress)
         case .rustup:
             throw PackageUninstallError.unsupportedManager(package.manager)
         case .homebrew:
-            try run("brew", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin"], ["uninstall", package.packageToken], onProgress: onProgress)
+            try run("brew", ["uninstall", package.packageToken], onProgress: onProgress)
         case .npm:
-            try run("npm", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["uninstall", "-g", package.packageToken], onProgress: onProgress)
+            try run("npm", ["uninstall", "-g", package.packageToken], onProgress: onProgress)
         case .npx:
             try removeCachedPackage(package, root: homeDirectory.appendingPathComponent(".npm/_npx", isDirectory: true))
         case .skills:
@@ -37,7 +37,7 @@ public struct PackageUninstaller: Sendable {
             let arguments = package.summary == "uv-managed Python"
                 ? ["python", "uninstall", package.installedVersion ?? package.packageToken, "--color", "always"]
                 : ["tool", "uninstall", package.packageToken, "--color", "always"]
-            try run("uv", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], arguments, onProgress: onProgress)
+            try run("uv", arguments, onProgress: onProgress)
         case .uvx:
             try removeInstallLocation(package)
         }
@@ -56,11 +56,10 @@ public struct PackageUninstaller: Sendable {
 
     private func run(
         _ executableName: String,
-        extraPaths: [String],
         _ arguments: [String],
         onProgress: (@Sendable (PackageCommandProgress) -> Void)?
     ) throws {
-        guard let executable = toolPaths[executableName] ?? firstExecutable(named: executableName, extraPaths: extraPaths) else {
+        guard let executable = toolPaths[executableName] ?? firstExecutable(named: executableName) else {
             throw PackageUninstallError.missingExecutable(executableName)
         }
         let command = ([executableName] + arguments).joined(separator: " ")
@@ -93,13 +92,13 @@ public struct PackageUninstaller: Sendable {
     ) throws {
         let arguments = ["remove", package.packageToken, "--global", "--yes"]
         if toolPaths["skills"] != nil {
-            try run("skills", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin"], arguments, onProgress: onProgress)
+            try run("skills", arguments, onProgress: onProgress)
         } else if toolPaths["npx"] != nil {
-            try run("npx", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["--yes", "skills"] + arguments, onProgress: onProgress)
-        } else if ["/opt/homebrew/bin/skills", "/usr/local/bin/skills"].contains(where: FileManager.default.isExecutableFile) {
-            try run("skills", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin"], arguments, onProgress: onProgress)
+            try run("npx", ["--yes", "skills"] + arguments, onProgress: onProgress)
+        } else if firstExecutable(named: "skills") != nil {
+            try run("skills", arguments, onProgress: onProgress)
         } else {
-            try run("npx", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["--yes", "skills"] + arguments, onProgress: onProgress)
+            try run("npx", ["--yes", "skills"] + arguments, onProgress: onProgress)
         }
     }
 

@@ -13,7 +13,7 @@ public struct HomebrewMaintenance: Sendable {
     }
 
     public func update() throws {
-        guard let brew = toolPaths["brew"] ?? firstExecutable(named: "brew", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin"]),
+        guard let brew = toolPaths["brew"] ?? firstExecutable(named: "brew"),
               !brew.isEmpty else {
             throw HomebrewMaintenanceError.missingExecutable("brew")
         }

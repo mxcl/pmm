@@ -2,6 +2,24 @@ import Foundation
 import Testing
 @testable import PMMCore
 
+@Test func commandPathPreservesPathOrderAndAppendsFallbacks() {
+    #expect(commandPath("/custom/bin:/usr/bin") == "/custom/bin:/usr/bin:/usr/local/bin:/opt/homebrew/bin")
+}
+
+@Test func commandPathUsesFallbacksWhenPathIsMissing() {
+    #expect(commandPath(nil) == "/usr/local/bin:/opt/homebrew/bin")
+}
+
+@Test func systemCommandRunnerAppendsFallbacksToChildPath() throws {
+    let result = try SystemCommandRunner().run(
+        "/bin/sh",
+        ["-c", "printf %s \"$PATH\""],
+        options: CommandRunOptions(environment: ["PATH": "/custom/bin"])
+    )
+
+    #expect(result.stdout == "/custom/bin:/usr/local/bin:/opt/homebrew/bin")
+}
+
 private final class StringRecorder: @unchecked Sendable {
     private let lock = NSLock()
     private var text = ""

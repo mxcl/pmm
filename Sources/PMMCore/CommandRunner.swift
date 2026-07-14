@@ -78,9 +78,7 @@ public struct SystemCommandRunner: CommandRunning {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: executable)
         process.arguments = arguments
-        if !options.environment.isEmpty {
-            process.environment = ProcessInfo.processInfo.environment.merging(options.environment) { _, new in new }
-        }
+        process.environment = commandEnvironment(options.environment)
 
         let output = Pipe()
         let error = Pipe()
@@ -119,7 +117,7 @@ public struct SystemCommandRunner: CommandRunning {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: executable)
         process.arguments = arguments
-        process.environment = ProcessInfo.processInfo.environment.merging(terminalEnvironment(options.environment)) { _, new in new }
+        process.environment = commandEnvironment(terminalEnvironment(options.environment))
         process.standardInput = FileHandle.nullDevice
         process.standardOutput = slaveHandle
         process.standardError = slaveHandle
@@ -276,10 +274,22 @@ struct IncrementalUTF8Decoder {
     }
 }
 
-public func firstExecutable(named name: String, extraPaths: [String] = []) -> String? {
-    let pathParts = (ProcessInfo.processInfo.environment["PATH"] ?? "")
+private let fallbackCommandPaths = ["/usr/local/bin", "/opt/homebrew/bin"]
+
+func commandPath(_ path: String?) -> String {
+    ([path].compactMap { $0?.isEmpty == false ? $0 : nil } + fallbackCommandPaths).joined(separator: ":")
+}
+
+private func commandEnvironment(_ overrides: [String: String]) -> [String: String] {
+    var environment = ProcessInfo.processInfo.environment.merging(overrides) { _, new in new }
+    environment["PATH"] = commandPath(environment["PATH"])
+    return environment
+}
+
+public func firstExecutable(named name: String) -> String? {
+    let pathParts = commandPath(ProcessInfo.processInfo.environment["PATH"])
         .split(separator: ":")
         .map(String.init)
-    let candidates = (extraPaths + pathParts).map { "\($0)/\(name)" }
+    let candidates = pathParts.map { "\($0)/\(name)" }
     return candidates.first { FileManager.default.isExecutableFile(atPath: $0) }
 }

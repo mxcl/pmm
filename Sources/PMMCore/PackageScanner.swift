@@ -83,14 +83,14 @@ public struct PackageScanner: @unchecked Sendable {
     }
 
     public func scanCargoInstall(database: PackageDatabase) throws -> [ManagedPackage] {
-        guard let cargo = executable(named: "cargo", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"]) else { return [] }
+        guard let cargo = executable(named: "cargo") else { return [] }
         let result = try runner.run(cargo, ["install", "--list", "--color", "never"])
         guard result.status == 0 else { return [] }
         return parseCargoInstallList(result.stdout)
     }
 
     public func scanRustup(database: PackageDatabase) throws -> [ManagedPackage] {
-        guard let rustup = executable(named: "rustup", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"]) else { return [] }
+        guard let rustup = executable(named: "rustup") else { return [] }
         let rustupPackage = rustupPackage(rustup)
         let result = try runner.run(rustup, ["toolchain", "list", "-v"])
         guard result.status == 0 else { return [rustupPackage] }
@@ -104,7 +104,7 @@ public struct PackageScanner: @unchecked Sendable {
     }
 
     private func scanHomebrew(database: PackageDatabase, mode: PackageScanMode) throws -> [ManagedPackage] {
-        guard let brew = executable(named: "brew", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin"]) else { return [] }
+        guard let brew = executable(named: "brew") else { return [] }
         let outdated: (formulae: [String: String], casks: [String: String]) = mode == .fresh
             ? try homebrewOutdated(brew)
             : ([:], [:])
@@ -119,7 +119,7 @@ public struct PackageScanner: @unchecked Sendable {
     }
 
     public func homebrewPrefix() -> String? {
-        guard let brew = executable(named: "brew", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin"]) else { return nil }
+        guard let brew = executable(named: "brew") else { return nil }
         return successfulBrewLine(brew, ["--prefix"])
     }
 
@@ -128,7 +128,7 @@ public struct PackageScanner: @unchecked Sendable {
     }
 
     private func scanNPM(database: PackageDatabase, mode: PackageScanMode) throws -> [ManagedPackage] {
-        guard let npm = executable(named: "npm", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"]) else { return [] }
+        guard let npm = executable(named: "npm") else { return [] }
         let root = successfulLine(npm, ["root", "-g"])
         let prefix = successfulLine(npm, ["prefix", "-g"])
         let bin = prefix.map { "\($0)/bin" }
@@ -206,10 +206,10 @@ public struct PackageScanner: @unchecked Sendable {
         } else if let npx = toolPaths["npx"] {
             executable = npx
             prefix = ["--yes", "skills"]
-        } else if let skills = ["/opt/homebrew/bin/skills", "/usr/local/bin/skills"].first(where: fileManager.isExecutableFile) {
+        } else if let skills = firstExecutable(named: "skills") {
             executable = skills
             prefix = []
-        } else if let npx = firstExecutable(named: "npx", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"]) {
+        } else if let npx = firstExecutable(named: "npx") {
             executable = npx
             prefix = ["--yes", "skills"]
         } else {
@@ -245,14 +245,14 @@ public struct PackageScanner: @unchecked Sendable {
     }
 
     private func scanUV(database: PackageDatabase, mode: PackageScanMode) throws -> [ManagedPackage] {
-        guard let uv = executable(named: "uv", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"]) else { return [] }
+        guard let uv = executable(named: "uv") else { return [] }
         let toolDir = successfulLine(uv, ["tool", "dir", "--offline", "--color", "never"])
         let pythonDir = successfulLine(uv, ["python", "dir", "--offline", "--color", "never"])
         return try uvTools(uv, toolDir: toolDir, includeOutdated: mode == .fresh, database: database) + uvPythons(uv, pythonDir: pythonDir)
     }
 
     public func scanUVX(database: PackageDatabase) throws -> [ManagedPackage] {
-        guard let uv = executable(named: "uv", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"]),
+        guard let uv = executable(named: "uv"),
               let cacheDir = successfulLine(uv, ["cache", "dir"]) else { return [] }
         let environments = URL(fileURLWithPath: cacheDir).appendingPathComponent("environments-v2", isDirectory: true)
         guard let entries = try? fileManager.contentsOfDirectory(at: environments, includingPropertiesForKeys: nil) else { return [] }
@@ -838,8 +838,8 @@ public struct PackageScanner: @unchecked Sendable {
         return result.stdout.split(whereSeparator: \.isNewline).map(String.init)
     }
 
-    private func executable(named name: String, extraPaths: [String]) -> String? {
-        toolPaths[name] ?? firstExecutable(named: name, extraPaths: extraPaths)
+    private func executable(named name: String) -> String? {
+        toolPaths[name] ?? firstExecutable(named: name)
     }
 
     private func scanOnUtilityQueue(
@@ -884,7 +884,7 @@ public struct PackageScanner: @unchecked Sendable {
 
     private func npxResolvedLatestVersions(for names: Set<String>) -> [String: String] {
         guard !names.isEmpty,
-              let npm = executable(named: "npm", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"]) else { return [:] }
+              let npm = executable(named: "npm") else { return [:] }
         let temp = FileManager.default.temporaryDirectory.appendingPathComponent("pmm-npx-\(UUID().uuidString)", isDirectory: true)
         do {
             try fileManager.createDirectory(at: temp, withIntermediateDirectories: true)

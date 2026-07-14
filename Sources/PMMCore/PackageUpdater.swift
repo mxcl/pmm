@@ -16,20 +16,20 @@ public struct PackageUpdater: Sendable {
         guard package.isOutdated else { return }
         switch package.manager {
         case .cargoInstall:
-            try run("cargo", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["install", package.packageToken, "--force", "--color", "always"], onProgress: onProgress)
+            try run("cargo", ["install", package.packageToken, "--force", "--color", "always"], onProgress: onProgress)
         case .rustup, .skills:
             throw PackageUpdateError.unsupportedManager(package.manager)
         case .homebrew:
-            try run("brew", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin"], ["upgrade", package.packageToken], onProgress: onProgress)
+            try run("brew", ["upgrade", package.packageToken], onProgress: onProgress)
         case .npm:
-            try run("npm", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["install", "-g", "\(package.packageToken)@latest"], onProgress: onProgress)
+            try run("npm", ["install", "-g", "\(package.packageToken)@latest"], onProgress: onProgress)
         case .npx:
-            try run("npm", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["exec", "--yes", "--package", "\(package.packageToken)@\(package.latestVersion ?? "latest")", "--", "true"], onProgress: onProgress)
+            try run("npm", ["exec", "--yes", "--package", "\(package.packageToken)@\(package.latestVersion ?? "latest")", "--", "true"], onProgress: onProgress)
         case .uv:
             if package.summary == "uv-managed Python", let latestVersion = package.latestVersion {
-                try run("uv", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["python", "install", latestVersion, "--color", "always"], onProgress: onProgress)
+                try run("uv", ["python", "install", latestVersion, "--color", "always"], onProgress: onProgress)
             } else {
-                try run("uv", extraPaths: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"], ["tool", "upgrade", package.packageToken, "--color", "always"], onProgress: onProgress)
+                try run("uv", ["tool", "upgrade", package.packageToken, "--color", "always"], onProgress: onProgress)
             }
         case .uvx:
             throw PackageUpdateError.unsupportedManager(package.manager)
@@ -46,11 +46,10 @@ public struct PackageUpdater: Sendable {
 
     private func run(
         _ executableName: String,
-        extraPaths: [String],
         _ arguments: [String],
         onProgress: (@Sendable (PackageCommandProgress) -> Void)?
     ) throws {
-        guard let executable = toolPaths[executableName] ?? firstExecutable(named: executableName, extraPaths: extraPaths) else {
+        guard let executable = toolPaths[executableName] ?? firstExecutable(named: executableName) else {
             throw PackageUpdateError.missingExecutable(executableName)
         }
         let command = ([executableName] + arguments).joined(separator: " ")
