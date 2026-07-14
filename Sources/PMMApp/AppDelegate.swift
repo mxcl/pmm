@@ -7,7 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var checkForUpdatesItem: NSMenuItem?
     private var appUpdateTask: Task<Void, Never>?
     private var pendingAppUpdateInstall = false
-    private var appUpdateProgressAlert: NSAlert?
+    private var appUpdateProgressWindow: NSWindow?
     private var appUpdatePresentation = AppUpdatePresentationState() {
         didSet {
             checkForUpdatesItem?.isEnabled = !appUpdatePresentation.host.isChecking
@@ -293,24 +293,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func showAppUpdateProgress() {
-        guard let window, appUpdateProgressAlert == nil else { return }
+        guard let window, appUpdateProgressWindow == nil else { return }
         let spinner = NSProgressIndicator()
         spinner.style = .spinning
         spinner.controlSize = .large
         spinner.startAnimation(nil)
 
-        let alert = NSAlert()
-        alert.messageText = "Installing update…"
-        alert.informativeText = "pkg⋅mgr² will restart when it’s ready."
-        alert.accessoryView = spinner
-        appUpdateProgressAlert = alert
-        alert.beginSheetModal(for: window)
+        let message = NSTextField(labelWithString: "Updating…")
+        message.font = .systemFont(ofSize: NSFont.systemFontSize, weight: .semibold)
+        let stack = NSStackView(views: [spinner, message])
+        stack.orientation = .vertical
+        stack.alignment = .centerX
+        stack.spacing = 12
+
+        let sheet = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 240, height: 110),
+            styleMask: [.titled],
+            backing: .buffered,
+            defer: false
+        )
+        sheet.titleVisibility = .hidden
+        sheet.titlebarAppearsTransparent = true
+        sheet.standardWindowButton(.closeButton)?.isHidden = true
+        sheet.contentView = stack
+        appUpdateProgressWindow = sheet
+        window.beginSheet(sheet)
     }
 
     private func hideAppUpdateProgress() {
-        guard let alert = appUpdateProgressAlert else { return }
-        alert.window.sheetParent?.endSheet(alert.window)
-        appUpdateProgressAlert = nil
+        guard let sheet = appUpdateProgressWindow else { return }
+        sheet.sheetParent?.endSheet(sheet)
+        appUpdateProgressWindow = nil
     }
 
     private func showUpdateAlert(message: String, informativeText: String = "") {
