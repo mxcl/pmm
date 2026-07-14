@@ -454,6 +454,8 @@ cat > "$work/HelperInfo.plist.xml" <<EOF
 EOF
 
 plutil -convert binary1 -o "$helper_app/Contents/Info.plist" "$work/HelperInfo.plist.xml"
+[[ "$(plutil -extract CFBundleName raw -o - "$helper_app/Contents/Info.plist")" == "$helper_app_name" ]] ||
+  die "Menu bar helper CFBundleName must be $helper_app_name"
 if $publish; then
   plutil -insert PostHogAPIKey -string "$POSTHOG_API_KEY" "$app/Contents/Info.plist"
   plutil -insert PostHogAPIKey -string "$POSTHOG_API_KEY" "$helper_app/Contents/Info.plist"
