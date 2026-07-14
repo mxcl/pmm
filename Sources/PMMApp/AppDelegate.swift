@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var checkForUpdatesItem: NSMenuItem?
     private var appUpdateTask: Task<Void, Never>?
     private var pendingAppUpdateInstall = false
+    private var isInstallingAppUpdate = false
     private var appUpdateProgressWindow: NSWindow?
     private var appUpdatePresentation = AppUpdatePresentationState() {
         didSet {
@@ -65,7 +66,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        true
+        !isInstallingAppUpdate
     }
 
     private func showMainWindow() {
@@ -282,6 +283,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func quiesceForAppUpdate() {
+        isInstallingAppUpdate = true
         hideAppUpdateProgress()
         NSAppleEventManager.shared().removeEventHandler(
             forEventClass: AEEventClass(kInternetEventClass),
