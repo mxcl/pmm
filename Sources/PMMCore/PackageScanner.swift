@@ -129,7 +129,7 @@ public struct PackageScanner: @unchecked Sendable {
 
     public func scanMise(database _: PackageDatabase) throws -> [ManagedPackage] {
         guard let mise = executable(named: "mise") else { return [] }
-        let result = try runner.run(mise, ["ls", "--global", "--installed", "--json"])
+        let result = try runner.run(mise, ["ls", "--installed", "--json"])
         guard result.status == 0, let tools = jsonObject(result.stdout) else { return [] }
 
         return ManagedPackage.consolidatingInstalledVersions(in: tools.flatMap { (tool: String, value: Any) -> [ManagedPackage] in
