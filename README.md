@@ -51,6 +51,7 @@ pkg⋅mgr² uses OpenSSH directly. Your keys, agent, host aliases, and
 pkg⋅mgr² currently inventories:
 
 - Homebrew formulae and casks
+- tools and runtimes installed with `mise`
 - global npm packages
 - npx cache entries
 - global agent skills installed with `skills` or `npx skills`
