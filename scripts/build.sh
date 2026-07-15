@@ -245,6 +245,7 @@ fi
 
 if $publish; then
   [[ -n "${POSTHOG_API_KEY:-}" ]] || die "Set POSTHOG_API_KEY in the environment for --publish"
+  require_tool curl
   require_tool git
   require_tool gh
   git -C "$root" rev-parse --is-inside-work-tree >/dev/null ||
@@ -362,6 +363,12 @@ xcrun actool "$icon" "$assets" \
 
 cp "$work/assets/Assets.car" "$app/Contents/Resources/Assets.car"
 ln -s ../../../../../Resources/Assets.car "$helper_app/Contents/Resources/Assets.car"
+if $publish; then
+  curl --fail --location --retry 3 --output "$app/Contents/Resources/db.json" https://www.automicvault.com/db.json
+  plutil -extract sources.db.formulas xml1 -o /dev/null "$app/Contents/Resources/db.json" ||
+    die "Downloaded db.json has an unexpected shape"
+  ln -s ../../../../../Resources/db.json "$helper_app/Contents/Resources/db.json"
+fi
 
 cat > "$work/Info.plist.xml" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>

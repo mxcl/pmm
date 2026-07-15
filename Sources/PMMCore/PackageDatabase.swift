@@ -16,7 +16,7 @@ public struct PackageDatabase: Sendable {
     }
 
     public static func load(from url: URL = Self.url) async -> PackageDatabase {
-        (try? await fetch(from: url)) ?? cached(from: url) ?? PackageDatabase()
+        (try? await fetch(from: url)) ?? cached(from: url) ?? bundled() ?? PackageDatabase()
     }
 
     public static func fetch(from url: URL = Self.url) async throws -> PackageDatabase {
@@ -27,6 +27,15 @@ public struct PackageDatabase: Sendable {
     public static func cached(from url: URL = Self.url, cache: URLCache = .shared) -> PackageDatabase? {
         let request = URLRequest(url: url)
         guard let data = cache.cachedResponse(for: request)?.data else { return nil }
+        return try? decode(data)
+    }
+
+    public static func bundled(in bundle: Bundle = .main) -> PackageDatabase? {
+        bundled(at: bundle.url(forResource: "db", withExtension: "json"))
+    }
+
+    static func bundled(at url: URL?) -> PackageDatabase? {
+        guard let url, let data = try? Data(contentsOf: url) else { return nil }
         return try? decode(data)
     }
 

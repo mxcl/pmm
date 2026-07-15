@@ -109,3 +109,23 @@ import Testing
     let db = try #require(PackageDatabase.cached(from: url, cache: cache))
     #expect(db.metadata(for: .homebrew, name: "git")?.summary == "Distributed revision control system")
 }
+
+@Test func loadsBundledDatabaseFile() throws {
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: url) }
+    try """
+    {
+      "sources": {
+        "db": {
+          "formulas": {
+            "git": { "summary": "Bundled metadata" }
+          }
+        }
+      }
+    }
+    """.write(to: url, atomically: true, encoding: .utf8)
+
+    let db = try #require(PackageDatabase.bundled(at: url))
+    #expect(db.metadata(for: .homebrew, name: "git")?.summary == "Bundled metadata")
+    #expect(PackageDatabase.bundled(at: nil) == nil)
+}

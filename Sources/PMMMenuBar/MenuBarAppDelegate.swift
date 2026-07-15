@@ -147,6 +147,9 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
         publishSnapshot(updateFirstSeen: false)
         let previousLastBrewUpdateAt = snapshot.lastBrewUpdateAt
         let previousFirstSeen = snapshot.installedPackageFirstSeenAtByID
+        let bootstrapDatabaseTask = Task.detached(priority: .utility) {
+            PackageDatabase.bundled() ?? PackageDatabase.cached() ?? PackageDatabase()
+        }
         let databaseTask = Task.detached(priority: .utility) {
             await PackageDatabase.load()
         }
@@ -154,10 +157,19 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
         refreshTask = Task { [weak self] in
             guard let self else { return }
             var errorsByManager: [PackageManagerKind: [String]] = [:]
+            let bootstrapDatabase = await bootstrapDatabaseTask.value
+            let catalogPackages = await Task.detached(priority: .utility) {
+                let scanner = PackageScanner()
+                return bootstrapDatabase.catalogPackages(homebrewPrefix: scanner.homebrewPrefix())
+            }.value
+            guard !Task.isCancelled else { return }
+            self.snapshot.catalogPackages = catalogPackages
+            self.publishSnapshot(updateFirstSeen: false)
+
             let scanner = PackageScanner()
             for await result in scanner.results(
                 for: Set(PackageManagerKind.allCases),
-                database: PackageDatabase(),
+                database: bootstrapDatabase,
                 mode: .local
             ) {
                 guard !Task.isCancelled else { return }
