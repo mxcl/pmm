@@ -20,7 +20,7 @@ public struct PackageUninstaller: Sendable {
         switch package.manager {
         case .cargoInstall:
             try run("cargo", ["uninstall", package.packageToken, "--color", "always"], onProgress: onProgress)
-        case .rustup:
+        case .rustup, .mise:
             throw PackageUninstallError.unsupportedManager(package.manager)
         case .homebrew:
             try run("brew", ["uninstall", package.packageToken], onProgress: onProgress)
@@ -49,7 +49,7 @@ public struct PackageUninstaller: Sendable {
             package.installedVersion != nil
         case .skills:
             package.installedVersion != nil && package.identifier.hasPrefix("skills:global:")
-        case .rustup:
+        case .rustup, .mise:
             false
         }
     }

@@ -170,6 +170,34 @@ private final class EmptyNPMRegistryURLProtocol: URLProtocol, @unchecked Sendabl
     #expect(packages.last?.binaryPath == nil)
 }
 
+@Test func miseScannerIncludesOnlyGlobalInstalledTools() throws {
+    let json = #"{"node":[{"version":"22.17.0","install_path":"/mise/node/22.17.0"}],"python":[{"version":"3.13.5","install_path":"/mise/python/3.13.5"}]}"#
+    let runner = RecordingRunner(responses: [
+        "/fake/mise ls --global --installed --json": CommandResult(stdout: json, stderr: "", status: 0),
+    ])
+    let scanner = PackageScanner(runner: runner, toolPaths: ["mise": "/fake/mise"], environment: [:])
+
+    let packages = try scanner.scanMise(database: PackageDatabase())
+
+    #expect(runner.calls.map(\.command) == ["/fake/mise ls --global --installed --json"])
+    #expect(packages.map(\.identifier) == ["mise:node", "mise:python"])
+    #expect(packages.map(\.displayName) == ["Node.js", "Python"])
+    #expect(packages.first?.latestVersion == nil)
+    #expect(packages.first?.binaryPath == "/mise/node/22.17.0/bin/node")
+    #expect(packages.last?.binaryPath == "/mise/python/3.13.5/bin/python3")
+}
+
+@Test func localMiseScanUsesTheSameGlobalOnlyCommand() async {
+    let runner = RecordingRunner(responses: [
+        "/fake/mise ls --global --installed --json": CommandResult(stdout: "{}", stderr: "", status: 0),
+    ])
+    let scanner = PackageScanner(runner: runner, toolPaths: ["mise": "/fake/mise"], environment: [:])
+
+    for await _ in scanner.results(for: [.mise], database: PackageDatabase(), mode: .local) {}
+
+    #expect(runner.calls.map(\.command) == ["/fake/mise ls --global --installed --json"])
+}
+
 @Test(.timeLimit(.minutes(1))) func managerScanResultsYieldInCompletionOrder() async throws {
     let runner = GatedRunner()
     let scanner = PackageScanner(

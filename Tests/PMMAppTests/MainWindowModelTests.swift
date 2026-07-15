@@ -163,6 +163,19 @@ private func attributeRunCount(in string: NSAttributedString) -> Int {
     #expect(model.selectedPackage == nil)
 }
 
+@Test func miseRuntimesAppearInTheirEcosystemSections() {
+    let packages = [
+        ManagedPackage(manager: .mise, identifier: "mise:node", displayName: "Node.js", installedVersion: "22.17.0", latestVersion: nil),
+        ManagedPackage(manager: .mise, identifier: "mise:python", displayName: "Python", installedVersion: "3.13.5", latestVersion: nil),
+        ManagedPackage(manager: .mise, identifier: "mise:rust", displayName: "Rust", installedVersion: "1.88.0", latestVersion: nil),
+    ]
+    let index = PackageIndex(packages: packages, catalogPackages: [], newUpdatedLastClickedAt: nil)
+
+    #expect(index.packagesBySection[.javascript]?.map(\.identifier) == ["mise:node"])
+    #expect(index.packagesBySection[.python]?.map(\.identifier) == ["mise:python"])
+    #expect(index.packagesBySection[.rust]?.map(\.identifier) == ["mise:rust"])
+}
+
 @MainActor
 @Test func modelLoadsPackagesFromHostSnapshotStore() throws {
     let root = FileManager.default.temporaryDirectory

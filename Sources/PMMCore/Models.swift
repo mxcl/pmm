@@ -4,6 +4,7 @@ public enum PackageManagerKind: String, Codable, CaseIterable, Sendable {
     case cargoInstall = "cargo-install"
     case rustup
     case homebrew
+    case mise
     case npm
     case npx
     case skills
@@ -15,6 +16,7 @@ public enum PackageManagerKind: String, Codable, CaseIterable, Sendable {
         case .cargoInstall: "cargo install"
         case .rustup: "rustup"
         case .homebrew: "Homebrew"
+        case .mise: "mise"
         case .npm: "npm"
         case .npx: "npx"
         case .skills: "Skills"

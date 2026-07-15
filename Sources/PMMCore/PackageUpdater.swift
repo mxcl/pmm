@@ -17,7 +17,7 @@ public struct PackageUpdater: Sendable {
         switch package.manager {
         case .cargoInstall:
             try run("cargo", ["install", package.packageToken, "--force", "--color", "always"], onProgress: onProgress)
-        case .rustup, .skills:
+        case .rustup, .mise, .skills:
             throw PackageUpdateError.unsupportedManager(package.manager)
         case .homebrew:
             try run("brew", ["upgrade", package.packageToken], onProgress: onProgress)
@@ -40,7 +40,7 @@ public struct PackageUpdater: Sendable {
     public static func supports(_ package: ManagedPackage) -> Bool {
         switch package.manager {
         case .cargoInstall, .homebrew, .npm, .npx, .uv: package.isOutdated
-        case .rustup, .skills, .uvx: false
+        case .rustup, .mise, .skills, .uvx: false
         }
     }
 

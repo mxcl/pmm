@@ -970,6 +970,7 @@ private struct PackageRow: View {
                         .truncationMode(.middle)
                         .layoutPriority(1)
                     PackageEcosystemMark(package: package)
+                    if package.manager == .mise { MiseMark() }
                     if package.isOutdated && !showsManager { PackageBadgePill(text: "Outdated", color: SystemColor.orange) }
                     Spacer(minLength: 8)
                     Text(versionText)
@@ -1040,16 +1041,7 @@ struct PackageEcosystemMark: View {
         .accessibilityLabel(section.title)
     }
 
-    private var section: MainWindowSection {
-        if package.identifier.hasPrefix("brew:cask:") { return .casks }
-        switch package.manager {
-        case .cargoInstall, .rustup: return .rust
-        case .homebrew: return .homebrew
-        case .npm, .npx: return .javascript
-        case .skills: return .skills
-        case .uv, .uvx: return .python
-        }
-    }
+    private var section: MainWindowSection { mainWindowManagerSection(for: package) }
 
     private var color: Color {
         switch section {
@@ -1065,6 +1057,19 @@ struct PackageEcosystemMark: View {
 
     private var imageOffset: CGFloat {
         section == .homebrew ? 3 : 4.5
+    }
+}
+
+private struct MiseMark: View {
+    var body: some View {
+        Text("MISE")
+            .font(.system(size: 7, weight: .black, design: .rounded))
+            .foregroundStyle(.white)
+            .tracking(0.4)
+            .padding(.horizontal, 4)
+            .padding(.vertical, 2)
+            .background(.black, in: Capsule())
+            .accessibilityLabel("Installed by mise")
     }
 }
 
@@ -1136,6 +1141,7 @@ private struct DossierHeader: View {
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }
+                if package.manager == .mise { MiseMark() }
             }
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(package.manager.title.uppercased())

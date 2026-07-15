@@ -127,6 +127,34 @@ public struct PackageScanner: @unchecked Sendable {
         try scanNPM(database: database, mode: .fresh)
     }
 
+    public func scanMise(database _: PackageDatabase) throws -> [ManagedPackage] {
+        guard let mise = executable(named: "mise") else { return [] }
+        let result = try runner.run(mise, ["ls", "--global", "--installed", "--json"])
+        guard result.status == 0, let tools = jsonObject(result.stdout) else { return [] }
+
+        return ManagedPackage.consolidatingInstalledVersions(in: tools.flatMap { (tool: String, value: Any) -> [ManagedPackage] in
+            guard let versions = value as? [[String: Any]] else { return [] }
+            return versions.compactMap { row in
+                guard let version = row["version"] as? String,
+                      let installPath = row["install_path"] as? String else { return nil }
+                let executable = miseExecutableName(for: tool)
+                return ManagedPackage(
+                    manager: .mise,
+                    identifier: "mise:\(tool)",
+                    displayName: miseDisplayName(for: tool),
+                    installedVersion: version,
+                    latestVersion: nil,
+                    summary: "mise managed \(tool)",
+                    category: "language-runtime",
+                    homepage: "https://mise.jdx.dev/lang/\(tool).html",
+                    docs: "https://mise.jdx.dev/",
+                    installLocation: installPath,
+                    binaryPath: "\(installPath)/bin/\(executable)"
+                )
+            }
+        })
+    }
+
     private func scanNPM(database: PackageDatabase, mode: PackageScanMode) throws -> [ManagedPackage] {
         guard let npm = executable(named: "npm") else { return [] }
         let root = successfulLine(npm, ["root", "-g"])
@@ -855,6 +883,7 @@ public struct PackageScanner: @unchecked Sendable {
                     case .cargoInstall: packages = try scanCargoInstall(database: database)
                     case .rustup: packages = try scanRustup(database: database)
                     case .homebrew: packages = try scanHomebrew(database: database, mode: mode)
+                    case .mise: packages = try scanMise(database: database)
                     case .npm: packages = try scanNPM(database: database, mode: mode)
                     case .npx:
                         let cached = try scanNPX(database: database)
@@ -1091,6 +1120,22 @@ public struct PackageScanner: @unchecked Sendable {
             .path
     }
 
+}
+
+private func miseDisplayName(for tool: String) -> String {
+    switch tool {
+    case "node": "Node.js"
+    case "python": "Python"
+    default: tool.prefix(1).uppercased() + tool.dropFirst()
+    }
+}
+
+private func miseExecutableName(for tool: String) -> String {
+    switch tool {
+    case "python": "python3"
+    case "rust": "rustc"
+    default: tool
+    }
 }
 
 private func jsonObject(_ text: String) -> [String: Any]? {

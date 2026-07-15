@@ -109,10 +109,10 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
 
     var packageManagers: Set<PackageManagerKind> {
         switch self {
-        case .rust: [.cargoInstall, .rustup]
+        case .rust: [.cargoInstall, .rustup, .mise]
         case .homebrew, .casks: [.homebrew]
-        case .javascript: [.npm, .npx]
-        case .python: [.uv, .uvx]
+        case .javascript: [.npm, .npx, .mise]
+        case .python: [.uv, .uvx, .mise]
         case .skills: [.skills]
         default: []
         }
@@ -198,6 +198,9 @@ struct MainWindowPackageURLRequest: Equatable {
         } else if identifier.hasPrefix("npm:") {
             manager = .npm
             name = String(identifier.trimmingPrefix("npm:"))
+        } else if identifier.hasPrefix("mise:") {
+            manager = .mise
+            name = String(identifier.trimmingPrefix("mise:"))
         } else if identifier.hasPrefix("npx:") {
             manager = .npx
             name = String(identifier.trimmingPrefix("npx:"))
@@ -240,6 +243,9 @@ struct MainWindowPackageURLRequest: Equatable {
         case "npm":
             manager = .npm
             identifier = "npm:\(name)"
+        case "mise":
+            manager = .mise
+            identifier = "mise:\(name)"
         case "npx":
             manager = .npx
             identifier = "npx:\(name)"
@@ -265,6 +271,7 @@ struct MainWindowPackageURLRequest: Equatable {
         case .cargoInstall, .rustup: .rust
         case .homebrew: .homebrew
         case .npm, .npx: .javascript
+        case .mise: .installed
         case .skills: .skills
         case .uv, .uvx: .python
         }
@@ -345,7 +352,7 @@ func mainWindowRegistryURLString(for package: ManagedPackage) -> String? {
     case .uv, .uvx:
         guard package.identifier.hasPrefix("uv:tool:") || package.manager == .uvx else { return nil }
         return "https://pypi.org/project/\(package.packageToken)/"
-    case .rustup:
+    case .rustup, .mise:
         return nil
     case .skills:
         return nil
@@ -1349,11 +1356,11 @@ struct PackageIndex: Sendable {
             .installed: packages.sorted(by: Self.alphabetical),
             .outdated: packages.filter(\.isOutdated).sorted(by: Self.mostOutdatedFirst),
             .newUpdated: newUpdated,
-            .rust: packages.filter { [.cargoInstall, .rustup].contains($0.manager) }.sorted(by: Self.alphabetical),
+            .rust: packages.filter { mainWindowManagerSection(for: $0) == .rust }.sorted(by: Self.alphabetical),
             .homebrew: packages.filter { $0.manager == .homebrew }.sorted(by: Self.alphabetical),
             .casks: packages.filter { $0.identifier.hasPrefix("brew:cask:") }.sorted(by: Self.alphabetical),
-            .javascript: packages.filter { [.npm, .npx].contains($0.manager) }.sorted(by: Self.alphabetical),
-            .python: packages.filter { [.uv, .uvx].contains($0.manager) }.sorted(by: Self.alphabetical),
+            .javascript: packages.filter { mainWindowManagerSection(for: $0) == .javascript }.sorted(by: Self.alphabetical),
+            .python: packages.filter { mainWindowManagerSection(for: $0) == .python }.sorted(by: Self.alphabetical),
             .skills: packages.filter { $0.manager == .skills }.sorted(by: Self.alphabetical),
         ]
 
@@ -1427,5 +1434,23 @@ struct PackageIndex: Sendable {
     private static func versionParts(_ version: String?) -> [Int] {
         let parts = version?.split(separator: ".").prefix(3).map { Int($0) ?? 0 } ?? []
         return parts + Array(repeating: 0, count: 3 - parts.count)
+    }
+}
+
+func mainWindowManagerSection(for package: ManagedPackage) -> MainWindowSection {
+    if package.identifier.hasPrefix("brew:cask:") { return .casks }
+    switch package.manager {
+    case .cargoInstall, .rustup: return .rust
+    case .homebrew: return .homebrew
+    case .npm, .npx: return .javascript
+    case .skills: return .skills
+    case .uv, .uvx: return .python
+    case .mise:
+        switch package.packageToken.lowercased() {
+        case "node", "bun", "deno": return .javascript
+        case "python": return .python
+        case "rust": return .rust
+        default: return .languageRuntime
+        }
     }
 }

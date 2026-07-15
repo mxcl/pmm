@@ -136,7 +136,7 @@ public struct PackageDossierClient: Sendable {
             "npm"
         case .cargoInstall:
             "cargo"
-        case .rustup, .skills:
+        case .rustup, .mise, .skills:
             nil
         case .uv, .uvx:
             "uv"
