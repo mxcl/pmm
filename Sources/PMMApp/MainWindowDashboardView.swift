@@ -46,7 +46,7 @@ struct MainWindowDashboardView: View {
                 title: "What's New",
                 systemImage: "sparkle",
                 packages: model.dashboardWhatsNewPackages,
-                isLoading: model.dashboardIsLoadingData,
+                isLoading: model.dashboardCatalogIsLoading,
                 emptyText: "No new packages yet"
             ) {
                 model.openDashboardPackage($0)
@@ -55,7 +55,7 @@ struct MainWindowDashboardView: View {
             }
             DashboardRecommendationSection(
                 packages: model.dashboardRecommendedPackages,
-                isLoading: model.dashboardIsLoadingData
+                isLoading: model.dashboardCatalogIsLoading
             ) {
                 model.openDashboardPackage($0)
             }

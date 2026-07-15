@@ -922,6 +922,48 @@ private func attributeRunCount(in string: NSAttributedString) -> Int {
     #expect(model.dashboardLastUpdatedText == nil)
 }
 
+@MainActor
+@Test func dashboardUsesPersistedCatalogBeforeInventoryLoads() throws {
+    let root = FileManager.default.temporaryDirectory
+        .appendingPathComponent(UUID().uuidString, isDirectory: true)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let newPackage = ManagedPackage(
+        manager: .homebrew,
+        name: "mise",
+        installedVersion: nil,
+        latestVersion: "1",
+        category: "developer-tools",
+        lastUpdatedAt: "2026-06-03T00:00:00Z",
+        pulseKind: "new"
+    )
+    let recommended = ManagedPackage(
+        manager: .homebrew,
+        name: "ripgrep",
+        installedVersion: nil,
+        latestVersion: "1",
+        category: "developer-tools",
+        lastUpdatedAt: "2026-06-02T00:00:00Z",
+        pulseKind: "updated"
+    )
+    let store = PackageHostStore(directory: root)
+    try store.save(PackageHostSnapshot(
+        catalogPackages: [recommended, newPackage],
+        isRefreshing: true,
+        loadingManagers: Set(PackageManagerKind.allCases)
+    ))
+
+    let model = MainWindowModel(
+        userDefaults: UserDefaults(suiteName: UUID().uuidString)!,
+        store: store
+    )
+
+    #expect(model.dashboardIsLoadingData)
+    #expect(!model.dashboardCatalogIsLoading)
+    #expect(model.dashboardWhatsNewPackages == [newPackage])
+    #expect(model.dashboardRecommendedPackages == [recommended])
+    #expect(model.visibleCategorySections.contains(.developerTools))
+}
+
 @Test func newUpdatedSectionOnlyShowsNewPackages() {
     let newPackage = ManagedPackage(
         manager: .homebrew,

@@ -613,6 +613,10 @@ final class MainWindowModel: NSObject, ObservableObject {
         !hasInventory || !loadingManagers.isEmpty
     }
 
+    var dashboardCatalogIsLoading: Bool {
+        !packageIndex.hasCatalog
+    }
+
     var dashboardInstalledCount: Int? {
         hasInventory ? packages.count : nil
     }
@@ -1181,14 +1185,14 @@ final class MainWindowModel: NSObject, ObservableObject {
     }
 
     func syncFromHost() {
-        guard let snapshot = try? store.load(), let inventory = snapshot.inventory else {
+        guard let snapshot = (try? store.load()) ?? nil else {
             hasInventory = false
             installedPackageFirstSeenAtByID = nil
             isReloading = true
             loadingManagers = Set(PackageManagerKind.allCases)
             return
         }
-        apply(snapshot: snapshot, inventory: inventory)
+        apply(snapshot: snapshot)
     }
 
     func apply(snapshot: PackageHostSnapshot) {
@@ -1197,6 +1201,11 @@ final class MainWindowModel: NSObject, ObservableObject {
             installedPackageFirstSeenAtByID = nil
             isReloading = true
             loadingManagers = Set(PackageManagerKind.allCases)
+            packageIndex = PackageIndex(
+                packages: [],
+                catalogPackages: snapshot.catalogPackages,
+                newUpdatedLastClickedAt: newUpdatedLastClickedAt
+            )
             installingPackageName = nil
             uninstallingPackageName = nil
             updatingPackageName = nil
@@ -1338,8 +1347,10 @@ struct PackageIndex: Sendable {
     let countsBySection: [MainWindowSection: Int]
     let recommendedPackages: [ManagedPackage]
     let newUpdatedUnreadCount: Int?
+    let hasCatalog: Bool
 
     init(packages: [ManagedPackage], catalogPackages: [ManagedPackage], newUpdatedLastClickedAt: Date?) {
+        hasCatalog = !catalogPackages.isEmpty
         var installedByIdentifier: [String: ManagedPackage] = [:]
         for package in packages where installedByIdentifier[package.identifier] == nil {
             installedByIdentifier[package.identifier] = package
