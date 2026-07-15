@@ -1,7 +1,7 @@
 import Foundation
 
 public struct PackageDatabase: Sendable {
-    public static let url = URL(string: "https://automicvault.com/db.json")!
+    public static let url = URL(string: "https://www.automicvault.com/db.json")!
 
     private let formulas: [String: PackageMetadata]
     private let casks: [String: PackageMetadata]
@@ -16,7 +16,7 @@ public struct PackageDatabase: Sendable {
     }
 
     public static func load(from url: URL = Self.url) async -> PackageDatabase {
-        (try? await fetch(from: url)) ?? PackageDatabase()
+        (try? await fetch(from: url)) ?? cached(from: url) ?? PackageDatabase()
     }
 
     public static func fetch(from url: URL = Self.url) async throws -> PackageDatabase {

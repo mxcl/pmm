@@ -93,7 +93,8 @@ func menuBarCommandInstallPackages(ids: [String], snapshot: PackageHostSnapshot)
 
 func menuBarShouldRefreshOnLaunch(snapshot: PackageHostSnapshot, now: Date = Date()) -> Bool {
     guard let inventory = snapshot.inventory else { return true }
-    return snapshot.loadingManagers?.isEmpty == false
+    return snapshot.catalogPackages.isEmpty
+        || snapshot.loadingManagers?.isEmpty == false
         || now.timeIntervalSince(inventory.generatedAt) >= menuBarRefreshInterval
 }
 

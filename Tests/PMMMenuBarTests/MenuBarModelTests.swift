@@ -137,12 +137,15 @@ private final class LockedStrings: @unchecked Sendable {
     let now = Date(timeIntervalSince1970: 10_000)
     let fresh = PackageInventory(generatedAt: now.addingTimeInterval(-(menuBarRefreshInterval - 1)), packages: [])
     let stale = PackageInventory(generatedAt: now.addingTimeInterval(-menuBarRefreshInterval), packages: [])
+    let catalog = [ManagedPackage(manager: .homebrew, name: "git", installedVersion: nil, latestVersion: "1")]
 
     #expect(menuBarShouldRefreshOnLaunch(snapshot: PackageHostSnapshot(), now: now))
-    #expect(!menuBarShouldRefreshOnLaunch(snapshot: PackageHostSnapshot(inventory: fresh), now: now))
-    #expect(menuBarShouldRefreshOnLaunch(snapshot: PackageHostSnapshot(inventory: stale), now: now))
+    #expect(menuBarShouldRefreshOnLaunch(snapshot: PackageHostSnapshot(inventory: fresh), now: now))
+    #expect(!menuBarShouldRefreshOnLaunch(snapshot: PackageHostSnapshot(inventory: fresh, catalogPackages: catalog), now: now))
+    #expect(menuBarShouldRefreshOnLaunch(snapshot: PackageHostSnapshot(inventory: stale, catalogPackages: catalog), now: now))
     #expect(menuBarShouldRefreshOnLaunch(snapshot: PackageHostSnapshot(
         inventory: fresh,
+        catalogPackages: catalog,
         loadingManagers: [.homebrew]
     ), now: now))
 }
