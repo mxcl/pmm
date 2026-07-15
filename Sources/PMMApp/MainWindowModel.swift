@@ -496,6 +496,7 @@ final class MainWindowModel: NSObject, ObservableObject {
     private var newUpdatedSelectionDisplayCount: Int?
     private let userDefaults: UserDefaults
     private let store: PackageHostStore
+    private let bundledCatalog: [ManagedPackage]
     private let dossierClient: PackageDossierClient?
     private let remoteClient: RemoteSSHClient
     private var dossierTask: Task<Void, Never>?
@@ -516,6 +517,7 @@ final class MainWindowModel: NSObject, ObservableObject {
     init(
         userDefaults: UserDefaults = .standard,
         store: PackageHostStore = PackageHostStore(),
+        bundledCatalog: [ManagedPackage] = PackageHostStore.bundledCatalog(),
         dossierClient: PackageDossierClient? = nil,
         dashboardBlogURL: URL? = nil,
         remoteClient: RemoteSSHClient = RemoteSSHClient()
@@ -525,6 +527,7 @@ final class MainWindowModel: NSObject, ObservableObject {
         remoteHosts = userDefaults.data(forKey: Self.remoteHostsDefaultsKey)
             .flatMap { try? JSONDecoder().decode([RemoteHost].self, from: $0) } ?? []
         self.store = store
+        self.bundledCatalog = bundledCatalog
         self.dossierClient = dossierClient
         self.remoteClient = remoteClient
         super.init()
@@ -1185,12 +1188,15 @@ final class MainWindowModel: NSObject, ObservableObject {
     }
 
     func syncFromHost() {
-        guard let snapshot = (try? store.load()) ?? nil else {
+        guard var snapshot = (try? store.load()) ?? (bundledCatalog.isEmpty ? nil : PackageHostSnapshot()) else {
             hasInventory = false
             installedPackageFirstSeenAtByID = nil
             isReloading = true
             loadingManagers = Set(PackageManagerKind.allCases)
             return
+        }
+        if snapshot.catalogPackages.isEmpty {
+            snapshot.catalogPackages = bundledCatalog
         }
         apply(snapshot: snapshot)
     }

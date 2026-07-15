@@ -366,6 +366,9 @@ ln -s ../../../../../Resources/Assets.car "$helper_app/Contents/Resources/Assets
 curl --fail --location --retry 3 --output "$app/Contents/Resources/db.json" https://www.automicvault.com/db.json
 plutil -extract sources.db.formulas xml1 -o /dev/null "$app/Contents/Resources/db.json" ||
   die "Downloaded db.json has an unexpected shape"
+"$bin_dir/$control_executable" compile-catalog \
+  "$app/Contents/Resources/db.json" \
+  "$app/Contents/Resources/package-catalog.json"
 ln -s ../../../../../Resources/db.json "$helper_app/Contents/Resources/db.json"
 
 cat > "$work/Info.plist.xml" <<EOF

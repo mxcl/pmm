@@ -14,6 +14,23 @@ if args.contains("--help") {
     exit(0)
 }
 
+if args.first == "compile-catalog" {
+    guard args.count == 3 else {
+        fputs("Usage: pmmctl compile-catalog <db.json> <package-catalog.json>\n", stderr)
+        exit(64)
+    }
+    let databaseURL = URL(fileURLWithPath: args[1])
+    let outputURL = URL(fileURLWithPath: args[2])
+    let database = try PackageDatabase.decode(Data(contentsOf: databaseURL))
+    let packages = database.catalogPackages
+    guard !packages.isEmpty else {
+        fputs("The package database produced an empty catalog.\n", stderr)
+        exit(65)
+    }
+    try JSONEncoder().encode(packages).write(to: outputURL, options: .atomic)
+    exit(0)
+}
+
 if args.first == "remote" {
     let command: RemoteControlCommand
     do {

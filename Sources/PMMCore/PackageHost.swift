@@ -115,6 +115,15 @@ public struct PackageHostStore: Sendable {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Package Manager Manager", isDirectory: true)
     }
+
+    public static func bundledCatalog(in bundle: Bundle = .main) -> [ManagedPackage] {
+        bundledCatalog(at: bundle.url(forResource: "package-catalog", withExtension: "json"))
+    }
+
+    static func bundledCatalog(at url: URL?) -> [ManagedPackage] {
+        guard let url, let data = try? Data(contentsOf: url) else { return [] }
+        return (try? JSONDecoder().decode([ManagedPackage].self, from: data)) ?? []
+    }
 }
 
 public enum PackageHostNotifications {

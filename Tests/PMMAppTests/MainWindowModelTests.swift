@@ -964,6 +964,32 @@ private func attributeRunCount(in string: NSAttributedString) -> Int {
     #expect(model.visibleCategorySections.contains(.developerTools))
 }
 
+@MainActor
+@Test func dashboardUsesBundledCatalogBeforeHostSnapshotExists() {
+    let root = FileManager.default.temporaryDirectory
+        .appendingPathComponent(UUID().uuidString, isDirectory: true)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let package = ManagedPackage(
+        manager: .homebrew,
+        name: "ripgrep",
+        installedVersion: nil,
+        latestVersion: "1",
+        category: "developer-tools",
+        pulseKind: "updated"
+    )
+
+    let model = MainWindowModel(
+        userDefaults: UserDefaults(suiteName: UUID().uuidString)!,
+        store: PackageHostStore(directory: root),
+        bundledCatalog: [package]
+    )
+
+    #expect(model.dashboardIsLoadingData)
+    #expect(!model.dashboardCatalogIsLoading)
+    #expect(model.dashboardRecommendedPackages == [package])
+    #expect(model.visibleCategorySections.contains(.developerTools))
+}
+
 @Test func newUpdatedSectionOnlyShowsNewPackages() {
     let newPackage = ManagedPackage(
         manager: .homebrew,

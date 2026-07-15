@@ -2,6 +2,16 @@ import Foundation
 import Testing
 @testable import PMMCore
 
+@Test func loadsBundledPackageCatalog() throws {
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: url) }
+    let package = ManagedPackage(manager: .homebrew, name: "git", installedVersion: nil, latestVersion: "1")
+    try JSONEncoder().encode([package]).write(to: url)
+
+    #expect(PackageHostStore.bundledCatalog(at: url) == [package])
+    #expect(PackageHostStore.bundledCatalog(at: nil).isEmpty)
+}
+
 @Test func actionOutputNotificationPayloadRoundTrips() throws {
     let runID = UUID()
     let notification = Notification(
