@@ -4,6 +4,8 @@ import SwiftUI
 
 private let dashboardItemCornerRadius: CGFloat = 17.5
 private let dashboardCardSpacing: CGFloat = 8.5
+private let dashboardRailWidth: CGFloat = 310
+private let dashboardRailGutter: CGFloat = 18
 private let dashboardBlogURL = URL(string: "https://mxcl.dev/package-manager-manager/blog/")!
 
 struct MainWindowDashboardView: View {
@@ -12,17 +14,19 @@ struct MainWindowDashboardView: View {
     var body: some View {
         GeometryReader { proxy in
             ScrollView {
-                HStack(alignment: .top, spacing: dashboardCardSpacing) {
-                    dashboardMainColumn
-                        .frame(minWidth: 0, maxWidth: .infinity)
-                    dashboardSideColumn
-                        .frame(width: 310)
-                        .frame(height: proxy.size.height - dashboardCardSpacing * 2, alignment: .top)
-                }
-                .padding(dashboardCardSpacing)
+                dashboardMainColumn
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(dashboardCardSpacing)
+                    .padding(.trailing, dashboardRailWidth + dashboardRailGutter)
             }
             .scrollEdgeEffectStyle(.soft, for: .top)
             .ignoresSafeArea(.container, edges: .top)
+            .overlay(alignment: .topTrailing) {
+                dashboardSideColumn
+                    .frame(width: dashboardRailWidth, height: proxy.size.height - dashboardCardSpacing * 2, alignment: .top)
+                    .padding(.top, dashboardCardSpacing)
+                    .padding(.trailing, dashboardRailGutter)
+            }
         }
     }
 
@@ -38,7 +42,6 @@ struct MainWindowDashboardView: View {
 
     private var dashboardSideColumn: some View {
         VStack(spacing: dashboardCardSpacing) {
-            DashboardSponsoredCard()
             DashboardUpdatesCard(
                 posts: model.dashboardBlogPosts,
                 isLoading: model.dashboardBlogEntriesAreLoading
@@ -47,7 +50,10 @@ struct MainWindowDashboardView: View {
                 packs: model.dashboardInstallPacks,
                 isLoading: model.dashboardBlogEntriesAreLoading
             )
+            Spacer(minLength: dashboardCardSpacing)
+            DashboardSponsoredCard()
         }
+        .frame(maxHeight: .infinity, alignment: .top)
     }
 }
 
