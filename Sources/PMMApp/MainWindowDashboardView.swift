@@ -21,6 +21,7 @@ struct MainWindowDashboardView: View {
             }
             .scrollEdgeEffectStyle(.soft, for: .top)
             .ignoresSafeArea(.container, edges: .top)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .overlay(alignment: .topTrailing) {
                 dashboardSideColumn
                     .frame(width: dashboardRailWidth, height: proxy.size.height - dashboardCardSpacing * 2, alignment: .top)
@@ -204,9 +205,9 @@ private struct DashboardDiscoverEditorialCard: View {
                     .buttonStyle(.borderedProminent)
                     .tint(foreground.opacity(0.18))
             }
-            .padding(28)
-            .frame(width: 320)
+            .frame(width: 264)
             .frame(maxHeight: .infinity, alignment: .leading)
+            .padding(28)
             .layoutPriority(1)
             editorialArtwork
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
