@@ -42,6 +42,13 @@ struct DiscoverFeedContent: Decodable, Identifiable {
 
 struct DiscoverFeedArtwork: Decodable {
     let path: String
+    let boxColors: BoxColors?
+
+    struct BoxColors: Decodable {
+        let backgroundStart: String
+        let backgroundEnd: String
+        let foreground: String
+    }
 }
 
 struct DiscoverFeedPackage: Decodable, Identifiable {

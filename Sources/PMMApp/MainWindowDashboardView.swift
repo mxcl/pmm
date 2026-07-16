@@ -180,26 +180,29 @@ private struct DashboardDiscoverEditorialCard: View {
     let package: DiscoverFeedPackage?
     let read: () -> Void
 
+    private var boxColors: DiscoverFeedArtwork.BoxColors? { editorial.artwork?.boxColors }
+    private var foreground: Color { Color(feedHex: boxColors?.foreground ?? "#FFFFFF") }
+
     var body: some View {
         HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 14) {
                 Text("EDITORIAL")
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(foreground.opacity(0.7))
                 Text(editorial.title ?? "Featured")
                     .font(.title.weight(.bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(foreground)
                     .lineLimit(4)
                 if let deck = editorial.deck {
                     Text(deck)
                         .font(.body)
-                        .foregroundStyle(.white.opacity(0.78))
+                        .foregroundStyle(foreground.opacity(0.78))
                         .lineLimit(4)
                 }
                 Spacer(minLength: 0)
                 Button("Read article", action: read)
                     .buttonStyle(.borderedProminent)
-                    .tint(.white.opacity(0.18))
+                    .tint(foreground.opacity(0.18))
             }
             .padding(28)
             .frame(maxWidth: 300, maxHeight: .infinity, alignment: .leading)
@@ -207,7 +210,7 @@ private struct DashboardDiscoverEditorialCard: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(maxWidth: .infinity, minHeight: 320, maxHeight: 360)
-        .background(LinearGradient(colors: [Color(red: 0.12, green: 0.08, blue: 0.22), Color(red: 0.28, green: 0.07, blue: 0.53)], startPoint: .topLeading, endPoint: .bottomTrailing))
+        .background(LinearGradient(colors: [Color(feedHex: boxColors?.backgroundStart ?? "#1F1638"), Color(feedHex: boxColors?.backgroundEnd ?? "#481488")], startPoint: .topLeading, endPoint: .bottomTrailing))
         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
@@ -224,6 +227,19 @@ private struct DashboardDiscoverEditorialCard: View {
         } else {
             LinearGradient(colors: [.white.opacity(0.16), .white.opacity(0.03)], startPoint: .topLeading, endPoint: .bottomTrailing)
         }
+    }
+}
+
+private extension Color {
+    init(feedHex value: String) {
+        let hex = value.dropFirst()
+        let integer = UInt64(hex, radix: 16) ?? 0
+        self.init(
+            .sRGB,
+            red: Double((integer >> 16) & 0xFF) / 255,
+            green: Double((integer >> 8) & 0xFF) / 255,
+            blue: Double(integer & 0xFF) / 255
+        )
     }
 }
 

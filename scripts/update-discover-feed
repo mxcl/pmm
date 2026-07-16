@@ -29,6 +29,7 @@ ASSESSMENT_FIELDS = (
     "alternatives",
     "caveats",
 )
+ARTWORK_BOX_COLOR_FIELDS = ("backgroundStart", "backgroundEnd", "foreground")
 
 
 class FeedError(Exception):
@@ -94,6 +95,12 @@ def safe_url(value: object, field: str, allow_relative_artwork: bool = False) ->
     if parsed.scheme != "https" or not parsed.netloc or parsed.username or parsed.password:
         raise FeedError(f"{field} must be an https URL")
     return value
+
+
+def hex_color(value: object, field: str) -> str:
+    if not isinstance(value, str) or not re.fullmatch(r"#[0-9A-Fa-f]{6}", value):
+        raise FeedError(f"{field} must be a #RRGGBB color")
+    return value.upper()
 
 
 def source_list(value: object, field: str, minimum: int, primary_minimum: int = 0) -> list[dict]:
@@ -303,9 +310,9 @@ Write .feed-work/response.json as one JSON object with:
 - newPackageEvidence: an object for every chosen newPackages ID. Each value needs firstPublishedAt (an ISO 8601 timestamp), a concise reason, and one primary source URL proving the upstream project or package was first published within the last year. A catalog, formula, cask, or registry listing date alone does not prove a package is new; do not select a longstanding project newly added to a manager.
 - recommendations: exactly {request['recommendationCount']} IDs chosen only from recommendationCandidates.
 - packages: an object containing a card for every chosen ID and the editorial package. Each card needs agentSummary (40–80 words), all six assessment arrays (audiences, useCases, prerequisites, complements, alternatives, caveats), and at least two unique sources with title, https URL, and kind primary or independent.
-- editorial: {"null" if not request['editorialRequired'] else "an object with slug, title, deck, body, primaryPackageID, coverage containing history and actualUsage, at least four sources including two primary, and optional artwork"}.
+- editorial: {"null" if not request['editorialRequired'] else "an object with slug, title, deck, body, primaryPackageID, coverage containing history and actualUsage, at least four sources including two primary, and required artwork"}.
 
-{editorial} Markdown is allowed in body, but raw HTML is not. Optional artwork must contain path under feed/assets/, alt, attribution, and license, and the file must already exist under www/.
+{editorial} Markdown is allowed in body, but raw HTML is not. For every editorial, use image_gen to create a wide, text-free editorial illustration that reflects the story. Save it under www/feed/assets/ and set artwork.path to its feed/assets/ path. Artwork must contain alt, attribution, license, and boxColors. Derive boxColors by visually sampling the generated image: backgroundStart and backgroundEnd are the two dominant colors the app should use behind the editorial box, and foreground is a high-contrast text color. All three colors must be #RRGGBB. Do not use a generic placeholder or a package icon.
 Do not add install URLs, publication dates, researched dates, or catalog metadata; the script derives those.
 
 When the response is ready, reentrantly run exactly:
@@ -380,15 +387,20 @@ def package_card(identifier: str, raw: object, catalog: dict[str, dict], at: dat
 def validate_artwork(raw: object, root: Path) -> dict | None:
     if raw is None:
         return None
-    if not isinstance(raw, dict) or set(raw) != {"path", "alt", "attribution", "license"}:
-        raise FeedError("editorial.artwork must contain path, alt, attribution, and license")
+    if not isinstance(raw, dict) or set(raw) != {"path", "alt", "attribution", "license", "boxColors"}:
+        raise FeedError("editorial.artwork must contain path, alt, attribution, license, and boxColors")
     path = safe_url(raw["path"], "editorial.artwork.path", allow_relative_artwork=True)
     if not (root / "www" / path).is_file():
         raise FeedError(f"editorial artwork does not exist: www/{path}")
     for field in ("alt", "attribution", "license"):
         if not isinstance(raw[field], str) or not raw[field].strip():
             raise FeedError(f"editorial.artwork.{field} is required")
-    return {field: raw[field].strip() for field in ("path", "alt", "attribution", "license")}
+    box_colors = raw["boxColors"]
+    if not isinstance(box_colors, dict) or set(box_colors) != set(ARTWORK_BOX_COLOR_FIELDS):
+        raise FeedError("editorial.artwork.boxColors must contain backgroundStart, backgroundEnd, and foreground")
+    result = {field: raw[field].strip() for field in ("path", "alt", "attribution", "license")}
+    result["boxColors"] = {field: hex_color(box_colors[field], f"editorial.artwork.boxColors.{field}") for field in ARTWORK_BOX_COLOR_FIELDS}
+    return result
 
 
 def editorial(raw: object, request: dict, catalog: dict[str, dict], root: Path, at: datetime, existing_ids: set[str]) -> dict | None:
@@ -429,8 +441,9 @@ def editorial(raw: object, request: dict, catalog: dict[str, dict], root: Path, 
         "body": body.strip(),
     }
     artwork = validate_artwork(raw.get("artwork"), root)
-    if artwork:
-        result["artwork"] = artwork
+    if not artwork:
+        raise FeedError("editorial.artwork is required")
+    result["artwork"] = artwork
     return result
 
 
@@ -672,6 +685,13 @@ def fixture_response(request: dict) -> dict:
     editorial_value = None
     if editorial_id:
         editorial_value = {
+            "artwork": {
+                "alt": "Abstract fixture artwork",
+                "attribution": "Generated fixture artwork",
+                "boxColors": {"backgroundStart": "#201047", "backgroundEnd": "#662A84", "foreground": "#FFFFFF"},
+                "license": "Fixture",
+                "path": "feed/assets/fixture.webp",
+            },
             "body": body,
             "coverage": ["history", "actualUsage"],
             "deck": "A researched fixture editorial.",
@@ -700,6 +720,9 @@ def self_test() -> None:
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory)
         (root / "www/feed").mkdir(parents=True)
+        fixture_artwork = root / "www/feed/assets/fixture.webp"
+        fixture_artwork.parent.mkdir(parents=True)
+        fixture_artwork.write_bytes(b"fixture artwork")
         (root / "scripts").mkdir()
         at = datetime(2026, 7, 16, 12, tzinfo=timezone.utc)
         catalog_path = root / "catalog.json"
@@ -709,7 +732,7 @@ def self_test() -> None:
         subprocess.run(["git", "-C", str(root), "config", "user.email", "feed@example.com"], check=True)
         subprocess.run(["git", "-C", str(root), "config", "user.name", "Feed Test"], check=True)
         (root / "unrelated.txt").write_text("leave me alone\n")
-        subprocess.run(["git", "-C", str(root), "add", "www/feed/v1.json", "unrelated.txt"], check=True)
+        subprocess.run(["git", "-C", str(root), "add", "www/feed/v1.json", "www/feed/assets/fixture.webp", "unrelated.txt"], check=True)
         subprocess.run(["git", "-C", str(root), "commit", "-qm", "fixture"], check=True)
         (root / "unrelated.txt").write_text("dirty and unrelated\n")
         subprocess.run(["git", "-C", str(root), "add", "unrelated.txt"], check=True)
@@ -743,6 +766,7 @@ def self_test() -> None:
         assert completed.returncode == 0 and "PMM_FEED_STATUS=COMMITTED" in completed.stdout
         completed_feed = read_json(root / "www/feed/v1.json")
         validate_feed(completed_feed, root)
+        assert completed_feed["content"][0]["artwork"]["boxColors"]["foreground"] == "#FFFFFF"
         assert [item["type"] for item in completed_feed["content"][:3]] == ["editorial", "newPackages", "personalizedRecommendations"]
         assert list(completed_feed["packages"]) == sorted(completed_feed["packages"])
         changed = subprocess.run(["git", "-C", str(root), "show", "--pretty=", "--name-only", "HEAD"], text=True, capture_output=True, check=True).stdout.splitlines()
