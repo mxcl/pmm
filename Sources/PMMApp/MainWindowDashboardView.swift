@@ -200,26 +200,25 @@ private struct DashboardDiscoverEditorialCard: View {
 
             VStack(alignment: .leading, spacing: 14) {
                 Text("EDITORIAL")
-                    .font(.caption.weight(.bold))
+                    .font(.subheadline.weight(.bold))
                     .foregroundStyle(foreground.opacity(0.7))
                 Text(editorial.title ?? "Featured")
-                    .font(.title.weight(.bold))
+                    .font(.largeTitle.weight(.bold))
                     .foregroundStyle(foreground)
                     .lineLimit(4)
                 if let deck = editorial.deck {
                     Text(deck)
-                        .font(.body)
+                        .font(.title3)
                         .foregroundStyle(foreground.opacity(0.78))
                         .lineLimit(4)
                 }
-                Spacer(minLength: 0)
                 Button("Read article", action: read)
                     .buttonStyle(.borderedProminent)
                     .tint(foreground.opacity(0.18))
             }
             .frame(width: 320, alignment: .leading)
             .padding(28)
-            .frame(maxHeight: .infinity, alignment: .leading)
+            .frame(maxHeight: .infinity, alignment: .topLeading)
         }
         .frame(maxWidth: .infinity, minHeight: 320, maxHeight: 360)
         .background(LinearGradient(colors: [Color(feedHex: boxColors?.backgroundStart ?? "#1F1638"), Color(feedHex: boxColors?.backgroundEnd ?? "#481488")], startPoint: .topLeading, endPoint: .bottomTrailing))
