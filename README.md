@@ -54,7 +54,7 @@ pkg⋅mgr² currently inventories:
 - tools and runtimes installed with `mise`
 - global npm packages
 - npx cache entries
-- global agent skills installed with `skills` or `npx skills`
+- Skills packages installed with `skills` or `npx skills`
 - `uv tool` tools and `uv` Python installs
 - `uvx` cached environments
 - `cargo install` binaries
