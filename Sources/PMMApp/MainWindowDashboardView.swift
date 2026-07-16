@@ -16,9 +16,8 @@ struct MainWindowDashboardView: View {
                     dashboardMainColumn
                         .frame(minWidth: 0, maxWidth: .infinity)
                     dashboardSideColumn
-                        .fixedSize(horizontal: false, vertical: true)
                         .frame(width: 310)
-                        .frame(minHeight: proxy.size.height - dashboardCardSpacing * 2, alignment: .top)
+                        .frame(height: proxy.size.height - dashboardCardSpacing * 2, alignment: .top)
                 }
                 .padding(dashboardCardSpacing)
             }
