@@ -184,46 +184,48 @@ private struct DashboardDiscoverEditorialCard: View {
     private var foreground: Color { Color(feedHex: boxColors?.foreground ?? "#FFFFFF") }
 
     var body: some View {
-        LinearGradient(
-            colors: [
-                Color(feedHex: boxColors?.backgroundStart ?? "#1F1638").opacity(0.98),
-                Color(feedHex: boxColors?.backgroundStart ?? "#1F1638").opacity(0.7),
-                .clear
-            ],
-            startPoint: .leading,
-            endPoint: .trailing
-        )
-        .frame(maxWidth: .infinity)
-        .frame(height: 360)
-        .background {
-            editorialArtwork
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-        .overlay(alignment: .topLeading) {
-            VStack(alignment: .leading, spacing: 14) {
-                Text("EDITORIAL")
-                    .font(.subheadline.weight(.bold))
-                    .foregroundStyle(foreground.opacity(0.7))
-                Text(editorial.title ?? "Featured")
-                    .font(.largeTitle.weight(.bold))
-                    .foregroundStyle(foreground)
-                    .lineLimit(4)
-                if let deck = editorial.deck {
-                    Text(deck)
-                        .font(.title3)
-                        .foregroundStyle(foreground.opacity(0.78))
-                        .lineLimit(4)
-                }
-                Button("Read article", action: read)
-                    .buttonStyle(.borderedProminent)
-                    .tint(foreground.opacity(0.18))
+        Button(action: read) {
+            LinearGradient(
+                colors: [
+                    Color(feedHex: boxColors?.backgroundStart ?? "#1F1638").opacity(0.98),
+                    Color(feedHex: boxColors?.backgroundStart ?? "#1F1638").opacity(0.7),
+                    .clear
+                ],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+            .frame(maxWidth: .infinity)
+            .frame(height: 360)
+            .background {
+                editorialArtwork
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .frame(width: 320, alignment: .leading)
-            .padding(36)
+            .overlay(alignment: .topLeading) {
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("EDITORIAL")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(foreground.opacity(0.7))
+                    Text(editorial.title ?? "Featured")
+                        .font(.largeTitle.weight(.bold))
+                        .foregroundStyle(foreground)
+                        .lineLimit(4)
+                    if let deck = editorial.deck {
+                        Text(deck)
+                            .font(.title3)
+                            .foregroundStyle(foreground.opacity(0.78))
+                            .lineLimit(4)
+                    }
+                }
+                .frame(width: 320, alignment: .leading)
+                .padding(36)
+            }
+            .background(LinearGradient(colors: [Color(feedHex: boxColors?.backgroundStart ?? "#1F1638"), Color(feedHex: boxColors?.backgroundEnd ?? "#481488")], startPoint: .topLeading, endPoint: .bottomTrailing))
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         }
-        .background(LinearGradient(colors: [Color(feedHex: boxColors?.backgroundStart ?? "#1F1638"), Color(feedHex: boxColors?.backgroundEnd ?? "#481488")], startPoint: .topLeading, endPoint: .bottomTrailing))
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .buttonStyle(.plain)
+        .accessibilityLabel("Read \(editorial.title ?? "featured article")")
+        .accessibilityHint("Opens the full editorial")
     }
 
     @ViewBuilder
