@@ -2,6 +2,99 @@
   "content": [
     {
       "artwork": {
+        "alt": "A luminous runtime core sits inside a transparent sphere, with gated beams connecting files, a network, and an isolated environment.",
+        "attribution": "Generated with OpenAI image generation",
+        "boxColors": {
+          "backgroundEnd": "#123B33",
+          "backgroundStart": "#071413",
+          "foreground": "#FFFFFF"
+        },
+        "license": "OpenAI terms of use",
+        "path": "feed/assets/deno-permissioned-runtime.png"
+      },
+      "batchID": "20260716T225102Z-c61179bc",
+      "body": "A small automation script can read every file your account can reach, open a network connection, inspect environment variables, and launch another process. Node.js grants those abilities because operating-system access made server-side JavaScript useful. Deno asks the caller to name them. A script that needs the network runs with network permission; one that reads a configuration directory receives access to that path. The command line records part of the program's security boundary.\n\nRyan Dahl presented the first public version of Deno in 2018, nine years after creating Node.js. The team released Deno 1.0 in May 2020. Its early design reacted to several costs that had accumulated around Node: a centralized package installation convention, legacy callback APIs, a split between JavaScript tools, and unrestricted access to the host machine. Deno used Rust, V8, and Tokio underneath, adopted promises throughout its APIs, and treated browser standards such as `fetch`, `Request`, `Response`, and web streams as the common surface. TypeScript support arrived as part of the runtime rather than a separate project setup.\n\nPermissions gave the project its sharpest identity. Deno denies file, network, environment, subprocess, foreign-function, and system access unless a command grants it. Flags can cover a whole capability or narrow it to hosts, paths, or variables. That model helps most when an operator knows what the program should touch. A web service might receive access to one listening address and a short list of environment variables. A formatter may need read and write access to the current repository without network access. The permission line makes unexpected expansion visible in a code review or deployment manifest.\n\nThe boundary has limits. Permission to run a subprocess can hand control to a program with broader operating-system access. Reading a sensitive file lets application code transmit its contents through any allowed network destination. A broad `--allow-all` restores the conventional runtime posture. Deno's controls reduce ambient authority; they do not inspect intent, sanitize untrusted input, or replace operating-system isolation. Containers, service accounts, filesystem permissions, and network policy still carry the production security load.\n\nDeno also ships a formatter, linter, test runner, documentation generator, language server, compiler, task runner, and dependency commands. One executable can take a TypeScript file from edit to test without a local transpiler configuration. Teams gain consistent defaults and fewer versioned tools. They also accept the runtime's choices. A repository with specialized lint rules, a mature Jest setup, or a bundler tuned around a framework may gain little from replacing working parts. Integrated tooling has the most value in new scripts, services, and libraries where the team can keep the setup small.\n\nCompatibility changed the project more than its original clean-slate pitch suggested. JavaScript developers rely on npm's registry and Node's APIs, and asking every library to publish a Deno-specific build constrained adoption. Deno added npm package support, `package.json` workflows, Node built-ins, and familiar `node_modules` options. Deno 2 made that compatibility central while retaining permissions, web APIs, TypeScript, and the built-in tools. Current releases can run a much larger share of existing projects, though compatibility claims deserve a test against each application's native modules, install scripts, module resolution, and framework adapters.\n\nDevelopers use Deno for command-line tools, build scripts, HTTP services, edge functions, and distributable single executables. The project repository shows an active release stream, and developer surveys continue to include Deno among the runtimes and web technologies respondents report using or wanting to use. Deno Deploy and the JSR registry extend the same ecosystem into hosting and package publication. Those signals establish real use without putting Deno near Node's installed base. Operational familiarity, third-party support, and hiring remain easier in the older ecosystem.\n\nA fair evaluation starts with a bounded program. Pick a script that touches the filesystem and one API, express the exact permissions it needs, and put its test and format commands under Deno's task runner. Then try a representative npm dependency and the deployment environment. Record every compatibility shim and every permission that must widen. The experiment shows whether Deno's defaults remove maintenance or move it into unfamiliar places.\n\nDeno offers the clearest payoff when a team values explicit authority and a compact toolchain more than perfect continuity with Node conventions. Existing applications can migrate in pieces because npm compatibility now covers common paths. New programs can begin with narrow permissions and web APIs. The runtime deserves selection for those concrete properties, after the dependencies and deployment path survive a real trial.",
+      "deck": "JavaScript with explicit access to files, networks, and processes, plus a toolchain that arrives in one executable.",
+      "id": "editorial:2026-07-16:deno-permissioned-runtime",
+      "package": {
+        "agentSummary": "Deno combines a JavaScript and TypeScript runtime with formatting, linting, testing, package management, and permission controls. It favors web-platform APIs while supporting npm packages and much of the Node.js surface. Try it for scripts or services that benefit from one toolchain, then test compatibility, permission boundaries, deployment targets, and operational support before moving an established Node application.",
+        "assessment": {
+          "alternatives": [
+            "Node.js for the broadest existing ecosystem",
+            "Bun for a different integrated runtime and package toolchain"
+          ],
+          "audiences": [
+            "JavaScript and TypeScript developers evaluating an integrated runtime"
+          ],
+          "caveats": [
+            "Permission flags become part of deployment and support",
+            "Node-focused dependencies can still expose compatibility gaps"
+          ],
+          "complements": [
+            "JSR packages, Deno Deploy, web-standard APIs, and project task definitions"
+          ],
+          "prerequisites": [
+            "A review of npm and Node compatibility for the project's dependencies"
+          ],
+          "useCases": [
+            "Writing permission-scoped automation",
+            "Building web services with built-in TypeScript tooling"
+          ]
+        },
+        "category": "language-runtime",
+        "displayName": "deno",
+        "docs": "https://docs.deno.com/",
+        "homepage": "https://deno.com/",
+        "id": "brew:deno",
+        "installURL": "pkgmgrmgr://install?package=brew%3Adeno",
+        "lastUpdatedAt": "2026-07-15T20:55:35Z",
+        "manager": "homebrew",
+        "repository": "https://github.com/denoland/deno",
+        "researchedAt": "2026-07-16T22:51:02Z",
+        "sources": [
+          {
+            "kind": "primary",
+            "title": "Deno runtime documentation",
+            "url": "https://docs.deno.com/runtime/"
+          },
+          {
+            "kind": "primary",
+            "title": "Deno source repository",
+            "url": "https://github.com/denoland/deno"
+          }
+        ],
+        "upstreamSummary": "Secure runtime for JavaScript and TypeScript",
+        "version": null
+      },
+      "primaryPackageID": "brew:deno",
+      "publishedAt": "2026-07-16T22:51:02Z",
+      "sources": [
+        {
+          "kind": "primary",
+          "title": "Deno 1.0 announcement",
+          "url": "https://deno.com/blog/v1"
+        },
+        {
+          "kind": "primary",
+          "title": "Deno runtime documentation",
+          "url": "https://docs.deno.com/runtime/"
+        },
+        {
+          "kind": "primary",
+          "title": "Deno source and release history",
+          "url": "https://github.com/denoland/deno"
+        },
+        {
+          "kind": "independent",
+          "title": "Stack Overflow Developer Survey 2025 technology results",
+          "url": "https://survey.stackoverflow.co/2025/technology/"
+        }
+      ],
+      "title": "Deno and the Permissioned Runtime",
+      "type": "editorial"
+    },
+    {
+      "artwork": {
         "alt": "Translucent package blocks flow into a luminous shared vault and branch into several project folders on a dark indigo field.",
         "attribution": "Generated with OpenAI image generation",
         "boxColors": {
@@ -2768,7 +2861,7 @@
       "type": "personalizedRecommendations"
     }
   ],
-  "generatedAt": "2026-07-16T22:49:02Z",
+  "generatedAt": "2026-07-16T22:51:02Z",
   "nextPageURL": null,
   "pageID": "20260716T170955Z-ec48a458",
   "schemaVersion": 2
