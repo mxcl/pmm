@@ -1,0 +1,716 @@
+#!/usr/bin/env python3
+"""Build the hosted PMM Discover feed with one reentrant Codex handoff."""
+
+from __future__ import annotations
+
+import json
+import os
+import re
+import subprocess
+import sys
+import tempfile
+import urllib.parse
+import urllib.error
+import urllib.request
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+CATALOG_URL = "https://www.automicvault.com/db.json"
+SCHEMA_VERSION = 1
+SUPPORTED_MANAGERS = {"homebrew", "npm"}
+SUMMARY_WORDS = range(40, 81)
+EDITORIAL_WORDS = range(600, 1001)
+ASSESSMENT_FIELDS = (
+    "audiences",
+    "useCases",
+    "prerequisites",
+    "complements",
+    "alternatives",
+    "caveats",
+)
+
+
+class FeedError(Exception):
+    pass
+
+
+def now() -> datetime:
+    value = os.environ.get("PMM_FEED_NOW")
+    return parse_date(value) if value else datetime.now(timezone.utc)
+
+
+def parse_date(value: str | None) -> datetime:
+    if not isinstance(value, str):
+        raise FeedError(f"invalid date: {value!r}")
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as error:
+        raise FeedError(f"invalid date: {value}") from error
+    if parsed.tzinfo is None:
+        raise FeedError(f"date must include a timezone: {value}")
+    return parsed.astimezone(timezone.utc)
+
+
+def timestamp(value: datetime) -> str:
+    return value.astimezone(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
+def words(value: object) -> int:
+    return len(re.findall(r"\b[\w’'-]+\b", value if isinstance(value, str) else ""))
+
+
+def read_json(path: Path) -> dict:
+    try:
+        value = json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError) as error:
+        raise FeedError(f"cannot read {path}: {error}") from error
+    if not isinstance(value, dict):
+        raise FeedError(f"{path} must contain a JSON object")
+    return value
+
+
+def write_json(path: Path, value: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    data = (json.dumps(value, indent=2, sort_keys=True, ensure_ascii=False) + "\n").encode()
+    fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    try:
+        with os.fdopen(fd, "wb") as file:
+            file.write(data)
+            file.flush()
+            os.fsync(file.fileno())
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+
+def safe_url(value: object, field: str, allow_relative_artwork: bool = False) -> str:
+    if not isinstance(value, str) or not value:
+        raise FeedError(f"{field} must be a non-empty URL")
+    if allow_relative_artwork and value.startswith("feed/assets/") and ".." not in value:
+        return value
+    parsed = urllib.parse.urlparse(value)
+    if parsed.scheme != "https" or not parsed.netloc or parsed.username or parsed.password:
+        raise FeedError(f"{field} must be an https URL")
+    return value
+
+
+def source_list(value: object, field: str, minimum: int, primary_minimum: int = 0) -> list[dict]:
+    if not isinstance(value, list) or len(value) < minimum:
+        raise FeedError(f"{field} needs at least {minimum} sources")
+    result, seen = [], set()
+    for index, source in enumerate(value):
+        if not isinstance(source, dict):
+            raise FeedError(f"{field}[{index}] must be an object")
+        title = source.get("title")
+        kind = source.get("kind")
+        url = safe_url(source.get("url"), f"{field}[{index}].url")
+        if not isinstance(title, str) or not title.strip():
+            raise FeedError(f"{field}[{index}].title is required")
+        if kind not in {"primary", "independent"}:
+            raise FeedError(f"{field}[{index}].kind must be primary or independent")
+        if url in seen:
+            raise FeedError(f"{field} contains duplicate URL {url}")
+        seen.add(url)
+        result.append({"kind": kind, "title": title.strip(), "url": url})
+    if sum(source["kind"] == "primary" for source in result) < primary_minimum:
+        raise FeedError(f"{field} needs at least {primary_minimum} primary sources")
+    return result
+
+
+def install_url(identifier: str) -> str:
+    return "pkgmgrmgr://install?package=" + urllib.parse.quote(identifier, safe="")
+
+
+def first_string(value: object) -> str | None:
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    if isinstance(value, list):
+        return next((item.strip() for item in value if isinstance(item, str) and item.strip()), None)
+    return None
+
+
+def https_string(value: object) -> str | None:
+    value = first_string(value)
+    if not value:
+        return None
+    parsed = urllib.parse.urlparse(value)
+    return value if parsed.scheme == "https" and parsed.netloc and not parsed.username and not parsed.password else None
+
+
+def normalize_catalog(raw: dict) -> tuple[str, dict[str, dict]]:
+    try:
+        database = raw["sources"]["db"]
+        generated_at = timestamp(parse_date(database["generated_at"]))
+    except (KeyError, TypeError) as error:
+        raise FeedError("catalog is missing sources.db.generated_at") from error
+    packages: dict[str, dict] = {}
+    sources = (
+        ("formulas", "brew:", "homebrew"),
+        ("casks", "brew:cask:", "homebrew"),
+        ("npms", "npm:", "npm"),
+    )
+    for collection, prefix, manager in sources:
+        values = database.get(collection)
+        if not isinstance(values, dict):
+            raise FeedError(f"catalog is missing sources.db.{collection}")
+        for name, metadata in values.items():
+            if not isinstance(name, str) or not isinstance(metadata, dict):
+                continue
+            identifier = prefix + name
+            popularity = metadata.get("popularity") if isinstance(metadata.get("popularity"), dict) else {}
+            updated = metadata.get("last_updated_at")
+            try:
+                updated = timestamp(parse_date(updated)) if updated else None
+            except FeedError:
+                updated = None
+            packages[identifier] = {
+                "category": first_string(metadata.get("category")),
+                "displayName": name,
+                "docs": https_string(metadata.get("upstreamDocs")) or https_string(metadata.get("docs")),
+                "homepage": https_string(metadata.get("homepage")),
+                "id": identifier,
+                "lastUpdatedAt": updated,
+                "manager": manager,
+                "popularityRank": popularity.get("rank") if isinstance(popularity.get("rank"), int) else None,
+                "pulseKind": first_string(metadata.get("pulse_kind")),
+                "repository": https_string(metadata.get("repository")) or https_string(metadata.get("repo")),
+                "upstreamSummary": first_string(metadata.get("summary")),
+                "version": first_string(metadata.get("version")),
+            }
+    if not packages:
+        raise FeedError("catalog contains no installable packages")
+    return generated_at, packages
+
+
+def fetch_catalog() -> dict:
+    location = os.environ.get("PMM_FEED_CATALOG", CATALOG_URL)
+    try:
+        if urllib.parse.urlparse(location).scheme in {"", "file"}:
+            path = Path(urllib.parse.urlparse(location).path if location.startswith("file:") else location)
+            return json.loads(path.read_text())
+        request = urllib.request.Request(location, headers={"User-Agent": "PMM-Discover-Feed/1"})
+        with urllib.request.urlopen(request, timeout=30) as response:
+            return json.load(response)
+    except (OSError, ValueError, urllib.error.URLError, json.JSONDecodeError) as error:
+        raise FeedError(f"cannot fetch catalog: {error}") from error
+
+
+def root_paths() -> tuple[Path, Path, Path]:
+    root = Path(os.environ.get("PMM_FEED_ROOT", Path(__file__).resolve().parent.parent))
+    return root, root / "www/feed/v1.json", root / ".feed-work"
+
+
+def empty_feed(at: datetime) -> dict:
+    return {
+        "content": [],
+        "generatedAt": timestamp(at),
+        "packages": {},
+        "schemaVersion": SCHEMA_VERSION,
+        "source": {"generatedAt": None, "url": CATALOG_URL},
+    }
+
+
+def content(feed: dict, kind: str) -> list[dict]:
+    return [item for item in feed.get("content", []) if isinstance(item, dict) and item.get("type") == kind]
+
+
+def editorial_due(feed: dict, at: datetime) -> bool:
+    dates = [parse_date(item.get("publishedAt")) for item in content(feed, "editorial")]
+    return not dates or at - max(dates) >= timedelta(days=3)
+
+
+def candidate_pool(packages: dict[str, dict], new_ids: list[str], limit: int = 160) -> list[dict]:
+    popular = sorted(
+        packages.values(),
+        key=lambda package: (
+            package["popularityRank"] is None,
+            package["popularityRank"] or 10**9,
+            package["id"],
+        ),
+    )[:40]
+    by_category: dict[str, list[dict]] = {}
+    for package in packages.values():
+        by_category.setdefault(package.get("category") or "other", []).append(package)
+    recent = []
+    for category in sorted(by_category):
+        recent.extend(sorted(by_category[category], key=lambda package: (package.get("lastUpdatedAt") or "", package["id"]), reverse=True)[:8])
+    ordered = [packages[identifier] for identifier in new_ids] + popular + recent
+    seen, result = set(), []
+    for package in ordered:
+        if package["id"] not in seen:
+            seen.add(package["id"])
+            result.append(package)
+    return result[:limit]
+
+
+def build_request(feed: dict, generated_at: str, packages: dict[str, dict], at: datetime) -> dict | None:
+    is_bootstrap = not feed.get("packages")
+    watermark = feed.get("source", {}).get("generatedAt")
+    cutoff = at - timedelta(days=14)
+    new_ids = []
+    for package in packages.values():
+        if package.get("pulseKind") != "new" or not package.get("lastUpdatedAt"):
+            continue
+        updated = parse_date(package["lastUpdatedAt"])
+        if updated >= cutoff and (not watermark or updated > parse_date(watermark)):
+            new_ids.append(package["id"])
+    new_ids.sort(key=lambda identifier: (packages[identifier].get("lastUpdatedAt") or "", identifier), reverse=True)
+
+    recommendation = next(iter(content(feed, "personalizedRecommendations")), {})
+    current_recommendations = recommendation.get("candidatePackageIDs", [])
+    stale = []
+    for identifier in current_recommendations:
+        researched = feed.get("packages", {}).get(identifier, {}).get("researchedAt")
+        if not researched or at - parse_date(researched) >= timedelta(days=30):
+            stale.append(identifier)
+    needed = max(0, 24 - len(current_recommendations))
+    replace = stale[:3] if not needed else []
+    recommendation_count = needed or len(replace)
+    needs_editorial = editorial_due(feed, at)
+    if not new_ids and not recommendation_count and not needs_editorial:
+        return None
+
+    pool = candidate_pool(packages, new_ids)
+    excluded = set(current_recommendations) - set(replace)
+    recommendation_candidates = [package for package in pool if package["id"] not in excluded]
+    return {
+        "catalog": {"generatedAt": generated_at, "url": CATALOG_URL},
+        "createdAt": timestamp(at),
+        "editorialCandidates": pool,
+        "editorialRequired": needs_editorial,
+        "existingEditorialPackageIDs": [item.get("primaryPackageID") for item in content(feed, "editorial")],
+        "newCandidateLimit": min(8 if is_bootstrap else 6, len(new_ids)),
+        "newCandidates": [packages[identifier] for identifier in new_ids[:40]],
+        "recommendationCandidates": recommendation_candidates,
+        "recommendationCount": min(recommendation_count, len(recommendation_candidates)),
+        "recommendationReplaceIDs": replace,
+        "responsePath": ".feed-work/response.json",
+    }
+
+
+def prompt(request: dict) -> str:
+    editorial = "Write one 600–1,000 word editorial." if request["editorialRequired"] else "Do not write an editorial this run."
+    return f"""PMM_FEED_STATUS=NEEDS_AGENT
+
+You are the editorial researcher for Package Manager Manager's Discover feed.
+Read .feed-work/request.json. Research without installing or executing any candidate package.
+Prefer official repositories, documentation, release history, and registries, supplemented by credible evidence of real-world use. Paraphrase claims, cite URLs, describe tradeoffs honestly, and choose a different candidate if a package cannot be substantiated.
+
+Write .feed-work/response.json as one JSON object with:
+- newPackages: up to {request['newCandidateLimit']} IDs chosen only from newCandidates.
+- recommendations: exactly {request['recommendationCount']} IDs chosen only from recommendationCandidates.
+- packages: an object containing a card for every chosen ID and the editorial package. Each card needs agentSummary (40–80 words), all six assessment arrays (audiences, useCases, prerequisites, complements, alternatives, caveats), and at least two unique sources with title, https URL, and kind primary or independent.
+- editorial: {"null" if not request['editorialRequired'] else "an object with slug, title, deck, body, primaryPackageID, coverage containing history and actualUsage, at least four sources including two primary, and optional artwork"}.
+
+{editorial} Markdown is allowed in body, but raw HTML is not. Optional artwork must contain path under feed/assets/, alt, attribution, and license, and the file must already exist under www/.
+Do not add install URLs, publication dates, researched dates, or catalog metadata; the script derives those.
+
+When the response is ready, reentrantly run exactly:
+./scripts/update-discover-feed
+"""
+
+
+def clean_strings(value: object, field: str) -> list[str]:
+    if not isinstance(value, list):
+        raise FeedError(f"{field} must be an array")
+    result = []
+    for item in value:
+        if not isinstance(item, str) or not item.strip():
+            raise FeedError(f"{field} entries must be non-empty strings")
+        if re.search(r"<[A-Za-z/][^>]*>", item):
+            raise FeedError(f"{field} cannot contain raw HTML")
+        result.append(item.strip())
+    return result
+
+
+def package_card(identifier: str, raw: object, catalog: dict[str, dict], at: datetime) -> dict:
+    if identifier not in catalog:
+        raise FeedError(f"unknown package ID {identifier}")
+    if not isinstance(raw, dict):
+        raise FeedError(f"packages.{identifier} must be an object")
+    summary = raw.get("agentSummary")
+    if words(summary) not in SUMMARY_WORDS:
+        raise FeedError(f"packages.{identifier}.agentSummary must be 40–80 words")
+    if re.search(r"<[A-Za-z/][^>]*>", summary):
+        raise FeedError(f"packages.{identifier}.agentSummary cannot contain raw HTML")
+    assessment = raw.get("assessment")
+    if not isinstance(assessment, dict) or set(assessment) != set(ASSESSMENT_FIELDS):
+        raise FeedError(f"packages.{identifier}.assessment must contain exactly {', '.join(ASSESSMENT_FIELDS)}")
+    package = dict(catalog[identifier])
+    package.pop("popularityRank", None)
+    package.pop("pulseKind", None)
+    for field in ("homepage", "repository", "docs"):
+        if package.get(field):
+            safe_url(package[field], f"packages.{identifier}.{field}")
+    package.update({
+        "agentSummary": summary.strip(),
+        "assessment": {field: clean_strings(assessment[field], f"packages.{identifier}.assessment.{field}") for field in ASSESSMENT_FIELDS},
+        "installURL": install_url(identifier),
+        "researchedAt": timestamp(at),
+        "sources": source_list(raw.get("sources"), f"packages.{identifier}.sources", 2),
+    })
+    return package
+
+
+def validate_artwork(raw: object, root: Path) -> dict | None:
+    if raw is None:
+        return None
+    if not isinstance(raw, dict) or set(raw) != {"path", "alt", "attribution", "license"}:
+        raise FeedError("editorial.artwork must contain path, alt, attribution, and license")
+    path = safe_url(raw["path"], "editorial.artwork.path", allow_relative_artwork=True)
+    if not (root / "www" / path).is_file():
+        raise FeedError(f"editorial artwork does not exist: www/{path}")
+    for field in ("alt", "attribution", "license"):
+        if not isinstance(raw[field], str) or not raw[field].strip():
+            raise FeedError(f"editorial.artwork.{field} is required")
+    return {field: raw[field].strip() for field in ("path", "alt", "attribution", "license")}
+
+
+def editorial(raw: object, request: dict, catalog: dict[str, dict], root: Path, at: datetime, existing_ids: set[str]) -> dict | None:
+    if not request["editorialRequired"]:
+        if raw is not None:
+            raise FeedError("editorial must be null when it was not requested")
+        return None
+    if not isinstance(raw, dict):
+        raise FeedError("editorial is required")
+    slug = raw.get("slug")
+    if not isinstance(slug, str) or not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", slug):
+        raise FeedError("editorial.slug must be lowercase kebab-case")
+    identifier = f"editorial:{at.date().isoformat()}:{slug}"
+    if identifier in existing_ids:
+        raise FeedError(f"duplicate editorial ID {identifier}")
+    package_id = raw.get("primaryPackageID")
+    allowed = {package["id"] for package in request["editorialCandidates"]}
+    if package_id not in allowed or package_id not in catalog:
+        raise FeedError("editorial.primaryPackageID must be an editorial candidate")
+    title, deck, body = raw.get("title"), raw.get("deck"), raw.get("body")
+    if not all(isinstance(value, str) and value.strip() for value in (title, deck, body)):
+        raise FeedError("editorial title, deck, and body are required")
+    if words(body) not in EDITORIAL_WORDS:
+        raise FeedError("editorial.body must be 600–1,000 words")
+    if re.search(r"<[A-Za-z/][^>]*>", body):
+        raise FeedError("editorial.body cannot contain raw HTML")
+    coverage = clean_strings(raw.get("coverage"), "editorial.coverage")
+    if not {"history", "actualUsage"}.issubset(coverage):
+        raise FeedError("editorial.coverage must include history and actualUsage")
+    result = {
+        "deck": deck.strip(),
+        "id": identifier,
+        "primaryPackageID": package_id,
+        "publishedAt": timestamp(at),
+        "sources": source_list(raw.get("sources"), "editorial.sources", 4, 2),
+        "title": title.strip(),
+        "type": "editorial",
+        "body": body.strip(),
+    }
+    artwork = validate_artwork(raw.get("artwork"), root)
+    if artwork:
+        result["artwork"] = artwork
+    return result
+
+
+def catalog_from_request(request: dict) -> dict[str, dict]:
+    packages = request["newCandidates"] + request["recommendationCandidates"] + request["editorialCandidates"]
+    return {package["id"]: package for package in packages}
+
+
+def unique_ids(value: object, field: str) -> list[str]:
+    if not isinstance(value, list) or any(not isinstance(item, str) for item in value):
+        raise FeedError(f"{field} must be an array of package IDs")
+    if len(set(value)) != len(value):
+        raise FeedError(f"{field} contains duplicate IDs")
+    return value
+
+
+def apply_response(feed: dict, request: dict, response: dict, root: Path, at: datetime) -> dict:
+    new_ids = unique_ids(response.get("newPackages"), "newPackages")
+    recommendation_ids = unique_ids(response.get("recommendations"), "recommendations")
+    allowed_new = {package["id"] for package in request["newCandidates"]}
+    allowed_recommendations = {package["id"] for package in request["recommendationCandidates"]}
+    if len(new_ids) > request["newCandidateLimit"] or not set(new_ids).issubset(allowed_new):
+        raise FeedError("newPackages exceeds its limit or contains a non-candidate")
+    if len(recommendation_ids) != request["recommendationCount"] or not set(recommendation_ids).issubset(allowed_recommendations):
+        raise FeedError(f"recommendations must contain exactly {request['recommendationCount']} candidate IDs")
+    raw_cards = response.get("packages")
+    if not isinstance(raw_cards, dict):
+        raise FeedError("packages must be an object")
+    catalog = catalog_from_request(request)
+    next_editorial = editorial(
+        response.get("editorial"), request, catalog, root, at,
+        {item.get("id") for item in content(feed, "editorial")},
+    )
+    required_cards = set(new_ids + recommendation_ids)
+    if next_editorial:
+        required_cards.add(next_editorial["primaryPackageID"])
+    if set(raw_cards) != required_cards:
+        raise FeedError("packages must contain exactly the selected and editorial package IDs")
+    generated_cards = {identifier: package_card(identifier, raw_cards[identifier], catalog, at) for identifier in sorted(required_cards)}
+
+    old_new = next(iter(content(feed, "newPackages")), {}).get("packageIDs", [])
+    merged_new = []
+    for identifier in new_ids + old_new:
+        card = generated_cards.get(identifier) or feed.get("packages", {}).get(identifier)
+        updated = card.get("lastUpdatedAt") if isinstance(card, dict) else None
+        if card and updated and at - parse_date(updated) <= timedelta(days=14) and identifier not in merged_new:
+            merged_new.append(identifier)
+    merged_new = sorted(merged_new, key=lambda identifier: ((generated_cards.get(identifier) or feed["packages"][identifier]).get("lastUpdatedAt") or "", identifier), reverse=True)[:12]
+
+    old_recommendations = next(iter(content(feed, "personalizedRecommendations")), {}).get("candidatePackageIDs", [])
+    retained = [identifier for identifier in old_recommendations if identifier not in request["recommendationReplaceIDs"] and identifier not in recommendation_ids]
+    merged_recommendations = (retained + recommendation_ids)[:24]
+    editorials = ([next_editorial] if next_editorial else []) + content(feed, "editorial")
+    editorials = sorted(editorials, key=lambda item: (item["publishedAt"], item["id"]), reverse=True)[:12]
+
+    referenced = set(merged_new + merged_recommendations)
+    referenced.update(item["primaryPackageID"] for item in editorials)
+    cards = dict(feed.get("packages", {}))
+    cards.update(generated_cards)
+    cards = {identifier: cards[identifier] for identifier in sorted(referenced)}
+    shelves = [
+        {"id": "new-packages", "packageIDs": merged_new, "title": "New Packages", "type": "newPackages"},
+        {
+            "candidatePackageIDs": merged_recommendations,
+            "fallbackPackageIDs": sorted(merged_recommendations, key=lambda identifier: (cards[identifier]["researchedAt"], identifier), reverse=True),
+            "id": "for-you",
+            "title": "For You",
+            "type": "personalizedRecommendations",
+        },
+    ]
+    result = {
+        "content": editorials[:1] + shelves + editorials[1:],
+        "generatedAt": timestamp(at),
+        "packages": cards,
+        "schemaVersion": SCHEMA_VERSION,
+        "source": request["catalog"],
+    }
+    validate_feed(result, root)
+    return result
+
+
+def validate_feed(feed: dict, root: Path) -> None:
+    if set(feed) != {"content", "generatedAt", "packages", "schemaVersion", "source"}:
+        raise FeedError("feed has unexpected or missing top-level fields")
+    if feed["schemaVersion"] != SCHEMA_VERSION:
+        raise FeedError(f"unsupported schemaVersion {feed['schemaVersion']!r}")
+    parse_date(feed["generatedAt"])
+    source = feed["source"]
+    if not isinstance(source, dict) or set(source) != {"generatedAt", "url"}:
+        raise FeedError("source must contain generatedAt and url")
+    safe_url(source["url"], "source.url")
+    if source["generatedAt"] is not None:
+        parse_date(source["generatedAt"])
+    packages = feed["packages"]
+    items = feed["content"]
+    if not isinstance(packages, dict) or not isinstance(items, list):
+        raise FeedError("packages must be an object and content must be an array")
+    identifiers = [item.get("id") for item in items if isinstance(item, dict)]
+    if len(identifiers) != len(items) or len(set(identifiers)) != len(identifiers):
+        raise FeedError("content IDs must be present and unique")
+    referenced = set()
+    for item in items:
+        kind = item.get("type")
+        if kind == "editorial":
+            parse_date(item.get("publishedAt"))
+            if words(item.get("body")) not in EDITORIAL_WORDS or re.search(r"<[A-Za-z/][^>]*>", item.get("body", "")):
+                raise FeedError(f"{item['id']} has invalid editorial body")
+            source_list(item.get("sources"), f"{item['id']}.sources", 4, 2)
+            referenced.add(item.get("primaryPackageID"))
+            if "artwork" in item:
+                validate_artwork(item["artwork"], root)
+        elif kind == "newPackages":
+            referenced.update(unique_ids(item.get("packageIDs"), f"{item['id']}.packageIDs"))
+        elif kind == "personalizedRecommendations":
+            candidates = unique_ids(item.get("candidatePackageIDs"), f"{item['id']}.candidatePackageIDs")
+            fallback = unique_ids(item.get("fallbackPackageIDs"), f"{item['id']}.fallbackPackageIDs")
+            if set(candidates) != set(fallback):
+                raise FeedError("personalized recommendation fallback must contain the same IDs")
+            referenced.update(candidates)
+        else:
+            raise FeedError(f"unknown content type {kind!r}")
+    if referenced != set(packages):
+        raise FeedError("packages must contain exactly the packages referenced by content")
+    for identifier, package in packages.items():
+        if not isinstance(package, dict) or package.get("id") != identifier or package.get("manager") not in SUPPORTED_MANAGERS:
+            raise FeedError(f"invalid package card {identifier}")
+        if package.get("installURL") != install_url(identifier):
+            raise FeedError(f"invalid install URL for {identifier}")
+        if words(package.get("agentSummary")) not in SUMMARY_WORDS:
+            raise FeedError(f"{identifier} summary must be 40–80 words")
+        parse_date(package.get("researchedAt"))
+        source_list(package.get("sources"), f"packages.{identifier}.sources", 2)
+        assessment = package.get("assessment")
+        if not isinstance(assessment, dict) or set(assessment) != set(ASSESSMENT_FIELDS):
+            raise FeedError(f"invalid assessment for {identifier}")
+        for field in ASSESSMENT_FIELDS:
+            clean_strings(assessment[field], f"packages.{identifier}.assessment.{field}")
+        for field in ("homepage", "repository", "docs"):
+            if package.get(field):
+                safe_url(package[field], f"packages.{identifier}.{field}")
+
+
+def commit_feed(root: Path, feed_path: Path, feed: dict) -> bool:
+    if os.environ.get("PMM_FEED_NO_COMMIT") == "1":
+        return True
+    artwork = []
+    for item in content(feed, "editorial"):
+        if item.get("artwork"):
+            artwork.append(str(root / "www" / item["artwork"]["path"]))
+    paths = [str(feed_path), *artwork]
+    subprocess.run(["git", "-C", str(root), "add", "--", *paths], check=True)
+    changed = subprocess.run(["git", "-C", str(root), "diff", "--cached", "--quiet", "--", *paths]).returncode != 0
+    if changed:
+        subprocess.run(["git", "-C", str(root), "commit", "--only", "-m", f"Update Discover feed {now().date().isoformat()}", "--", *paths], check=True)
+    return changed
+
+
+def run() -> int:
+    root, feed_path, work = root_paths()
+    try:
+        if "--check" in sys.argv:
+            validate_feed(read_json(feed_path), root)
+            print("PMM_FEED_STATUS=VALID")
+            return 0
+        if "--self-test" in sys.argv:
+            self_test()
+            print("PMM_FEED_STATUS=SELF_TESTED")
+            return 0
+        request_path, response_path = work / "request.json", work / "response.json"
+        if request_path.exists():
+            request = read_json(request_path)
+            if not response_path.exists():
+                print(prompt(request))
+                return 0
+            feed = read_json(feed_path) if feed_path.exists() else empty_feed(now())
+            result = apply_response(feed, request, read_json(response_path), root, now())
+            write_json(feed_path, result)
+            changed = commit_feed(root, feed_path, result)
+            response_path.unlink()
+            request_path.unlink()
+            try:
+                work.rmdir()
+            except OSError:
+                pass
+            print("PMM_FEED_STATUS=COMMITTED" if changed else "PMM_FEED_STATUS=NOOP")
+            return 0
+        feed = read_json(feed_path) if feed_path.exists() else empty_feed(now())
+        validate_feed(feed, root)
+        generated_at, packages = normalize_catalog(fetch_catalog())
+        request = build_request(feed, generated_at, packages, now())
+        if request is None:
+            print("PMM_FEED_STATUS=NOOP")
+            return 0
+        write_json(request_path, request)
+        print(prompt(request))
+        return 0
+    except FeedError as error:
+        print(f"PMM_FEED_STATUS=ERROR\n{error}", file=sys.stderr)
+        return 1
+    except subprocess.CalledProcessError as error:
+        print(f"PMM_FEED_STATUS=ERROR\ngit command failed with status {error.returncode}", file=sys.stderr)
+        return 1
+
+
+def fixture_catalog(at: datetime, count: int = 32) -> dict:
+    formulas = {}
+    for index in range(count):
+        formulas[f"tool-{index:02}"] = {
+            "category": ["developer-tools", "productivity", "security"][index % 3],
+            "homepage": f"https://example.com/tool-{index:02}",
+            "last_updated_at": timestamp(at - timedelta(hours=index)),
+            "pulse_kind": "new" if index < 8 else "updated",
+            "repository": f"https://github.com/example/tool-{index:02}",
+            "summary": f"Fixture tool {index}",
+            "version": "1.0.0",
+        }
+    return {"sources": {"db": {"generated_at": timestamp(at), "formulas": formulas, "casks": {}, "npms": {}}}}
+
+
+def fixture_card() -> dict:
+    summary = "A focused command line tool for developers who need repeatable local workflows, straightforward automation, and predictable output. It fits small scripts and larger repositories, works without a service account, and remains easy to remove when the workflow no longer needs it. Review its documented platform requirements before adopting it across a team."
+    return {
+        "agentSummary": summary,
+        "assessment": {field: [f"Fixture {field}"] for field in ASSESSMENT_FIELDS},
+        "sources": [
+            {"kind": "primary", "title": "Project documentation", "url": "https://example.com/docs"},
+            {"kind": "independent", "title": "Usage report", "url": "https://example.org/usage"},
+        ],
+    }
+
+
+def fixture_response(request: dict) -> dict:
+    new_ids = [package["id"] for package in request["newCandidates"][:request["newCandidateLimit"]]]
+    rec_ids = [package["id"] for package in request["recommendationCandidates"][:request["recommendationCount"]]]
+    editorial_id = request["editorialCandidates"][0]["id"] if request["editorialRequired"] else None
+    selected = set(new_ids + rec_ids + ([editorial_id] if editorial_id else []))
+    body = " ".join(["Package history and actual usage show a practical tool with clear tradeoffs."] * 70)
+    editorial_value = None
+    if editorial_id:
+        editorial_value = {
+            "body": body,
+            "coverage": ["history", "actualUsage"],
+            "deck": "A researched fixture editorial.",
+            "primaryPackageID": editorial_id,
+            "slug": "fixture-tool",
+            "sources": [
+                {"kind": "primary", "title": "Docs", "url": "https://example.com/docs"},
+                {"kind": "primary", "title": "Releases", "url": "https://example.com/releases"},
+                {"kind": "independent", "title": "History", "url": "https://example.org/history"},
+                {"kind": "independent", "title": "Usage", "url": "https://example.org/usage"},
+            ],
+            "title": "A Fixture Tool Worth Understanding",
+        }
+    return {"editorial": editorial_value, "newPackages": new_ids, "packages": {identifier: fixture_card() for identifier in selected}, "recommendations": rec_ids}
+
+
+def self_test() -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        (root / "www/feed").mkdir(parents=True)
+        (root / "scripts").mkdir()
+        at = datetime(2026, 7, 16, 12, tzinfo=timezone.utc)
+        catalog_path = root / "catalog.json"
+        write_json(catalog_path, fixture_catalog(at))
+        write_json(root / "www/feed/v1.json", empty_feed(at))
+        subprocess.run(["git", "init", "-q", str(root)], check=True)
+        subprocess.run(["git", "-C", str(root), "config", "user.email", "feed@example.com"], check=True)
+        subprocess.run(["git", "-C", str(root), "config", "user.name", "Feed Test"], check=True)
+        (root / "unrelated.txt").write_text("leave me alone\n")
+        subprocess.run(["git", "-C", str(root), "add", "www/feed/v1.json", "unrelated.txt"], check=True)
+        subprocess.run(["git", "-C", str(root), "commit", "-qm", "fixture"], check=True)
+        (root / "unrelated.txt").write_text("dirty and unrelated\n")
+        subprocess.run(["git", "-C", str(root), "add", "unrelated.txt"], check=True)
+        env = os.environ | {
+            "PMM_FEED_CATALOG": str(catalog_path),
+            "PMM_FEED_NOW": timestamp(at),
+            "PMM_FEED_ROOT": str(root),
+        }
+        command = [sys.executable, str(Path(__file__).resolve())]
+        first = subprocess.run(command, env=env, text=True, capture_output=True)
+        assert first.returncode == 0 and "PMM_FEED_STATUS=NEEDS_AGENT" in first.stdout
+        request = read_json(root / ".feed-work/request.json")
+        original = (root / "www/feed/v1.json").read_bytes()
+        write_json(root / ".feed-work/response.json", {})
+        invalid = subprocess.run(command, env=env, text=True, capture_output=True)
+        assert invalid.returncode == 1 and (root / "www/feed/v1.json").read_bytes() == original
+        write_json(root / ".feed-work/response.json", fixture_response(request))
+        completed = subprocess.run(command, env=env, text=True, capture_output=True)
+        assert completed.returncode == 0 and "PMM_FEED_STATUS=COMMITTED" in completed.stdout
+        validate_feed(read_json(root / "www/feed/v1.json"), root)
+        changed = subprocess.run(["git", "-C", str(root), "show", "--pretty=", "--name-only", "HEAD"], text=True, capture_output=True, check=True).stdout.splitlines()
+        assert changed == ["www/feed/v1.json"]
+        staged = subprocess.run(["git", "-C", str(root), "diff", "--cached", "--name-only"], text=True, capture_output=True, check=True).stdout.splitlines()
+        assert staged == ["unrelated.txt"]
+        check = subprocess.run(command + ["--check"], env=env, text=True, capture_output=True)
+        assert check.returncode == 0 and "PMM_FEED_STATUS=VALID" in check.stdout
+        noop = subprocess.run(command, env=env, text=True, capture_output=True)
+        assert noop.returncode == 0 and "PMM_FEED_STATUS=NOOP" in noop.stdout
+        later_env = env | {"PMM_FEED_NOW": timestamp(at + timedelta(days=4))}
+        due = subprocess.run(command, env=later_env, text=True, capture_output=True)
+        assert due.returncode == 0 and "PMM_FEED_STATUS=NEEDS_AGENT" in due.stdout
+        later_request = read_json(root / ".feed-work/request.json")
+        assert later_request["editorialRequired"] and later_request["recommendationCount"] == 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(run())

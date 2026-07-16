@@ -1,5 +1,7 @@
 .build/
 .swiftpm/
+__pycache__/
 DerivedData/
 /dist/
 /.envrc
+.feed-work/
