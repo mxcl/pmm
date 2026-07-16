@@ -296,12 +296,10 @@ private struct DashboardDiscoverEditorialReader: View {
                             .foregroundStyle(.secondary)
                     }
                     if let body = editorial.body {
-                        Text(.init(body))
-                            .font(.body)
-                            .textSelection(.enabled)
+                        DashboardDiscoverMarkdown(markdown: body)
                     }
-                    if let package {
-                        DashboardDiscoverPackageLink(package: package, label: "Explore \(package.displayName)")
+                    if !relatedPackages.isEmpty {
+                        DashboardDiscoverPackageSection(title: "Related Packages", packages: relatedPackages)
                     }
                 }
                 .frame(maxWidth: 680, alignment: .leading)
@@ -309,6 +307,43 @@ private struct DashboardDiscoverEditorialReader: View {
             }
         }
         .frame(minWidth: 620, minHeight: 620)
+    }
+
+    private var relatedPackages: [DiscoverFeedPackage] {
+        editorial.relatedPackages ?? package.map { [$0] } ?? []
+    }
+}
+
+private struct DashboardDiscoverMarkdown: View {
+    let markdown: String
+
+    private var blocks: [String] {
+        markdown.components(separatedBy: "\n\n").filter { !$0.isEmpty }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            ForEach(Array(blocks.enumerated()), id: \.offset) { _, block in
+                if block.hasPrefix("## ") {
+                    Text(block.dropFirst(3))
+                        .font(.title2.bold())
+                        .padding(.top, 8)
+                } else if block.split(separator: "\n").allSatisfy({ $0.hasPrefix("- ") }) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        ForEach(Array(block.split(separator: "\n").enumerated()), id: \.offset) { _, line in
+                            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                Text("•")
+                                Text(.init(String(line.dropFirst(2))))
+                            }
+                        }
+                    }
+                } else {
+                    Text(.init(block.replacingOccurrences(of: "\n", with: " ")))
+                }
+            }
+        }
+        .font(.body)
+        .textSelection(.enabled)
     }
 }
 

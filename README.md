@@ -133,6 +133,11 @@ blocks; when it fills, the generator freezes it under `www/feed/v2/pages/` and
 links to it with `nextPageURL`. Clients can therefore load older pages as the
 human scrolls without needing historical package dictionaries or a server.
 
+Editorial bodies contain 600–1,000 words of Markdown with at least three `##`
+subheadings. Each editorial also carries two to four related package cards,
+including its primary package, so the reader ends with working Details and
+Install actions rather than a dead end.
+
 Feed v2 is script-owned. Do not rewrite frozen pages, IDs, package metadata, or
 install URLs by hand. A normal feed commit may contain `www/feed/v1.json`,
 `www/feed/v2.json`, new files below `www/feed/v2/pages/`, and referenced artwork.

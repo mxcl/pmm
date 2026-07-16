@@ -5,7 +5,7 @@ import Testing
 @Test func discoverFeedGroupsEditorialNewPackagesAndRecommendations() throws {
     let feed = try JSONDecoder().decode(DiscoverFeed.self, from: Data("""
     {"content":[
-      {"id":"editorial:one","type":"editorial","title":"Featured","primaryPackageID":"npm:typescript"},
+      {"id":"editorial:one","type":"editorial","title":"Featured","primaryPackageID":"npm:typescript","relatedPackageIDs":["npm:typescript","brew:faker"]},
       {"id":"new","type":"newPackages","packageIDs":["brew:faker"]},
       {"id":"for-you","type":"personalizedRecommendations","candidatePackageIDs":["npm:typescript"]}
     ],"packages":{
@@ -19,12 +19,13 @@ import Testing
     #expect(feed.newPackages.first?.ecosystem == "Homebrew")
     #expect(feed.newPackages.first?.category == "data")
     #expect(feed.recommendations.map(\.displayName) == ["TypeScript"])
+    #expect(DiscoverFeedPage(legacy: feed).content.first?.relatedPackages?.map(\.id) == ["npm:typescript", "brew:faker"])
 }
 
 @Test func discoverFeedV2DecodesSelfContainedBlocks() throws {
     let page = try decodePage("""
     {"pageID":"head","generatedAt":"2026-07-16T12:00:00Z","nextPageURL":"https://example.com/older.json","content":[
-      {"id":"editorial:one","type":"editorial","batchID":"batch-2","publishedAt":"2026-07-16T12:00:00Z","title":"Featured","package":{"id":"npm:typescript","displayName":"TypeScript","agentSummary":"Static checking","manager":"npm","installURL":"pkgmgrmgr://install?package=npm%3Atypescript"}},
+      {"id":"editorial:one","type":"editorial","batchID":"batch-2","publishedAt":"2026-07-16T12:00:00Z","title":"Featured","package":{"id":"npm:typescript","displayName":"TypeScript","agentSummary":"Static checking","manager":"npm","installURL":"pkgmgrmgr://install?package=npm%3Atypescript"},"relatedPackages":[{"id":"npm:typescript","displayName":"TypeScript","agentSummary":"Static checking","manager":"npm","installURL":"pkgmgrmgr://install?package=npm%3Atypescript"},{"id":"brew:faker","displayName":"Faker","agentSummary":"Fake data","manager":"homebrew","installURL":"pkgmgrmgr://install?package=brew%3Afaker"}]},
       {"id":"new:one","type":"newPackages","batchID":"batch-2","publishedAt":"2026-07-16T12:00:00Z","packages":[{"id":"brew:faker","displayName":"Faker","agentSummary":"Fake data","manager":"homebrew","homepage":"https://example.com","installURL":"pkgmgrmgr://install?package=brew%3Afaker"}]}
     ]}
     """)
@@ -32,6 +33,7 @@ import Testing
     #expect(page.pageID == "head")
     #expect(page.nextPageURL == URL(string: "https://example.com/older.json"))
     #expect(page.content.first?.package?.installURL?.scheme == "pkgmgrmgr")
+    #expect(page.content.first?.relatedPackages?.map(\.id) == ["npm:typescript", "brew:faker"])
     #expect(page.content.last?.packages?.first?.ecosystem == "Homebrew")
 }
 

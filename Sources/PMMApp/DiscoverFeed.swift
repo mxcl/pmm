@@ -48,10 +48,12 @@ struct DiscoverFeedPage: Decodable, Identifiable, Sendable {
                 deck: item.deck,
                 body: item.body,
                 primaryPackageID: item.primaryPackageID,
+                relatedPackageIDs: item.relatedPackageIDs,
                 packageIDs: item.packageIDs,
                 candidatePackageIDs: item.candidatePackageIDs,
                 artwork: item.artwork,
                 package: item.primaryPackageID.flatMap { feed.packages[$0] },
+                relatedPackages: item.relatedPackageIDs.map { ids in ids.compactMap { feed.packages[$0] } },
                 packages: (item.packageIDs ?? item.candidatePackageIDs).map { ids in ids.compactMap { feed.packages[$0] } }
             )
         }
@@ -67,10 +69,12 @@ struct DiscoverFeedContent: Decodable, Identifiable, Sendable {
     let deck: String?
     let body: String?
     let primaryPackageID: String?
+    let relatedPackageIDs: [String]?
     let packageIDs: [String]?
     let candidatePackageIDs: [String]?
     let artwork: DiscoverFeedArtwork?
     let package: DiscoverFeedPackage?
+    let relatedPackages: [DiscoverFeedPackage]?
     let packages: [DiscoverFeedPackage]?
 
     var artworkURL: URL? {
