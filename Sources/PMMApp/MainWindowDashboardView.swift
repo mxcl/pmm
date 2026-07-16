@@ -42,23 +42,7 @@ struct MainWindowDashboardView: View {
     private var dashboardMainColumn: some View {
         VStack(spacing: dashboardCardSpacing) {
             dashboardStats
-            DashboardPackageSection(
-                title: "What's New",
-                systemImage: "sparkle",
-                packages: model.dashboardWhatsNewPackages,
-                isLoading: model.dashboardCatalogIsLoading,
-                emptyText: "No new packages yet"
-            ) {
-                model.openDashboardPackage($0)
-            } viewAllAction: {
-                model.selectSection(.newUpdated)
-            }
-            DashboardRecommendationSection(
-                packages: model.dashboardRecommendedPackages,
-                isLoading: model.dashboardCatalogIsLoading
-            ) {
-                model.openDashboardPackage($0)
-            }
+            DashboardDiscoverFeedView()
         }
     }
 
@@ -156,43 +140,6 @@ private struct DashboardMetricCard: View {
     }
 }
 
-private struct DashboardPackageSection: View {
-    let title: String
-    let systemImage: String
-    let packages: [ManagedPackage]
-    let isLoading: Bool
-    let emptyText: String
-    let action: (ManagedPackage) -> Void
-    let viewAllAction: () -> Void
-
-    var body: some View {
-        DashboardCard {
-            DashboardSectionHeader(title: title, systemImage: systemImage, viewAllAction: viewAllAction)
-            if isLoading {
-                ProgressView()
-                    .controlSize(.small)
-                    .frame(maxWidth: .infinity, minHeight: 260)
-            } else if packages.isEmpty {
-                Text(emptyText)
-                    .font(.system(size: 13))
-                    .foregroundStyle(SystemColor.quietText)
-                    .frame(maxWidth: .infinity, minHeight: 120)
-            } else {
-                LazyVStack(spacing: 0) {
-                    ForEach(packages) { package in
-                        DashboardPackageRow(package: package) {
-                            action(package)
-                        }
-                        if package.id != packages.last?.id {
-                            Divider()
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
 private struct DashboardSectionHeader: View {
     let title: String
     let systemImage: String?
@@ -233,139 +180,133 @@ private struct DashboardSectionHeader: View {
     }
 }
 
-private struct DashboardPackageRow: View {
-    let package: ManagedPackage
-    let action: () -> Void
+private struct DashboardDiscoverFeedView: View {
+    @State private var feed: DiscoverFeed?
+    @State private var failedToLoad = false
 
     var body: some View {
-        HStack(spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(SystemColor.controlFill)
-                PackageEcosystemMark(package: package, size: 22, isBaselineAligned: false)
-            }
-            .frame(width: 40, height: 40)
-
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    Text(package.displayName)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(SystemColor.primaryText)
-                        .lineLimit(1)
-                    if package.pulseKind == "new" {
-                        PackageBadgePill(text: "New", color: Color.accentColor)
+        Group {
+            if let feed {
+                VStack(spacing: dashboardCardSpacing) {
+                    if let editorial = feed.editorial {
+                        DashboardDiscoverEditorialCard(editorial: editorial, package: editorial.primaryPackageID.flatMap { feed.packages[$0] })
                     }
-                    Text(package.manager.title)
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(SystemColor.quietText)
-                        .lineLimit(1)
+                    DashboardDiscoverPackageSection(title: "New Packages", packages: feed.newPackages)
+                    DashboardDiscoverPackageSection(title: "Recommended", packages: feed.recommendations)
                 }
-                Text(package.summary ?? mainWindowCategoryTitle(package.category) ?? "Package")
-                    .font(.system(size: 12))
-                    .foregroundStyle(SystemColor.secondaryText)
-                    .lineLimit(1)
-                HStack(spacing: 5) {
-                    Image(systemName: "arrow.down.right")
-                        .font(.system(size: 9, weight: .bold))
-                    Text(package.dashboardFooter)
-                        .font(.system(size: 11))
+            } else if failedToLoad {
+                DashboardCard {
+                    ContentUnavailableView("Discover is unavailable", systemImage: "wifi.exclamationmark")
+                        .frame(maxWidth: .infinity, minHeight: 180)
                 }
-                .foregroundStyle(SystemColor.quietText)
-            }
-            Spacer(minLength: 8)
-            Button(action: action) {
-                Text("View Package")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Color.accentColor)
-                    .frame(width: 98, height: 30)
-                    .background(SystemColor.controlFill, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .stroke(SystemColor.controlBorder, lineWidth: 1)
-                    }
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-        }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 12)
-        .frame(minHeight: 62)
-    }
-}
-
-private struct DashboardRecommendationSection: View {
-    let packages: [ManagedPackage]
-    let isLoading: Bool
-    let action: (ManagedPackage) -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            DashboardSectionHeader(title: "Recommended for You", showsViewAll: false)
-            if isLoading {
-                ProgressView()
-                    .controlSize(.small)
-                    .frame(maxWidth: .infinity, minHeight: 150)
-            } else if packages.isEmpty {
-                Text("No recommendations yet")
-                    .font(.system(size: 13))
-                    .foregroundStyle(SystemColor.quietText)
-                    .frame(maxWidth: .infinity, minHeight: 120)
             } else {
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 130), spacing: dashboardCardSpacing), count: 3), spacing: dashboardCardSpacing) {
-                    ForEach(packages) { package in
-                        DashboardRecommendationCard(package: package) {
-                            action(package)
-                        }
-                    }
+                DashboardCard {
+                    ProgressView("Loading Discover")
+                        .controlSize(.small)
+                        .frame(maxWidth: .infinity, minHeight: 180)
                 }
-                .padding(.bottom, 18)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .task {
+            do {
+                let result = try await Task.detached(priority: .utility) {
+                    try await DiscoverFeed.load()
+                }.value
+                guard !Task.isCancelled else { return }
+                feed = result
+            } catch {
+                guard !Task.isCancelled else { return }
+                failedToLoad = true
+            }
+        }
     }
 }
 
-private struct DashboardRecommendationCard: View {
-    let package: ManagedPackage
-    let action: () -> Void
+private struct DashboardDiscoverEditorialCard: View {
+    let editorial: DiscoverFeedContent
+    let package: DiscoverFeedPackage?
 
     var body: some View {
         DashboardCard {
-            VStack(alignment: .leading, spacing: 9) {
-                ZStack {
-                    Circle().fill(SystemColor.controlFill)
-                    PackageEcosystemMark(package: package, size: 22, isBaselineAligned: false)
-                }
-                .frame(width: 38, height: 38)
-                Text(package.displayName)
-                    .font(.system(size: 13, weight: .semibold))
+            VStack(alignment: .leading, spacing: 10) {
+                Label("Discover", systemImage: "sparkles")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color.accentColor)
+                Text(editorial.title ?? "Featured")
+                    .font(.system(size: 22, weight: .bold))
                     .foregroundStyle(SystemColor.primaryText)
-                    .lineLimit(1)
-                Text(package.summary ?? package.manager.title)
-                    .font(.system(size: 11))
-                    .foregroundStyle(SystemColor.secondaryText)
-                    .lineLimit(2)
-                    .frame(minHeight: 28, alignment: .topLeading)
-                Spacer(minLength: 0)
-                Button(action: action) {
-                    Text("View Package Details")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(Color.accentColor)
-                        .frame(maxWidth: .infinity, minHeight: 30)
-                        .background(SystemColor.controlFill, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                .stroke(SystemColor.controlBorder, lineWidth: 1)
-                        }
-                        .contentShape(Rectangle())
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                    }
-                    .buttonStyle(.plain)
+                if let deck = editorial.deck {
+                    Text(deck)
+                        .font(.system(size: 14))
+                        .foregroundStyle(SystemColor.secondaryText)
+                }
+                if let body = editorial.body {
+                    Text(body)
+                        .font(.system(size: 13))
+                        .foregroundStyle(SystemColor.secondaryText)
+                        .lineLimit(7)
+                }
+                if let package {
+                    DashboardDiscoverPackageLink(package: package, label: "Explore \(package.displayName)")
+                }
             }
-            .padding(16)
-            .frame(minHeight: 150, alignment: .topLeading)
+            .padding(18)
         }
+    }
+}
+
+private struct DashboardDiscoverPackageSection: View {
+    let title: String
+    let packages: [DiscoverFeedPackage]
+
+    var body: some View {
+        DashboardCard {
+            DashboardSectionHeader(title: title, showsViewAll: false)
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: dashboardCardSpacing)], spacing: dashboardCardSpacing) {
+                ForEach(packages) { package in
+                    DashboardDiscoverPackageLink(package: package)
+                }
+            }
+            .padding([.horizontal, .bottom], 18)
+        }
+    }
+}
+
+private struct DashboardDiscoverPackageLink: View {
+    let package: DiscoverFeedPackage
+    var label: String? = nil
+
+    var body: some View {
+        Group {
+            if let homepage = package.homepage {
+                Link(destination: homepage) { content }
+            } else {
+                content
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var content: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Text(label ?? package.displayName)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(SystemColor.primaryText)
+                .lineLimit(2)
+            Text(package.agentSummary)
+                .font(.system(size: 11))
+                .foregroundStyle(SystemColor.secondaryText)
+                .lineLimit(4)
+            if let category = package.category {
+                Text(category.replacingOccurrences(of: "-", with: " ").capitalized)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(Color.accentColor)
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 126, alignment: .topLeading)
+        .padding(14)
+        .background(SystemColor.controlFill, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 }
 
