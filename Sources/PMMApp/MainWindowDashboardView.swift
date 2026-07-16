@@ -36,7 +36,6 @@ struct MainWindowDashboardView: View {
                     isLoading: model.dashboardBlogEntriesAreLoading
                 )
             }
-            DashboardSponsoredCard()
         }
     }
 }
@@ -125,7 +124,11 @@ private struct DashboardDiscoverFeedView: View {
                             selectedEditorial = editorial
                         }
                     }
-                    DashboardDiscoverPackageSection(title: "New Packages", packages: feed.newPackages)
+                    HStack(alignment: .top, spacing: 24) {
+                        DashboardDiscoverPackageSection(title: "New Packages", packages: feed.newPackages)
+                        DashboardSponsoredCard()
+                            .frame(width: 310)
+                    }
                     DashboardDiscoverPackageSection(title: "Recommended", packages: feed.recommendations)
                 }
             } else if failedToLoad {
