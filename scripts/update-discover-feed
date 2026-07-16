@@ -260,7 +260,14 @@ def candidate_pool(packages: dict[str, dict], new_ids: list[str], limit: int = 1
     return result[:limit]
 
 
-def build_request(feed: dict, generated_at: str, packages: dict[str, dict], at: datetime) -> dict | None:
+def build_request(
+    feed: dict,
+    generated_at: str,
+    packages: dict[str, dict],
+    at: datetime,
+    force_editorial: bool = False,
+    force_recommendations: int = 0,
+) -> dict | None:
     is_bootstrap = not feed.get("packages")
     watermark = feed.get("source", {}).get("generatedAt")
     cutoff = at - timedelta(days=14)
@@ -281,9 +288,9 @@ def build_request(feed: dict, generated_at: str, packages: dict[str, dict], at: 
         if not researched or at - parse_date(researched) >= timedelta(days=30):
             stale.append(identifier)
     needed = max(0, 24 - len(current_recommendations))
-    replace = stale[:3] if not needed else []
+    replace = current_recommendations[:force_recommendations] if force_recommendations else (stale[:3] if not needed else [])
     recommendation_count = needed or len(replace)
-    needs_editorial = editorial_due(feed, at)
+    needs_editorial = force_editorial or editorial_due(feed, at)
     if not new_ids and not recommendation_count and not needs_editorial:
         return None
 
@@ -875,8 +882,24 @@ def run() -> int:
             print("PMM_FEED_STATUS=COMMITTED" if changed else "PMM_FEED_STATUS=NOOP")
             return 0
         validate_v2_chain(root, read_json(archive_path))
+        force_recommendations = 0
+        for argument in sys.argv[1:]:
+            if argument.startswith("--force-recommendations="):
+                try:
+                    force_recommendations = int(argument.partition("=")[2])
+                except ValueError as error:
+                    raise FeedError("--force-recommendations must be an integer") from error
+                if force_recommendations not in range(1, 25):
+                    raise FeedError("--force-recommendations must be between 1 and 24")
         generated_at, packages = normalize_catalog(fetch_catalog())
-        request = build_request(feed, generated_at, packages, now())
+        request = build_request(
+            feed,
+            generated_at,
+            packages,
+            now(),
+            force_editorial="--force-editorial" in sys.argv,
+            force_recommendations=force_recommendations,
+        )
         if request is None:
             print("PMM_FEED_STATUS=NOOP")
             return 0
@@ -1032,6 +1055,11 @@ def self_test() -> None:
         assert check.returncode == 0 and "PMM_FEED_STATUS=VALID" in check.stdout
         noop = subprocess.run(command, env=env, text=True, capture_output=True)
         assert noop.returncode == 0 and "PMM_FEED_STATUS=NOOP" in noop.stdout
+        forced = subprocess.run(command + ["--force-editorial", "--force-recommendations=2"], env=env, text=True, capture_output=True)
+        assert forced.returncode == 0 and "PMM_FEED_STATUS=NEEDS_AGENT" in forced.stdout
+        forced_request = read_json(root / ".feed-work/request.json")
+        assert forced_request["editorialRequired"] and forced_request["recommendationCount"] == 2
+        (root / ".feed-work/request.json").unlink()
         later_env = env | {"PMM_FEED_NOW": timestamp(at + timedelta(days=4))}
         due = subprocess.run(command, env=later_env, text=True, capture_output=True)
         assert due.returncode == 0 and "PMM_FEED_STATUS=NEEDS_AGENT" in due.stdout
