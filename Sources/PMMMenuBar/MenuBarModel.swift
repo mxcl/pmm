@@ -23,7 +23,7 @@ struct MenuBarMenuState: Equatable {
     var errorMessage: String?
 
     var statusSymbolName: String {
-        outdatedRows.isEmpty ? "shippingbox.fill" : "shippingbox"
+        outdatedRows.isEmpty ? "shippingbox" : "shippingbox.fill"
     }
 
     var rows: [MenuBarMenuRow] {

@@ -47,7 +47,7 @@ private final class LockedStrings: @unchecked Sendable {
 @Test func menuStateShowsLoadingBeforeInventoryExists() {
     let state = MenuBarMenuState()
 
-    #expect(state.statusSymbolName == "shippingbox.fill")
+    #expect(state.statusSymbolName == "shippingbox")
     #expect(state.rows == [.loading])
 }
 
@@ -56,7 +56,7 @@ private final class LockedStrings: @unchecked Sendable {
         ManagedPackage(manager: .homebrew, name: "git", installedVersion: "2.0.0", latestVersion: "2.0.0")
     ]))
 
-    #expect(state.statusSymbolName == "shippingbox.fill")
+    #expect(state.statusSymbolName == "shippingbox")
     #expect(state.rows == [.empty])
 }
 
@@ -67,7 +67,7 @@ private final class LockedStrings: @unchecked Sendable {
         ManagedPackage(manager: .npm, identifier: "npm:alpha", displayName: "alpha", installedVersion: "1.0.0", latestVersion: "3.0.0"),
     ]))
 
-    #expect(state.statusSymbolName == "shippingbox")
+    #expect(state.statusSymbolName == "shippingbox.fill")
     #expect(state.rows == [
         .package(MenuBarPackageRow(managerTitle: "Homebrew", name: "git", installedVersion: "1.0.0", latestVersion: "1.2.0")),
         .package(MenuBarPackageRow(managerTitle: "npm", name: "alpha", installedVersion: "1.0.0", latestVersion: "3.0.0")),
