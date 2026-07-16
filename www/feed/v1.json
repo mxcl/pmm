@@ -48,19 +48,6 @@
       "type": "editorial"
     },
     {
-      "id": "new-packages",
-      "packageIDs": [
-        "brew:zsh-patina",
-        "brew:faker",
-        "brew:mosdepth",
-        "brew:cyclonedx-npm",
-        "brew:soar",
-        "brew:perlnavigator"
-      ],
-      "title": "New Packages",
-      "type": "newPackages"
-    },
-    {
       "candidatePackageIDs": [
         "npm:nanoid",
         "npm:browserslist",
@@ -116,6 +103,38 @@
       "id": "for-you",
       "title": "For You",
       "type": "personalizedRecommendations"
+    },
+    {
+      "id": "new-packages",
+      "packageIDs": [
+        "brew:zsh-patina",
+        "brew:faker",
+        "brew:mosdepth",
+        "brew:cyclonedx-npm",
+        "brew:soar",
+        "brew:perlnavigator"
+      ],
+      "title": "New Packages",
+      "type": "newPackages"
+    },
+    {
+      "id": "recently-updated",
+      "packageIDs": [
+        "brew:vals",
+        "brew:pnpm",
+        "brew:ggshield",
+        "brew:kew",
+        "brew:dolt",
+        "brew:deno",
+        "brew:topgrade",
+        "brew:zsh-patina",
+        "brew:datasette",
+        "brew:faker",
+        "npm:autoprefixer",
+        "brew:mosdepth"
+      ],
+      "title": "Recently Updated",
+      "type": "recentlyUpdated"
     },
     {
       "artwork": {
