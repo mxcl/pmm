@@ -323,9 +323,14 @@ private struct DashboardDiscoverPackageLink: View {
                 .font(.system(size: 11))
                 .foregroundStyle(SystemColor.secondaryText)
                 .lineLimit(4)
+            if let ecosystem = package.ecosystem {
+                Label(ecosystem, systemImage: "shippingbox")
+                    .font(.caption)
+                    .foregroundStyle(SystemColor.secondaryText)
+            }
             if let category = package.category {
-                Text(category.replacingOccurrences(of: "-", with: " ").capitalized)
-                    .font(.system(size: 10, weight: .medium))
+                Label(category.replacingOccurrences(of: "-", with: " ").capitalized, systemImage: "tag")
+                    .font(.caption)
                     .foregroundStyle(Color.accentColor)
             }
         }

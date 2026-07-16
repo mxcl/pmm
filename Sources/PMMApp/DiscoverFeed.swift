@@ -55,6 +55,16 @@ struct DiscoverFeedPackage: Decodable, Identifiable {
     let id: String
     let displayName: String
     let agentSummary: String
+    let manager: String?
     let category: String?
     let homepage: URL?
+
+    var ecosystem: String? {
+        switch manager?.lowercased() {
+        case "homebrew": "Homebrew"
+        case "npm": "JavaScript"
+        case .some(let manager): manager.capitalized
+        case nil: nil
+        }
+    }
 }

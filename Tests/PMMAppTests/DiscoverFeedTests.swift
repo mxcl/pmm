@@ -9,12 +9,14 @@ import Testing
       {"id":"new","type":"newPackages","packageIDs":["brew:faker"]},
       {"id":"for-you","type":"personalizedRecommendations","candidatePackageIDs":["npm:typescript"]}
     ],"packages":{
-      "brew:faker":{"id":"brew:faker","displayName":"Faker","agentSummary":"Fake data","homepage":"https://faker.readthedocs.io/"},
+      "brew:faker":{"id":"brew:faker","displayName":"Faker","agentSummary":"Fake data","manager":"homebrew","category":"data","homepage":"https://faker.readthedocs.io/"},
       "npm:typescript":{"id":"npm:typescript","displayName":"TypeScript","agentSummary":"Static checking","homepage":"https://www.typescriptlang.org/"}
     }}
     """.utf8))
 
     #expect(feed.editorial?.title == "Featured")
     #expect(feed.newPackages.map(\.displayName) == ["Faker"])
+    #expect(feed.newPackages.first?.ecosystem == "Homebrew")
+    #expect(feed.newPackages.first?.category == "data")
     #expect(feed.recommendations.map(\.displayName) == ["TypeScript"])
 }
