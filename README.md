@@ -125,6 +125,18 @@ Use `./scripts/update-discover-feed --check` to validate the checked-in feed
 without network access and `--self-test` to exercise the complete handoff and
 commit flow with fixtures.
 
+The generator publishes two contracts. `www/feed/v1.json` remains the rolling
+compatibility snapshot. `www/feed/v2.json` is the newest page of an append-only
+archive: every editorial, new-package shelf, and materially changed
+recommendation shelf is kept as a self-contained block. A page holds at most 20
+blocks; when it fills, the generator freezes it under `www/feed/v2/pages/` and
+links to it with `nextPageURL`. Clients can therefore load older pages as the
+human scrolls without needing historical package dictionaries or a server.
+
+Feed v2 is script-owned. Do not rewrite frozen pages, IDs, package metadata, or
+install URLs by hand. A normal feed commit may contain `www/feed/v1.json`,
+`www/feed/v2.json`, new files below `www/feed/v2/pages/`, and referenced artwork.
+
 ## Caveats
 
 pkg⋅mgr² shells out to your package managers. It does not replace them, normalize
