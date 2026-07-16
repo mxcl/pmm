@@ -25,17 +25,11 @@ struct MainWindowDashboardView: View {
                 .font(.largeTitle.bold())
                 .foregroundStyle(SystemColor.primaryText)
                 .padding(.horizontal, 8)
-            DashboardDiscoverFeedView()
-            HStack(alignment: .top, spacing: 18) {
-                DashboardUpdatesCard(
-                    posts: model.dashboardBlogPosts,
-                    isLoading: model.dashboardBlogEntriesAreLoading
-                )
-                DashboardInstallPacksCard(
-                    packs: model.dashboardInstallPacks,
-                    isLoading: model.dashboardBlogEntriesAreLoading
-                )
-            }
+            DashboardDiscoverFeedView(
+                posts: model.dashboardBlogPosts,
+                packs: model.dashboardInstallPacks,
+                supportingContentIsLoading: model.dashboardBlogEntriesAreLoading
+            )
         }
     }
 }
@@ -111,29 +105,39 @@ private struct DashboardSectionHeader: View {
 }
 
 private struct DashboardDiscoverFeedView: View {
-    @State private var feed: DiscoverFeed?
-    @State private var failedToLoad = false
+    let posts: [DashboardBlogEntry]
+    let packs: [DashboardBlogEntry]
+    let supportingContentIsLoading: Bool
+
+    @StateObject private var store = DiscoverFeedStore()
     @State private var selectedEditorial: DiscoverFeedContent?
 
     var body: some View {
         Group {
-            if let feed {
-                VStack(spacing: 24) {
-                    if let editorial = feed.editorial {
-                        DashboardDiscoverEditorialCard(editorial: editorial) {
-                            selectedEditorial = editorial
-                        }
+            if !store.pages.isEmpty {
+                LazyVStack(spacing: 24) {
+                    ForEach(store.newestBatch) { item in
+                        discoverBlock(item, isInNewestBatch: true)
                     }
+
                     HStack(alignment: .top, spacing: 24) {
-                        DashboardDiscoverPackageSection(title: "New Packages", packages: feed.newPackages)
-                        DashboardSponsoredCard()
-                            .frame(width: 310)
+                        DashboardUpdatesCard(posts: posts, isLoading: supportingContentIsLoading)
+                        DashboardInstallPacksCard(packs: packs, isLoading: supportingContentIsLoading)
                     }
-                    DashboardDiscoverPackageSection(title: "Recommended", packages: feed.recommendations)
+
+                    ForEach(store.olderContent) { item in
+                        discoverBlock(item, isInNewestBatch: false)
+                    }
+
+                    paginationFooter
                 }
-            } else if failedToLoad {
+            } else if store.initialLoadFailed {
                 DashboardCard {
-                    ContentUnavailableView("Discover is unavailable", systemImage: "wifi.exclamationmark")
+                    ContentUnavailableView {
+                        Label("Discover is unavailable", systemImage: "wifi.exclamationmark")
+                    } actions: {
+                        Button("Retry") { Task { await store.loadInitial() } }
+                    }
                         .frame(maxWidth: .infinity, minHeight: 180)
                 }
             } else {
@@ -145,19 +149,45 @@ private struct DashboardDiscoverFeedView: View {
             }
         }
         .task {
-            do {
-                let result = try await Task.detached(priority: .utility) {
-                    try await DiscoverFeed.load()
-                }.value
-                guard !Task.isCancelled else { return }
-                feed = result
-            } catch {
-                guard !Task.isCancelled else { return }
-                failedToLoad = true
-            }
+            await store.loadInitial()
         }
         .sheet(item: $selectedEditorial) { editorial in
-            DashboardDiscoverEditorialReader(editorial: editorial, package: editorial.primaryPackageID.flatMap { feed?.packages[$0] })
+            DashboardDiscoverEditorialReader(editorial: editorial, package: editorial.package)
+        }
+    }
+
+    @ViewBuilder
+    private func discoverBlock(_ item: DiscoverFeedContent, isInNewestBatch: Bool) -> some View {
+        switch item.type {
+        case "editorial":
+            DashboardDiscoverEditorialCard(editorial: item) { selectedEditorial = item }
+        case "newPackages":
+            if isInNewestBatch {
+                HStack(alignment: .top, spacing: 24) {
+                    DashboardDiscoverPackageSection(title: item.title ?? "New Packages", packages: item.packages ?? [])
+                    DashboardSponsoredCard()
+                        .frame(width: 310)
+                }
+            } else {
+                DashboardDiscoverPackageSection(title: item.title ?? "New Packages", packages: item.packages ?? [])
+            }
+        case "personalizedRecommendations":
+            DashboardDiscoverPackageSection(title: item.title ?? "Recommended", packages: item.packages ?? [])
+        default:
+            EmptyView()
+        }
+    }
+
+    @ViewBuilder
+    private var paginationFooter: some View {
+        if store.nextPageLoadFailed {
+            Button("Retry older stories") { Task { await store.loadNext() } }
+                .buttonStyle(.bordered)
+        } else if store.hasNextPage {
+            ProgressView("Loading more")
+                .controlSize(.small)
+                .frame(maxWidth: .infinity, minHeight: 72)
+                .task(id: store.pages.count) { await store.loadNext() }
         }
     }
 }
@@ -303,17 +333,6 @@ private struct DashboardDiscoverPackageLink: View {
     var label: String? = nil
 
     var body: some View {
-        Group {
-            if let homepage = package.homepage {
-                Link(destination: homepage) { content }
-            } else {
-                content
-            }
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var content: some View {
         VStack(alignment: .leading, spacing: 7) {
             Text(label ?? package.displayName)
                 .font(.system(size: 13, weight: .semibold))
@@ -333,11 +352,23 @@ private struct DashboardDiscoverPackageLink: View {
                     .font(.caption)
                     .foregroundStyle(Color.accentColor)
             }
+            Spacer(minLength: 0)
+            HStack {
+                if let homepage = package.homepage {
+                    Link("Details", destination: homepage)
+                }
+                Spacer()
+                if let installURL = package.installURL {
+                    Link("Install", destination: installURL)
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
+                }
+            }
+            .font(.caption.weight(.semibold))
         }
-        .frame(maxWidth: .infinity, minHeight: 118, alignment: .topLeading)
+        .frame(maxWidth: .infinity, minHeight: 150, alignment: .topLeading)
         .padding(18)
         .background(SystemColor.controlFill, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 }
 

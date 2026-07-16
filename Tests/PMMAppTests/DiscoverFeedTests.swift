@@ -20,3 +20,78 @@ import Testing
     #expect(feed.newPackages.first?.category == "data")
     #expect(feed.recommendations.map(\.displayName) == ["TypeScript"])
 }
+
+@Test func discoverFeedV2DecodesSelfContainedBlocks() throws {
+    let page = try decodePage("""
+    {"pageID":"head","generatedAt":"2026-07-16T12:00:00Z","nextPageURL":"https://example.com/older.json","content":[
+      {"id":"editorial:one","type":"editorial","batchID":"batch-2","publishedAt":"2026-07-16T12:00:00Z","title":"Featured","package":{"id":"npm:typescript","displayName":"TypeScript","agentSummary":"Static checking","manager":"npm","installURL":"pkgmgrmgr://install?package=npm%3Atypescript"}},
+      {"id":"new:one","type":"newPackages","batchID":"batch-2","publishedAt":"2026-07-16T12:00:00Z","packages":[{"id":"brew:faker","displayName":"Faker","agentSummary":"Fake data","manager":"homebrew","homepage":"https://example.com","installURL":"pkgmgrmgr://install?package=brew%3Afaker"}]}
+    ]}
+    """)
+
+    #expect(page.pageID == "head")
+    #expect(page.nextPageURL == URL(string: "https://example.com/older.json"))
+    #expect(page.content.first?.package?.installURL?.scheme == "pkgmgrmgr")
+    #expect(page.content.last?.packages?.first?.ecosystem == "Homebrew")
+}
+
+@Test @MainActor func discoverFeedStoreLoadsPagesInOrder() async throws {
+    let head = try decodePage("""
+    {"pageID":"head","generatedAt":"2026-07-16T12:00:00Z","nextPageURL":"https://example.com/older.json","content":[
+      {"id":"editorial:new","type":"editorial","batchID":"batch-2","publishedAt":"2026-07-16T12:00:00Z","title":"Newest"},
+      {"id":"new:new","type":"newPackages","batchID":"batch-2","publishedAt":"2026-07-16T12:00:00Z","packages":[]},
+      {"id":"recommendations:previous","type":"personalizedRecommendations","batchID":"batch-1","publishedAt":"2026-07-13T12:00:00Z","packages":[]}
+    ]}
+    """)
+    let older = try decodePage("""
+    {"pageID":"older","generatedAt":"2026-07-10T12:00:00Z","nextPageURL":null,"content":[
+      {"id":"editorial:old","type":"editorial","batchID":"batch-0","publishedAt":"2026-07-10T12:00:00Z","title":"Oldest"}
+    ]}
+    """)
+    let store = DiscoverFeedStore(pageLoader: { url in
+        url == DiscoverFeedPage.url ? head : older
+    })
+
+    await store.loadInitial()
+    #expect(store.newestBatch.map(\.id) == ["editorial:new", "new:new"])
+    #expect(store.olderContent.map(\.id) == ["recommendations:previous"])
+    #expect(store.hasNextPage)
+
+    await store.loadNext()
+    #expect(store.pages.map(\.pageID) == ["head", "older"])
+    #expect(store.olderContent.map(\.id) == ["recommendations:previous", "editorial:old"])
+    #expect(!store.hasNextPage)
+}
+
+@Test @MainActor func discoverFeedStoreFallsBackToV1() async throws {
+    let legacy = try JSONDecoder().decode(DiscoverFeed.self, from: Data("""
+    {"content":[{"id":"new","type":"newPackages","packageIDs":["brew:faker"]}],"packages":{"brew:faker":{"id":"brew:faker","displayName":"Faker","agentSummary":"Fake data","manager":"homebrew","installURL":"pkgmgrmgr://install?package=brew%3Afaker"}}}
+    """.utf8))
+    let store = DiscoverFeedStore(
+        pageLoader: { _ in throw URLError(.cannotDecodeContentData) },
+        legacyLoader: { legacy }
+    )
+
+    await store.loadInitial()
+
+    #expect(store.pages.map(\.pageID) == ["legacy"])
+    #expect(store.pages.first?.content.first?.packages?.first?.id == "brew:faker")
+    #expect(!store.initialLoadFailed)
+}
+
+@Test @MainActor func discoverFeedStoreRejectsPaginationCycle() async throws {
+    let head = try decodePage("""
+    {"pageID":"head","generatedAt":"2026-07-16T12:00:00Z","nextPageURL":"https://mxcl.dev/package-manager-manager/feed/v2.json","content":[]}
+    """)
+    let store = DiscoverFeedStore(pageLoader: { _ in head })
+
+    await store.loadInitial()
+    await store.loadNext()
+
+    #expect(store.pages.count == 1)
+    #expect(store.nextPageLoadFailed)
+}
+
+private func decodePage(_ json: String) throws -> DiscoverFeedPage {
+    try JSONDecoder().decode(DiscoverFeedPage.self, from: Data(json.utf8))
+}
