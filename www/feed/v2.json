@@ -2,6 +2,99 @@
   "content": [
     {
       "artwork": {
+        "alt": "Three glass browser stages render matching geometric scenes above a luminous automation rail and diagnostic timeline.",
+        "attribution": "Generated with OpenAI image generation",
+        "boxColors": {
+          "backgroundEnd": "#30144E",
+          "backgroundStart": "#090822",
+          "foreground": "#FFFFFF"
+        },
+        "license": "OpenAI terms of use",
+        "path": "feed/assets/playwright-browsers-under-test.png"
+      },
+      "batchID": "20260716T225252Z-3e0a01bd",
+      "body": "A browser test often fails in the gap between what the page has drawn and what a person can use. A button exists in the DOM but still moves under an animation. A request has finished, though a client-side state update has not. A selector matches a hidden copy of the control. Test code can paper over each race with a delay, and the suite grows slower while remaining unreliable. Playwright treats these timing problems as part of browser control.\n\nMicrosoft released Playwright 1.0 in 2020 after engineers who had worked on browser automation began building a new cross-browser API. The project shared some ancestry and design experience with Puppeteer, then expanded the target from Chromium to Chromium, Firefox, and WebKit. That choice shaped its architecture. Playwright ships browser builds matched to each release and speaks to those browsers through project-maintained protocol layers. The package owns more of the stack than a generic WebDriver client, which gives it consistent features and creates a tight relationship between library and browser versions.\n\nAuto-waiting provides the first visible benefit. Before a click, Playwright checks that a locator resolves to one element and that the element is visible, stable, enabled, and able to receive events. Assertions can retry until their conditions hold. A test expresses the state it expects instead of estimating how many milliseconds the interface needs. Timeouts remain, because a broken page must stop somewhere, but they become failure boundaries rather than routine synchronization. Teams still need to wait on meaningful product state. A spinner disappearing may say less than an order reaching the expected status.\n\nLocators reinforce that approach. Playwright encourages roles, labels, text, test identifiers, and relationships that resemble the way a user or accessibility tree finds a control. A long CSS chain tied to layout can break after harmless markup work. A role and accessible name can survive the same refactor while checking something the product should preserve. Test identifiers remain useful for controls with unstable content or no natural semantic handle. The tool cannot choose a durable contract for the team; it gives the team better contracts to choose from.\n\nEach test can run in a fresh browser context, an isolated profile that costs less than starting another browser process. Contexts separate cookies, local storage, and session state. A suite can create two contexts to test collaboration or permissions without two machines. Saved authentication state can speed setup, though teams must protect those files because they may contain credentials. Isolation also stops one failed test from poisoning the next with leftover state, provided the application resets its server-side data with equal care.\n\nPlaywright's trace viewer changes the debugging loop. A retained trace can include actions, DOM snapshots, network events, console messages, and screenshots around a failure. CI no longer has to report a bare timeout from a machine nobody can inspect. A developer can walk the action timeline and compare the page before and after the failed step. Video and screenshots remain available, but a structured trace often identifies whether the selector, application, data, or network caused the failure. Traces contain application data, so storage and retention policies should treat them as diagnostic records rather than harmless build output.\n\nTeams use Playwright for end-to-end tests, component tests, visual comparisons, scraping, and browser-based developer tools. Language bindings cover JavaScript and TypeScript, Python, Java, and .NET, while `playwright-core` serves authors who need browser control without Playwright's test runner. State of JavaScript's 2024 testing results recorded Playwright among the leading tools used at work, with 3,674 respondents selecting it in that survey section. Survey participation skews toward engaged JavaScript developers, but the result supports what the project's release pace and integration ecosystem show: this is production infrastructure, not a laboratory demo.\n\nCross-browser coverage carries a bill. The browser downloads are large, CI images need system dependencies, and parallel workers consume memory. A release may update all three browser revisions, so teams should upgrade the library and its binaries together. WebKit on Linux provides useful engine coverage without reproducing every macOS or iOS behavior. Mobile emulation changes viewport, input, and user agent; it does not replace testing on a real device when hardware, operating-system integration, or the platform browser matters.\n\nA healthy suite keeps the browser layer narrow. Test the journeys whose failure would hurt a user or the business, then cover smaller logic with faster tests. Give each browser test controlled data, semantic locators, and a clear assertion. Collect traces on the first retry instead of on every passing run. Measure whether multiple browsers catch distinct defects before tripling the full matrix.\n\nPlaywright reduces several causes of test flakiness through actionability checks, isolated contexts, and useful evidence after failure. It cannot stabilize an environment with shared mutable data or turn an ambiguous workflow into a trustworthy assertion. Teams get the best result when they use its browser knowledge and keep responsibility for test design, data, and scope.",
+      "deck": "One automation model for Chromium, Firefox, and WebKit, with waiting, isolation, and traces built around modern web applications.",
+      "id": "editorial:2026-07-16:playwright-browsers-under-test",
+      "package": {
+        "agentSummary": "Playwright Core supplies the browser-control API beneath Playwright without the opinionated test runner. Tool authors can drive Chromium, Firefox, and WebKit for crawlers, agents, visual checks, and custom harnesses. Budget for browser downloads, CI resources, selector maintenance, timeouts, and frequent compatibility updates. Sites can also detect or prohibit automation, so review their rules before running it.",
+        "assessment": {
+          "alternatives": [
+            "Puppeteer for Chromium-centered automation",
+            "WebDriver clients for remote browser grids and standards-based control"
+          ],
+          "audiences": [
+            "Authors of browser automation tools and custom test infrastructure"
+          ],
+          "caveats": [
+            "Browser downloads consume storage and CI time",
+            "Selectors and workflows still change when the product changes"
+          ],
+          "complements": [
+            "Playwright Test, CI traces, accessibility checks, and stable test data"
+          ],
+          "prerequisites": [
+            "A supported Node.js release and Playwright-managed browser binaries"
+          ],
+          "useCases": [
+            "Controlling Chromium, Firefox, and WebKit through one API",
+            "Building crawlers, browser agents, or visual inspection systems"
+          ]
+        },
+        "category": "developer-tools",
+        "displayName": "playwright-core",
+        "docs": null,
+        "homepage": "https://playwright.dev",
+        "id": "npm:playwright-core",
+        "installURL": "pkgmgrmgr://install?package=npm%3Aplaywright-core",
+        "lastUpdatedAt": "2026-06-23T19:49:07Z",
+        "manager": "npm",
+        "repository": null,
+        "researchedAt": "2026-07-16T22:52:52Z",
+        "sources": [
+          {
+            "kind": "primary",
+            "title": "Playwright documentation",
+            "url": "https://playwright.dev/docs/intro"
+          },
+          {
+            "kind": "primary",
+            "title": "Microsoft Playwright source repository",
+            "url": "https://github.com/microsoft/playwright"
+          }
+        ],
+        "upstreamSummary": "A high-level API to automate web browsers",
+        "version": "1.61.1"
+      },
+      "primaryPackageID": "npm:playwright-core",
+      "publishedAt": "2026-07-16T22:52:52Z",
+      "sources": [
+        {
+          "kind": "primary",
+          "title": "Playwright documentation",
+          "url": "https://playwright.dev/docs/intro"
+        },
+        {
+          "kind": "primary",
+          "title": "Playwright source and release history",
+          "url": "https://github.com/microsoft/playwright"
+        },
+        {
+          "kind": "primary",
+          "title": "Playwright auto-waiting documentation",
+          "url": "https://playwright.dev/docs/actionability"
+        },
+        {
+          "kind": "independent",
+          "title": "State of JavaScript 2024 testing results",
+          "url": "https://2024.stateofjs.com/en-US/libraries/testing/"
+        }
+      ],
+      "title": "Playwright Puts Browsers Under Test",
+      "type": "editorial"
+    },
+    {
+      "artwork": {
         "alt": "A luminous runtime core sits inside a transparent sphere, with gated beams connecting files, a network, and an isolated environment.",
         "attribution": "Generated with OpenAI image generation",
         "boxColors": {
@@ -2861,7 +2954,7 @@
       "type": "personalizedRecommendations"
     }
   ],
-  "generatedAt": "2026-07-16T22:51:02Z",
+  "generatedAt": "2026-07-16T22:52:52Z",
   "nextPageURL": null,
   "pageID": "20260716T170955Z-ec48a458",
   "schemaVersion": 2

@@ -2,44 +2,44 @@
   "content": [
     {
       "artwork": {
-        "alt": "A luminous runtime core sits inside a transparent sphere, with gated beams connecting files, a network, and an isolated environment.",
+        "alt": "Three glass browser stages render matching geometric scenes above a luminous automation rail and diagnostic timeline.",
         "attribution": "Generated with OpenAI image generation",
         "boxColors": {
-          "backgroundEnd": "#123B33",
-          "backgroundStart": "#071413",
+          "backgroundEnd": "#30144E",
+          "backgroundStart": "#090822",
           "foreground": "#FFFFFF"
         },
         "license": "OpenAI terms of use",
-        "path": "feed/assets/deno-permissioned-runtime.png"
+        "path": "feed/assets/playwright-browsers-under-test.png"
       },
-      "body": "A small automation script can read every file your account can reach, open a network connection, inspect environment variables, and launch another process. Node.js grants those abilities because operating-system access made server-side JavaScript useful. Deno asks the caller to name them. A script that needs the network runs with network permission; one that reads a configuration directory receives access to that path. The command line records part of the program's security boundary.\n\nRyan Dahl presented the first public version of Deno in 2018, nine years after creating Node.js. The team released Deno 1.0 in May 2020. Its early design reacted to several costs that had accumulated around Node: a centralized package installation convention, legacy callback APIs, a split between JavaScript tools, and unrestricted access to the host machine. Deno used Rust, V8, and Tokio underneath, adopted promises throughout its APIs, and treated browser standards such as `fetch`, `Request`, `Response`, and web streams as the common surface. TypeScript support arrived as part of the runtime rather than a separate project setup.\n\nPermissions gave the project its sharpest identity. Deno denies file, network, environment, subprocess, foreign-function, and system access unless a command grants it. Flags can cover a whole capability or narrow it to hosts, paths, or variables. That model helps most when an operator knows what the program should touch. A web service might receive access to one listening address and a short list of environment variables. A formatter may need read and write access to the current repository without network access. The permission line makes unexpected expansion visible in a code review or deployment manifest.\n\nThe boundary has limits. Permission to run a subprocess can hand control to a program with broader operating-system access. Reading a sensitive file lets application code transmit its contents through any allowed network destination. A broad `--allow-all` restores the conventional runtime posture. Deno's controls reduce ambient authority; they do not inspect intent, sanitize untrusted input, or replace operating-system isolation. Containers, service accounts, filesystem permissions, and network policy still carry the production security load.\n\nDeno also ships a formatter, linter, test runner, documentation generator, language server, compiler, task runner, and dependency commands. One executable can take a TypeScript file from edit to test without a local transpiler configuration. Teams gain consistent defaults and fewer versioned tools. They also accept the runtime's choices. A repository with specialized lint rules, a mature Jest setup, or a bundler tuned around a framework may gain little from replacing working parts. Integrated tooling has the most value in new scripts, services, and libraries where the team can keep the setup small.\n\nCompatibility changed the project more than its original clean-slate pitch suggested. JavaScript developers rely on npm's registry and Node's APIs, and asking every library to publish a Deno-specific build constrained adoption. Deno added npm package support, `package.json` workflows, Node built-ins, and familiar `node_modules` options. Deno 2 made that compatibility central while retaining permissions, web APIs, TypeScript, and the built-in tools. Current releases can run a much larger share of existing projects, though compatibility claims deserve a test against each application's native modules, install scripts, module resolution, and framework adapters.\n\nDevelopers use Deno for command-line tools, build scripts, HTTP services, edge functions, and distributable single executables. The project repository shows an active release stream, and developer surveys continue to include Deno among the runtimes and web technologies respondents report using or wanting to use. Deno Deploy and the JSR registry extend the same ecosystem into hosting and package publication. Those signals establish real use without putting Deno near Node's installed base. Operational familiarity, third-party support, and hiring remain easier in the older ecosystem.\n\nA fair evaluation starts with a bounded program. Pick a script that touches the filesystem and one API, express the exact permissions it needs, and put its test and format commands under Deno's task runner. Then try a representative npm dependency and the deployment environment. Record every compatibility shim and every permission that must widen. The experiment shows whether Deno's defaults remove maintenance or move it into unfamiliar places.\n\nDeno offers the clearest payoff when a team values explicit authority and a compact toolchain more than perfect continuity with Node conventions. Existing applications can migrate in pieces because npm compatibility now covers common paths. New programs can begin with narrow permissions and web APIs. The runtime deserves selection for those concrete properties, after the dependencies and deployment path survive a real trial.",
-      "deck": "JavaScript with explicit access to files, networks, and processes, plus a toolchain that arrives in one executable.",
-      "id": "editorial:2026-07-16:deno-permissioned-runtime",
-      "primaryPackageID": "brew:deno",
-      "publishedAt": "2026-07-16T22:51:02Z",
+      "body": "A browser test often fails in the gap between what the page has drawn and what a person can use. A button exists in the DOM but still moves under an animation. A request has finished, though a client-side state update has not. A selector matches a hidden copy of the control. Test code can paper over each race with a delay, and the suite grows slower while remaining unreliable. Playwright treats these timing problems as part of browser control.\n\nMicrosoft released Playwright 1.0 in 2020 after engineers who had worked on browser automation began building a new cross-browser API. The project shared some ancestry and design experience with Puppeteer, then expanded the target from Chromium to Chromium, Firefox, and WebKit. That choice shaped its architecture. Playwright ships browser builds matched to each release and speaks to those browsers through project-maintained protocol layers. The package owns more of the stack than a generic WebDriver client, which gives it consistent features and creates a tight relationship between library and browser versions.\n\nAuto-waiting provides the first visible benefit. Before a click, Playwright checks that a locator resolves to one element and that the element is visible, stable, enabled, and able to receive events. Assertions can retry until their conditions hold. A test expresses the state it expects instead of estimating how many milliseconds the interface needs. Timeouts remain, because a broken page must stop somewhere, but they become failure boundaries rather than routine synchronization. Teams still need to wait on meaningful product state. A spinner disappearing may say less than an order reaching the expected status.\n\nLocators reinforce that approach. Playwright encourages roles, labels, text, test identifiers, and relationships that resemble the way a user or accessibility tree finds a control. A long CSS chain tied to layout can break after harmless markup work. A role and accessible name can survive the same refactor while checking something the product should preserve. Test identifiers remain useful for controls with unstable content or no natural semantic handle. The tool cannot choose a durable contract for the team; it gives the team better contracts to choose from.\n\nEach test can run in a fresh browser context, an isolated profile that costs less than starting another browser process. Contexts separate cookies, local storage, and session state. A suite can create two contexts to test collaboration or permissions without two machines. Saved authentication state can speed setup, though teams must protect those files because they may contain credentials. Isolation also stops one failed test from poisoning the next with leftover state, provided the application resets its server-side data with equal care.\n\nPlaywright's trace viewer changes the debugging loop. A retained trace can include actions, DOM snapshots, network events, console messages, and screenshots around a failure. CI no longer has to report a bare timeout from a machine nobody can inspect. A developer can walk the action timeline and compare the page before and after the failed step. Video and screenshots remain available, but a structured trace often identifies whether the selector, application, data, or network caused the failure. Traces contain application data, so storage and retention policies should treat them as diagnostic records rather than harmless build output.\n\nTeams use Playwright for end-to-end tests, component tests, visual comparisons, scraping, and browser-based developer tools. Language bindings cover JavaScript and TypeScript, Python, Java, and .NET, while `playwright-core` serves authors who need browser control without Playwright's test runner. State of JavaScript's 2024 testing results recorded Playwright among the leading tools used at work, with 3,674 respondents selecting it in that survey section. Survey participation skews toward engaged JavaScript developers, but the result supports what the project's release pace and integration ecosystem show: this is production infrastructure, not a laboratory demo.\n\nCross-browser coverage carries a bill. The browser downloads are large, CI images need system dependencies, and parallel workers consume memory. A release may update all three browser revisions, so teams should upgrade the library and its binaries together. WebKit on Linux provides useful engine coverage without reproducing every macOS or iOS behavior. Mobile emulation changes viewport, input, and user agent; it does not replace testing on a real device when hardware, operating-system integration, or the platform browser matters.\n\nA healthy suite keeps the browser layer narrow. Test the journeys whose failure would hurt a user or the business, then cover smaller logic with faster tests. Give each browser test controlled data, semantic locators, and a clear assertion. Collect traces on the first retry instead of on every passing run. Measure whether multiple browsers catch distinct defects before tripling the full matrix.\n\nPlaywright reduces several causes of test flakiness through actionability checks, isolated contexts, and useful evidence after failure. It cannot stabilize an environment with shared mutable data or turn an ambiguous workflow into a trustworthy assertion. Teams get the best result when they use its browser knowledge and keep responsibility for test design, data, and scope.",
+      "deck": "One automation model for Chromium, Firefox, and WebKit, with waiting, isolation, and traces built around modern web applications.",
+      "id": "editorial:2026-07-16:playwright-browsers-under-test",
+      "primaryPackageID": "npm:playwright-core",
+      "publishedAt": "2026-07-16T22:52:52Z",
       "sources": [
         {
           "kind": "primary",
-          "title": "Deno 1.0 announcement",
-          "url": "https://deno.com/blog/v1"
+          "title": "Playwright documentation",
+          "url": "https://playwright.dev/docs/intro"
         },
         {
           "kind": "primary",
-          "title": "Deno runtime documentation",
-          "url": "https://docs.deno.com/runtime/"
+          "title": "Playwright source and release history",
+          "url": "https://github.com/microsoft/playwright"
         },
         {
           "kind": "primary",
-          "title": "Deno source and release history",
-          "url": "https://github.com/denoland/deno"
+          "title": "Playwright auto-waiting documentation",
+          "url": "https://playwright.dev/docs/actionability"
         },
         {
           "kind": "independent",
-          "title": "Stack Overflow Developer Survey 2025 technology results",
-          "url": "https://survey.stackoverflow.co/2025/technology/"
+          "title": "State of JavaScript 2024 testing results",
+          "url": "https://2024.stateofjs.com/en-US/libraries/testing/"
         }
       ],
-      "title": "Deno and the Permissioned Runtime",
+      "title": "Playwright Puts Browsers Under Test",
       "type": "editorial"
     },
     {
@@ -83,8 +83,8 @@
         "brew:kew"
       ],
       "fallbackPackageIDs": [
-        "brew:deno",
         "npm:playwright-core",
+        "brew:deno",
         "brew:topgrade",
         "brew:pnpm",
         "brew:kew",
@@ -111,6 +111,48 @@
       "id": "for-you",
       "title": "For You",
       "type": "personalizedRecommendations"
+    },
+    {
+      "artwork": {
+        "alt": "A luminous runtime core sits inside a transparent sphere, with gated beams connecting files, a network, and an isolated environment.",
+        "attribution": "Generated with OpenAI image generation",
+        "boxColors": {
+          "backgroundEnd": "#123B33",
+          "backgroundStart": "#071413",
+          "foreground": "#FFFFFF"
+        },
+        "license": "OpenAI terms of use",
+        "path": "feed/assets/deno-permissioned-runtime.png"
+      },
+      "body": "A small automation script can read every file your account can reach, open a network connection, inspect environment variables, and launch another process. Node.js grants those abilities because operating-system access made server-side JavaScript useful. Deno asks the caller to name them. A script that needs the network runs with network permission; one that reads a configuration directory receives access to that path. The command line records part of the program's security boundary.\n\nRyan Dahl presented the first public version of Deno in 2018, nine years after creating Node.js. The team released Deno 1.0 in May 2020. Its early design reacted to several costs that had accumulated around Node: a centralized package installation convention, legacy callback APIs, a split between JavaScript tools, and unrestricted access to the host machine. Deno used Rust, V8, and Tokio underneath, adopted promises throughout its APIs, and treated browser standards such as `fetch`, `Request`, `Response`, and web streams as the common surface. TypeScript support arrived as part of the runtime rather than a separate project setup.\n\nPermissions gave the project its sharpest identity. Deno denies file, network, environment, subprocess, foreign-function, and system access unless a command grants it. Flags can cover a whole capability or narrow it to hosts, paths, or variables. That model helps most when an operator knows what the program should touch. A web service might receive access to one listening address and a short list of environment variables. A formatter may need read and write access to the current repository without network access. The permission line makes unexpected expansion visible in a code review or deployment manifest.\n\nThe boundary has limits. Permission to run a subprocess can hand control to a program with broader operating-system access. Reading a sensitive file lets application code transmit its contents through any allowed network destination. A broad `--allow-all` restores the conventional runtime posture. Deno's controls reduce ambient authority; they do not inspect intent, sanitize untrusted input, or replace operating-system isolation. Containers, service accounts, filesystem permissions, and network policy still carry the production security load.\n\nDeno also ships a formatter, linter, test runner, documentation generator, language server, compiler, task runner, and dependency commands. One executable can take a TypeScript file from edit to test without a local transpiler configuration. Teams gain consistent defaults and fewer versioned tools. They also accept the runtime's choices. A repository with specialized lint rules, a mature Jest setup, or a bundler tuned around a framework may gain little from replacing working parts. Integrated tooling has the most value in new scripts, services, and libraries where the team can keep the setup small.\n\nCompatibility changed the project more than its original clean-slate pitch suggested. JavaScript developers rely on npm's registry and Node's APIs, and asking every library to publish a Deno-specific build constrained adoption. Deno added npm package support, `package.json` workflows, Node built-ins, and familiar `node_modules` options. Deno 2 made that compatibility central while retaining permissions, web APIs, TypeScript, and the built-in tools. Current releases can run a much larger share of existing projects, though compatibility claims deserve a test against each application's native modules, install scripts, module resolution, and framework adapters.\n\nDevelopers use Deno for command-line tools, build scripts, HTTP services, edge functions, and distributable single executables. The project repository shows an active release stream, and developer surveys continue to include Deno among the runtimes and web technologies respondents report using or wanting to use. Deno Deploy and the JSR registry extend the same ecosystem into hosting and package publication. Those signals establish real use without putting Deno near Node's installed base. Operational familiarity, third-party support, and hiring remain easier in the older ecosystem.\n\nA fair evaluation starts with a bounded program. Pick a script that touches the filesystem and one API, express the exact permissions it needs, and put its test and format commands under Deno's task runner. Then try a representative npm dependency and the deployment environment. Record every compatibility shim and every permission that must widen. The experiment shows whether Deno's defaults remove maintenance or move it into unfamiliar places.\n\nDeno offers the clearest payoff when a team values explicit authority and a compact toolchain more than perfect continuity with Node conventions. Existing applications can migrate in pieces because npm compatibility now covers common paths. New programs can begin with narrow permissions and web APIs. The runtime deserves selection for those concrete properties, after the dependencies and deployment path survive a real trial.",
+      "deck": "JavaScript with explicit access to files, networks, and processes, plus a toolchain that arrives in one executable.",
+      "id": "editorial:2026-07-16:deno-permissioned-runtime",
+      "primaryPackageID": "brew:deno",
+      "publishedAt": "2026-07-16T22:51:02Z",
+      "sources": [
+        {
+          "kind": "primary",
+          "title": "Deno 1.0 announcement",
+          "url": "https://deno.com/blog/v1"
+        },
+        {
+          "kind": "primary",
+          "title": "Deno runtime documentation",
+          "url": "https://docs.deno.com/runtime/"
+        },
+        {
+          "kind": "primary",
+          "title": "Deno source and release history",
+          "url": "https://github.com/denoland/deno"
+        },
+        {
+          "kind": "independent",
+          "title": "Stack Overflow Developer Survey 2025 technology results",
+          "url": "https://survey.stackoverflow.co/2025/technology/"
+        }
+      ],
+      "title": "Deno and the Permissioned Runtime",
+      "type": "editorial"
     },
     {
       "artwork": {
@@ -197,7 +239,7 @@
       "type": "editorial"
     }
   ],
-  "generatedAt": "2026-07-16T22:51:02Z",
+  "generatedAt": "2026-07-16T22:52:52Z",
   "packages": {
     "brew:cyclonedx-npm": {
       "agentSummary": "cyclonedx-npm is a focused package for developers who need creates cyclonedx software bill of materials (sbom) from npm projects. It is most useful when its documented workflow matches an existing project rather than as a default dependency. Review the current release notes, platform support, and maintenance model before adopting it, especially where output, compatibility, or security behavior affects automated production work.",
@@ -1203,28 +1245,28 @@
       "version": "1.61.1"
     },
     "npm:playwright-core": {
-      "agentSummary": "Playwright Core provides the browser-control engine behind Playwright without bundling its test runner. It suits tool authors building crawlers, browser agents, inspection utilities, or custom test harnesses across Chromium, Firefox, and WebKit. Expect browser downloads, frequent compatibility updates, and operational work around sandboxing, timeouts, selectors, and the websites being automated.",
+      "agentSummary": "Playwright Core supplies the browser-control API beneath Playwright without the opinionated test runner. Tool authors can drive Chromium, Firefox, and WebKit for crawlers, agents, visual checks, and custom harnesses. Budget for browser downloads, CI resources, selector maintenance, timeouts, and frequent compatibility updates. Sites can also detect or prohibit automation, so review their rules before running it.",
       "assessment": {
         "alternatives": [
-          "Puppeteer for Chromium-focused automation",
-          "WebDriver-based clients for standards-oriented remote control"
+          "Puppeteer for Chromium-centered automation",
+          "WebDriver clients for remote browser grids and standards-based control"
         ],
         "audiences": [
           "Authors of browser automation tools and custom test infrastructure"
         ],
         "caveats": [
-          "Automated sites can change without notice",
-          "Browser binaries increase download and cache size"
+          "Browser downloads consume storage and CI time",
+          "Selectors and workflows still change when the product changes"
         ],
         "complements": [
-          "The full Playwright test runner, CI artifacts, and accessibility checks"
+          "Playwright Test, CI traces, accessibility checks, and stable test data"
         ],
         "prerequisites": [
-          "A supported Node.js release and downloaded browser binaries"
+          "A supported Node.js release and Playwright-managed browser binaries"
         ],
         "useCases": [
-          "Driving Chromium, Firefox, or WebKit through one JavaScript API",
-          "Building crawlers, agents, and visual inspection tools"
+          "Controlling Chromium, Firefox, and WebKit through one API",
+          "Building crawlers, browser agents, or visual inspection systems"
         ]
       },
       "category": "developer-tools",
@@ -1236,7 +1278,7 @@
       "lastUpdatedAt": "2026-06-23T19:49:07Z",
       "manager": "npm",
       "repository": null,
-      "researchedAt": "2026-07-16T22:49:02Z",
+      "researchedAt": "2026-07-16T22:52:52Z",
       "sources": [
         {
           "kind": "primary",
@@ -1245,7 +1287,7 @@
         },
         {
           "kind": "primary",
-          "title": "Microsoft Playwright repository",
+          "title": "Microsoft Playwright source repository",
           "url": "https://github.com/microsoft/playwright"
         }
       ],
