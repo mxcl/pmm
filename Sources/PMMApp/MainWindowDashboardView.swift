@@ -3,32 +3,20 @@ import PMMCore
 import SwiftUI
 
 private let dashboardItemCornerRadius: CGFloat = 17.5
-private let dashboardCardSpacing: CGFloat = 8.5
-private let dashboardRailWidth: CGFloat = 310
-private let dashboardRailGutter: CGFloat = 18
 private let dashboardBlogURL = URL(string: "https://mxcl.dev/package-manager-manager/blog/")!
 
 struct MainWindowDashboardView: View {
     @ObservedObject var model: MainWindowModel
 
     var body: some View {
-        GeometryReader { proxy in
-            let mainWidth = max(0, proxy.size.width - dashboardRailWidth - dashboardRailGutter - dashboardCardSpacing * 2)
-            ScrollView {
-                dashboardMainColumn
-                    .frame(width: mainWidth, alignment: .leading)
-                    .padding(dashboardCardSpacing)
-            }
-            .scrollEdgeEffectStyle(.soft, for: .top)
-            .ignoresSafeArea(.container, edges: .top)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .overlay(alignment: .topTrailing) {
-                dashboardSideColumn
-                    .frame(width: dashboardRailWidth, height: proxy.size.height - dashboardCardSpacing * 2, alignment: .top)
-                    .padding(.top, dashboardCardSpacing)
-                    .padding(.trailing, dashboardRailGutter)
-            }
+        ScrollView {
+            dashboardMainColumn
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(28)
         }
+        .scrollEdgeEffectStyle(.soft, for: .top)
+        .ignoresSafeArea(.container, edges: .top)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     private var dashboardMainColumn: some View {
@@ -38,23 +26,18 @@ struct MainWindowDashboardView: View {
                 .foregroundStyle(SystemColor.primaryText)
                 .padding(.horizontal, 8)
             DashboardDiscoverFeedView()
-        }
-    }
-
-    private var dashboardSideColumn: some View {
-        VStack(spacing: dashboardCardSpacing) {
-            DashboardUpdatesCard(
-                posts: model.dashboardBlogPosts,
-                isLoading: model.dashboardBlogEntriesAreLoading
-            )
-            DashboardInstallPacksCard(
-                packs: model.dashboardInstallPacks,
-                isLoading: model.dashboardBlogEntriesAreLoading
-            )
-            Spacer(minLength: dashboardCardSpacing)
+            HStack(alignment: .top, spacing: 18) {
+                DashboardUpdatesCard(
+                    posts: model.dashboardBlogPosts,
+                    isLoading: model.dashboardBlogEntriesAreLoading
+                )
+                DashboardInstallPacksCard(
+                    packs: model.dashboardInstallPacks,
+                    isLoading: model.dashboardBlogEntriesAreLoading
+                )
+            }
             DashboardSponsoredCard()
         }
-        .frame(maxHeight: .infinity, alignment: .top)
     }
 }
 
