@@ -10,17 +10,20 @@ struct MainWindowDashboardView: View {
     @ObservedObject var model: MainWindowModel
 
     var body: some View {
-        ScrollView {
-            HStack(alignment: .top, spacing: dashboardCardSpacing) {
-                dashboardMainColumn
-                    .frame(minWidth: 0, maxWidth: .infinity)
-                dashboardSideColumn
-                    .frame(width: 310)
+        GeometryReader { proxy in
+            ScrollView {
+                HStack(alignment: .top, spacing: dashboardCardSpacing) {
+                    dashboardMainColumn
+                        .frame(minWidth: 0, maxWidth: .infinity)
+                    dashboardSideColumn
+                        .frame(width: 310)
+                        .frame(minHeight: proxy.size.height - dashboardCardSpacing * 2, alignment: .top)
+                }
+                .padding(dashboardCardSpacing)
             }
-            .padding(dashboardCardSpacing)
+            .scrollEdgeEffectStyle(.soft, for: .top)
+            .ignoresSafeArea(.container, edges: .top)
         }
-        .scrollEdgeEffectStyle(.soft, for: .top)
-        .ignoresSafeArea(.container, edges: .top)
     }
 
     private var dashboardStats: some View {
@@ -183,13 +186,16 @@ private struct DashboardSectionHeader: View {
 private struct DashboardDiscoverFeedView: View {
     @State private var feed: DiscoverFeed?
     @State private var failedToLoad = false
+    @State private var selectedEditorial: DiscoverFeedContent?
 
     var body: some View {
         Group {
             if let feed {
                 VStack(spacing: dashboardCardSpacing) {
                     if let editorial = feed.editorial {
-                        DashboardDiscoverEditorialCard(editorial: editorial, package: editorial.primaryPackageID.flatMap { feed.packages[$0] })
+                        DashboardDiscoverEditorialCard(editorial: editorial, package: editorial.primaryPackageID.flatMap { feed.packages[$0] }) {
+                            selectedEditorial = editorial
+                        }
                     }
                     DashboardDiscoverPackageSection(title: "New Packages", packages: feed.newPackages)
                     DashboardDiscoverPackageSection(title: "Recommended", packages: feed.recommendations)
@@ -219,12 +225,16 @@ private struct DashboardDiscoverFeedView: View {
                 failedToLoad = true
             }
         }
+        .sheet(item: $selectedEditorial) { editorial in
+            DashboardDiscoverEditorialReader(editorial: editorial, package: editorial.primaryPackageID.flatMap { feed?.packages[$0] })
+        }
     }
 }
 
 private struct DashboardDiscoverEditorialCard: View {
     let editorial: DiscoverFeedContent
     let package: DiscoverFeedPackage?
+    let read: () -> Void
 
     var body: some View {
         DashboardCard {
@@ -249,9 +259,51 @@ private struct DashboardDiscoverEditorialCard: View {
                 if let package {
                     DashboardDiscoverPackageLink(package: package, label: "Explore \(package.displayName)")
                 }
+                Button("Read article", action: read)
+                    .buttonStyle(.bordered)
             }
             .padding(18)
         }
+    }
+}
+
+private struct DashboardDiscoverEditorialReader: View {
+    let editorial: DiscoverFeedContent
+    let package: DiscoverFeedPackage?
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text(editorial.title ?? "Discover")
+                    .font(.headline)
+                Spacer()
+                Button("Done") { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+            }
+            .padding()
+            Divider()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    if let deck = editorial.deck {
+                        Text(deck)
+                            .font(.title3)
+                            .foregroundStyle(.secondary)
+                    }
+                    if let body = editorial.body {
+                        Text(.init(body))
+                            .font(.body)
+                            .textSelection(.enabled)
+                    }
+                    if let package {
+                        DashboardDiscoverPackageLink(package: package, label: "Explore \(package.displayName)")
+                    }
+                }
+                .frame(maxWidth: 680, alignment: .leading)
+                .padding(24)
+            }
+        }
+        .frame(minWidth: 620, minHeight: 620)
     }
 }
 

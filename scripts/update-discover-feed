@@ -20,6 +20,7 @@ SCHEMA_VERSION = 1
 SUPPORTED_MANAGERS = {"homebrew", "npm"}
 SUMMARY_WORDS = range(40, 81)
 EDITORIAL_WORDS = range(600, 1001)
+NEW_PACKAGE_MAX_AGE = timedelta(days=365)
 ASSESSMENT_FIELDS = (
     "audiences",
     "useCases",
@@ -299,6 +300,7 @@ Prefer official repositories, documentation, release history, and registries, su
 
 Write .feed-work/response.json as one JSON object with:
 - newPackages: up to {request['newCandidateLimit']} IDs chosen only from newCandidates.
+- newPackageEvidence: an object for every chosen newPackages ID. Each value needs firstPublishedAt (an ISO 8601 timestamp), a concise reason, and one primary source URL proving the upstream project or package was first published within the last year. A catalog, formula, cask, or registry listing date alone does not prove a package is new; do not select a longstanding project newly added to a manager.
 - recommendations: exactly {request['recommendationCount']} IDs chosen only from recommendationCandidates.
 - packages: an object containing a card for every chosen ID and the editorial package. Each card needs agentSummary (40–80 words), all six assessment arrays (audiences, useCases, prerequisites, complements, alternatives, caveats), and at least two unique sources with title, https URL, and kind primary or independent.
 - editorial: {"null" if not request['editorialRequired'] else "an object with slug, title, deck, body, primaryPackageID, coverage containing history and actualUsage, at least four sources including two primary, and optional artwork"}.
@@ -321,6 +323,28 @@ def clean_strings(value: object, field: str) -> list[str]:
         if re.search(r"<[A-Za-z/][^>]*>", item):
             raise FeedError(f"{field} cannot contain raw HTML")
         result.append(item.strip())
+    return result
+
+
+def new_package_evidence(value: object, identifiers: list[str], at: datetime) -> dict[str, dict]:
+    if not isinstance(value, dict) or set(value) != set(identifiers):
+        raise FeedError("newPackageEvidence must contain exactly the selected newPackages IDs")
+    result = {}
+    for identifier in identifiers:
+        evidence = value[identifier]
+        if not isinstance(evidence, dict) or set(evidence) != {"firstPublishedAt", "reason", "sourceURL"}:
+            raise FeedError(f"newPackageEvidence.{identifier} must contain firstPublishedAt, reason, and sourceURL")
+        published = parse_date(evidence["firstPublishedAt"])
+        if published > at or at - published > NEW_PACKAGE_MAX_AGE:
+            raise FeedError(f"newPackageEvidence.{identifier}.firstPublishedAt must be within the last year")
+        reason = evidence["reason"]
+        if not isinstance(reason, str) or len(reason.strip()) < 20:
+            raise FeedError(f"newPackageEvidence.{identifier}.reason must explain why the package is genuinely new")
+        result[identifier] = {
+            "firstPublishedAt": timestamp(published),
+            "reason": reason.strip(),
+            "sourceURL": safe_url(evidence["sourceURL"], f"newPackageEvidence.{identifier}.sourceURL"),
+        }
     return result
 
 
@@ -430,6 +454,7 @@ def apply_response(feed: dict, request: dict, response: dict, root: Path, at: da
     allowed_recommendations = {package["id"] for package in request["recommendationCandidates"]}
     if len(new_ids) > request["newCandidateLimit"] or not set(new_ids).issubset(allowed_new):
         raise FeedError("newPackages exceeds its limit or contains a non-candidate")
+    new_package_evidence(response.get("newPackageEvidence"), new_ids, at)
     if len(recommendation_ids) != request["recommendationCount"] or not set(recommendation_ids).issubset(allowed_recommendations):
         raise FeedError(f"recommendations must contain exactly {request['recommendationCount']} candidate IDs")
     raw_cards = response.get("packages")
@@ -660,7 +685,15 @@ def fixture_response(request: dict) -> dict:
             ],
             "title": "A Fixture Tool Worth Understanding",
         }
-    return {"editorial": editorial_value, "newPackages": new_ids, "packages": {identifier: fixture_card() for identifier in selected}, "recommendations": rec_ids}
+    evidence = {
+        identifier: {
+            "firstPublishedAt": timestamp(now() - timedelta(days=1)),
+            "reason": "The fixture treats this as a recently first-published package for validation.",
+            "sourceURL": "https://example.com/releases",
+        }
+        for identifier in new_ids
+    }
+    return {"editorial": editorial_value, "newPackageEvidence": evidence, "newPackages": new_ids, "packages": {identifier: fixture_card() for identifier in selected}, "recommendations": rec_ids}
 
 
 def self_test() -> None:
@@ -689,6 +722,18 @@ def self_test() -> None:
         first = subprocess.run(command, env=env, text=True, capture_output=True)
         assert first.returncode == 0 and "PMM_FEED_STATUS=NEEDS_AGENT" in first.stdout
         request = read_json(root / ".feed-work/request.json")
+        old_evidence = {
+            request["newCandidates"][0]["id"]: {
+                "firstPublishedAt": timestamp(at - NEW_PACKAGE_MAX_AGE - timedelta(seconds=1)),
+                "reason": "This deliberately stale fixture must never qualify as genuinely new.",
+                "sourceURL": "https://example.com/releases",
+            }
+        }
+        try:
+            new_package_evidence(old_evidence, list(old_evidence), at)
+            raise AssertionError("stale new-package evidence was accepted")
+        except FeedError:
+            pass
         original = (root / "www/feed/v1.json").read_bytes()
         write_json(root / ".feed-work/response.json", {})
         invalid = subprocess.run(command, env=env, text=True, capture_output=True)
