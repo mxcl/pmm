@@ -184,20 +184,22 @@ private struct DashboardDiscoverEditorialCard: View {
     private var foreground: Color { Color(feedHex: boxColors?.foreground ?? "#FFFFFF") }
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
+        LinearGradient(
+            colors: [
+                Color(feedHex: boxColors?.backgroundStart ?? "#1F1638").opacity(0.98),
+                Color(feedHex: boxColors?.backgroundStart ?? "#1F1638").opacity(0.7),
+                .clear
+            ],
+            startPoint: .leading,
+            endPoint: .trailing
+        )
+        .frame(maxWidth: .infinity)
+        .frame(height: 360)
+        .background {
             editorialArtwork
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-            LinearGradient(
-                colors: [
-                    Color(feedHex: boxColors?.backgroundStart ?? "#1F1638").opacity(0.98),
-                    Color(feedHex: boxColors?.backgroundStart ?? "#1F1638").opacity(0.7),
-                    .clear
-                ],
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-
+        }
+        .overlay(alignment: .topLeading) {
             VStack(alignment: .leading, spacing: 14) {
                 Text("EDITORIAL")
                     .font(.subheadline.weight(.bold))
@@ -218,10 +220,7 @@ private struct DashboardDiscoverEditorialCard: View {
             }
             .frame(width: 320, alignment: .leading)
             .padding(36)
-            .frame(maxHeight: .infinity, alignment: .topLeading)
         }
-        .frame(maxWidth: .infinity)
-        .frame(height: 360)
         .background(LinearGradient(colors: [Color(feedHex: boxColors?.backgroundStart ?? "#1F1638"), Color(feedHex: boxColors?.backgroundEnd ?? "#481488")], startPoint: .topLeading, endPoint: .bottomTrailing))
         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
