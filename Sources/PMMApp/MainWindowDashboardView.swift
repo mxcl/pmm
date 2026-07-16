@@ -13,11 +13,11 @@ struct MainWindowDashboardView: View {
 
     var body: some View {
         GeometryReader { proxy in
+            let mainWidth = max(0, proxy.size.width - dashboardRailWidth - dashboardRailGutter - dashboardCardSpacing * 2)
             ScrollView {
                 dashboardMainColumn
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(width: mainWidth, alignment: .leading)
                     .padding(dashboardCardSpacing)
-                    .padding(.trailing, dashboardRailWidth + dashboardRailGutter)
             }
             .scrollEdgeEffectStyle(.soft, for: .top)
             .ignoresSafeArea(.container, edges: .top)
