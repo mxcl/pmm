@@ -20,6 +20,7 @@ CATALOG_URL = "https://www.automicvault.com/db.json"
 SCHEMA_VERSION = 1
 V2_SCHEMA_VERSION = 2
 V2_PAGE_LIMIT = 20
+V2_RECOMMENDATION_LIMIT = 10
 V2_PAGE_BASE_URL = "https://mxcl.dev/package-manager-manager/feed/v2/pages/"
 SUPPORTED_MANAGERS = {"homebrew", "npm"}
 SUMMARY_WORDS = range(40, 81)
@@ -571,6 +572,17 @@ def v2_package(package: dict) -> dict:
     return json.loads(json.dumps(package))
 
 
+def recommendation_chunk(feed: dict, head: dict) -> list[str]:
+    shelf = next(iter(content(feed, "personalizedRecommendations")))
+    identifiers = shelf["fallbackPackageIDs"]
+    previous = next(iter(content(head, "personalizedRecommendations")), {})
+    previous_ids = [package.get("id") for package in previous.get("packages", []) if isinstance(package, dict)]
+    start = 0
+    if previous_ids and len(previous_ids) <= V2_RECOMMENDATION_LIMIT and previous_ids[-1] in identifiers:
+        start = (identifiers.index(previous_ids[-1]) + 1) % len(identifiers)
+    return identifiers[start:start + V2_RECOMMENDATION_LIMIT]
+
+
 def v2_blocks_from_v1(feed: dict) -> list[dict]:
     at = parse_date(feed["generatedAt"])
     batch_id = publication_token(at, [item["id"] for item in feed["content"]])
@@ -590,7 +602,7 @@ def v2_blocks_from_v1(feed: dict) -> list[dict]:
             block["id"] = f"for-you:{batch_id}"
             identifiers = block.pop("fallbackPackageIDs", None) or block["candidatePackageIDs"]
             block.pop("candidatePackageIDs", None)
-            block["packages"] = [v2_package(feed["packages"][identifier]) for identifier in identifiers]
+            block["packages"] = [v2_package(feed["packages"][identifier]) for identifier in identifiers[:V2_RECOMMENDATION_LIMIT]]
         blocks.append(block)
     return blocks
 
@@ -607,7 +619,7 @@ def v2_head_from_v1(feed: dict) -> dict:
     }
 
 
-def v2_blocks_from_update(before: dict, after: dict, response: dict, at: datetime) -> list[dict]:
+def v2_blocks_from_update(before: dict, after: dict, response: dict, head: dict, at: datetime) -> list[dict]:
     new_ids = response["newPackages"]
     recommendation_ids = response["recommendations"]
     old_editorials = {item["id"] for item in content(before, "editorial")}
@@ -623,9 +635,9 @@ def v2_blocks_from_update(before: dict, after: dict, response: dict, at: datetim
         block["package"] = v2_package(after["packages"][block["primaryPackageID"]])
         block["relatedPackages"] = [v2_package(after["packages"][identifier]) for identifier in block.pop("relatedPackageIDs")]
         blocks.append(block)
-    def package_shelf(kind: str, identifier: str, title: str) -> dict:
+    def package_shelf(kind: str, identifier: str, title: str, package_ids: list[str] | None = None) -> dict:
         shelf = next(iter(content(after, kind)))
-        identifiers = shelf.get("fallbackPackageIDs") or shelf["packageIDs"]
+        identifiers = package_ids or shelf.get("fallbackPackageIDs") or shelf["packageIDs"]
         return {
             "batchID": batch_id,
             "id": f"{identifier}:{batch_id}",
@@ -637,7 +649,7 @@ def v2_blocks_from_update(before: dict, after: dict, response: dict, at: datetim
 
     # An editorial is a complete Discover unit: story, then three useful shelves.
     if next_editorial:
-        blocks.append(package_shelf("personalizedRecommendations", "for-you", "For You"))
+        blocks.append(package_shelf("personalizedRecommendations", "for-you", "For You", recommendation_chunk(after, head)))
     if new_ids or (next_editorial and next(iter(content(after, "newPackages")))["packageIDs"]):
         block = package_shelf("newPackages", "new-packages", "New Packages")
         if new_ids and not next_editorial:
@@ -645,7 +657,7 @@ def v2_blocks_from_update(before: dict, after: dict, response: dict, at: datetim
             block["evidence"] = json.loads(json.dumps(response["newPackageEvidence"]))
         blocks.append(block)
     if recommendation_ids and not next_editorial:
-        blocks.append(package_shelf("personalizedRecommendations", "for-you", "For You"))
+        blocks.append(package_shelf("personalizedRecommendations", "for-you", "For You", recommendation_chunk(after, head)))
     if next_editorial:
         blocks.append(package_shelf("recentlyUpdated", "recently-updated", "Recently Updated"))
     return blocks
@@ -800,6 +812,8 @@ def validate_v2_page(page: dict, root: Path) -> None:
                     raise FeedError(f"{item['id']} has invalid new-package evidence")
                 if evidence is not None:
                     new_package_evidence(evidence, package_ids, parse_date(item["publishedAt"]))
+            elif kind == "personalizedRecommendations" and len(packages) > V2_RECOMMENDATION_LIMIT:
+                raise FeedError(f"{item['id']} may contain at most {V2_RECOMMENDATION_LIMIT} recommendations")
         else:
             raise FeedError(f"unknown v2 content type {kind!r}")
 
@@ -935,13 +949,17 @@ def reflow_discover_variety(feed: dict, head: dict, root: Path) -> tuple[dict, d
 
     editorial_blocks = [item for item in head["content"] if item.get("type") == "editorial"]
     blocks = []
-    for editorial_block in editorial_blocks:
+    recommendation_ids = recommendations["fallbackPackageIDs"]
+    for editorial_index, editorial_block in enumerate(editorial_blocks):
         batch_id = editorial_block["batchID"]
         published_at = editorial_block["publishedAt"]
         blocks.append(editorial_block)
         for item in (recommendations, new_packages, updated):
             kind = item["type"]
             identifiers = item.get("fallbackPackageIDs") or item["packageIDs"]
+            if kind == "personalizedRecommendations":
+                start = editorial_index * V2_RECOMMENDATION_LIMIT % len(recommendation_ids)
+                identifiers = recommendation_ids[start:start + V2_RECOMMENDATION_LIMIT]
             prefix = {"personalizedRecommendations": "for-you", "newPackages": "new-packages", "recentlyUpdated": "recently-updated"}[kind]
             blocks.append({
                 "batchID": batch_id,
@@ -1012,7 +1030,7 @@ def run() -> int:
             response = read_json(response_path)
             result = apply_response(feed, request, response, root, now())
             head = read_json(archive_path) if archive_path.exists() else v2_head_from_v1(feed)
-            blocks = v2_blocks_from_update(feed, result, response, now())
+            blocks = v2_blocks_from_update(feed, result, response, head, now())
             next_head, frozen = append_v2(root, head, blocks, now())
             validate_v2_chain(root, next_head)
             write_json(feed_path, result)
@@ -1096,6 +1114,7 @@ def fixture_card() -> dict:
 
 
 def fixture_response(request: dict) -> dict:
+    fixture_at = parse_date(request["catalog"]["generatedAt"])
     new_ids = [package["id"] for package in request["newCandidates"][:request["newCandidateLimit"]]]
     rec_ids = [package["id"] for package in request["recommendationCandidates"][:request["recommendationCount"]]]
     editorial_id = request["editorialCandidates"][0]["id"] if request["editorialRequired"] else None
@@ -1129,7 +1148,7 @@ def fixture_response(request: dict) -> dict:
         }
     evidence = {
         identifier: {
-            "firstPublishedAt": timestamp(now() - timedelta(days=1)),
+            "firstPublishedAt": timestamp(fixture_at - timedelta(days=1)),
             "reason": "The fixture treats this as a recently first-published package for validation.",
             "sourceURL": "https://example.com/releases",
         }
@@ -1187,12 +1206,18 @@ def self_test() -> None:
         assert invalid.returncode == 1 and (root / "www/feed/v1.json").read_bytes() == original
         write_json(root / ".feed-work/response.json", fixture_response(request))
         completed = subprocess.run(command, env=env, text=True, capture_output=True)
-        assert completed.returncode == 0 and "PMM_FEED_STATUS=COMMITTED" in completed.stdout
+        assert completed.returncode == 0 and "PMM_FEED_STATUS=COMMITTED" in completed.stdout, completed.stderr
         completed_feed = read_json(root / "www/feed/v1.json")
         validate_feed(completed_feed, root)
         completed_archive = read_json(root / "www/feed/v2.json")
         validate_v2_chain(root, completed_archive)
         assert [item["type"] for item in completed_archive["content"]] == ["editorial", "personalizedRecommendations", "newPackages", "recentlyUpdated"]
+        recommendation_shelf = next(iter(content(completed_archive, "personalizedRecommendations")))
+        assert len(recommendation_shelf["packages"]) == V2_RECOMMENDATION_LIMIT
+        fallback_ids = next(iter(content(completed_feed, "personalizedRecommendations")))["fallbackPackageIDs"]
+        assert recommendation_chunk(completed_feed, completed_archive) == fallback_ids[10:20]
+        tail_head = {"content": [{"type": "personalizedRecommendations", "packages": [completed_feed["packages"][identifier] for identifier in fallback_ids[10:20]]}]}
+        assert recommendation_chunk(completed_feed, tail_head) == fallback_ids[20:24]
         assert all(item["batchID"] == completed_archive["content"][0]["batchID"] for item in completed_archive["content"])
         legacy_feed, legacy_archive = json.loads(json.dumps(completed_feed)), json.loads(json.dumps(completed_archive))
         legacy_paragraph = " ".join(["Package history and actual usage show a practical tool with clear tradeoffs."] * 24)
