@@ -4863,6 +4863,307 @@
       "id": "for-you:20260716T170955Z-dd0acffc",
       "packages": [
         {
+          "agentSummary": "Playwright Core supplies the browser-control API beneath Playwright without the opinionated test runner. Tool authors can drive Chromium, Firefox, and WebKit for crawlers, agents, visual checks, and custom harnesses. Budget for browser downloads, CI resources, selector maintenance, timeouts, and frequent compatibility updates. Sites can also detect or prohibit automation, so review their rules before running it.",
+          "assessment": {
+            "alternatives": [
+              "Puppeteer for Chromium-centered automation",
+              "WebDriver clients for remote browser grids and standards-based control"
+            ],
+            "audiences": [
+              "Authors of browser automation tools and custom test infrastructure"
+            ],
+            "caveats": [
+              "Browser downloads consume storage and CI time",
+              "Selectors and workflows still change when the product changes"
+            ],
+            "complements": [
+              "Playwright Test, CI traces, accessibility checks, and stable test data"
+            ],
+            "prerequisites": [
+              "A supported Node.js release and Playwright-managed browser binaries"
+            ],
+            "useCases": [
+              "Controlling Chromium, Firefox, and WebKit through one API",
+              "Building crawlers, browser agents, or visual inspection systems"
+            ]
+          },
+          "category": "developer-tools",
+          "displayName": "playwright-core",
+          "docs": null,
+          "homepage": "https://playwright.dev",
+          "id": "npm:playwright-core",
+          "installURL": "pkgmgrmgr://install?package=npm%3Aplaywright-core",
+          "lastUpdatedAt": "2026-06-23T19:49:07Z",
+          "manager": "npm",
+          "repository": null,
+          "researchedAt": "2026-07-16T22:52:52Z",
+          "sources": [
+            {
+              "kind": "primary",
+              "title": "Playwright documentation",
+              "url": "https://playwright.dev/docs/intro"
+            },
+            {
+              "kind": "primary",
+              "title": "Microsoft Playwright source repository",
+              "url": "https://github.com/microsoft/playwright"
+            }
+          ],
+          "upstreamSummary": "A high-level API to automate web browsers",
+          "version": "1.61.1"
+        },
+        {
+          "agentSummary": "Deno combines a JavaScript and TypeScript runtime with formatting, linting, testing, package management, and permission controls. It favors web-platform APIs while supporting npm packages and much of the Node.js surface. Try it for scripts or services that benefit from one toolchain, then test compatibility, permission boundaries, deployment targets, and operational support before moving an established Node application.",
+          "assessment": {
+            "alternatives": [
+              "Node.js for the broadest existing ecosystem",
+              "Bun for a different integrated runtime and package toolchain"
+            ],
+            "audiences": [
+              "JavaScript and TypeScript developers evaluating an integrated runtime"
+            ],
+            "caveats": [
+              "Permission flags become part of deployment and support",
+              "Node-focused dependencies can still expose compatibility gaps"
+            ],
+            "complements": [
+              "JSR packages, Deno Deploy, web-standard APIs, and project task definitions"
+            ],
+            "prerequisites": [
+              "A review of npm and Node compatibility for the project's dependencies"
+            ],
+            "useCases": [
+              "Writing permission-scoped automation",
+              "Building web services with built-in TypeScript tooling"
+            ]
+          },
+          "category": "language-runtime",
+          "displayName": "deno",
+          "docs": "https://docs.deno.com/",
+          "homepage": "https://deno.com/",
+          "id": "brew:deno",
+          "installURL": "pkgmgrmgr://install?package=brew%3Adeno",
+          "lastUpdatedAt": "2026-07-15T20:55:35Z",
+          "manager": "homebrew",
+          "repository": "https://github.com/denoland/deno",
+          "researchedAt": "2026-07-16T22:51:02Z",
+          "sources": [
+            {
+              "kind": "primary",
+              "title": "Deno runtime documentation",
+              "url": "https://docs.deno.com/runtime/"
+            },
+            {
+              "kind": "primary",
+              "title": "Deno source repository",
+              "url": "https://github.com/denoland/deno"
+            }
+          ],
+          "upstreamSummary": "Secure runtime for JavaScript and TypeScript",
+          "version": null
+        },
+        {
+          "agentSummary": "Topgrade discovers supported package managers and update tools, then runs their upgrade routines from one command. It can reduce maintenance friction on a developer workstation with several ecosystems. Convenience also widens the blast radius: read the plan, configure exclusions, keep backups, and avoid unattended use on production machines where one incompatible upgrade could interrupt service.",
+          "assessment": {
+            "alternatives": [
+              "Updating each manager directly",
+              "Pinned environments managed by Nix or containers"
+            ],
+            "audiences": [
+              "Developers maintaining workstations with several package ecosystems"
+            ],
+            "caveats": [
+              "One run can change many unrelated tools",
+              "Interactive managers and breaking upgrades still need human attention"
+            ],
+            "complements": [
+              "Version managers, system backups, changelog review, and reproducible project environments"
+            ],
+            "prerequisites": [
+              "Existing package managers, backups, and enough familiarity to inspect their upgrade output"
+            ],
+            "useCases": [
+              "Reviewing and running many routine upgrades from one interface"
+            ]
+          },
+          "category": "system",
+          "displayName": "topgrade",
+          "docs": "https://github.com/topgrade-rs/topgrade#readme",
+          "homepage": "https://github.com/topgrade-rs/topgrade",
+          "id": "brew:topgrade",
+          "installURL": "pkgmgrmgr://install?package=brew%3Atopgrade",
+          "lastUpdatedAt": "2026-07-15T20:49:28Z",
+          "manager": "homebrew",
+          "repository": "https://github.com/topgrade-rs/topgrade",
+          "researchedAt": "2026-07-16T22:49:02Z",
+          "sources": [
+            {
+              "kind": "primary",
+              "title": "Topgrade source and documentation",
+              "url": "https://github.com/topgrade-rs/topgrade"
+            },
+            {
+              "kind": "primary",
+              "title": "Topgrade releases",
+              "url": "https://github.com/topgrade-rs/topgrade/releases"
+            }
+          ],
+          "upstreamSummary": "Upgrade all the things",
+          "version": null
+        },
+        {
+          "agentSummary": "pnpm installs JavaScript dependencies through a content-addressed store, so projects can reuse package files instead of keeping separate physical copies. Its strict dependency layout also exposes undeclared imports that flatter layouts can hide. It fits monorepos and machines with many Node projects, but teams must align lockfiles, CI caches, deployment tooling, and Node version policy before switching.",
+          "assessment": {
+            "alternatives": [
+              "npm for the Node.js default",
+              "Yarn or Bun for different workspace and runtime tradeoffs"
+            ],
+            "audiences": [
+              "JavaScript and TypeScript teams managing several projects or a monorepo"
+            ],
+            "caveats": [
+              "Some tools still assume a flat dependency tree",
+              "Changing package managers creates a large lockfile and CI review"
+            ],
+            "complements": [
+              "Corepack, committed lockfiles, CI dependency caches, and workspace-aware build tools"
+            ],
+            "prerequisites": [
+              "A supported JavaScript runtime and a project whose tooling accepts pnpm's node_modules layout"
+            ],
+            "useCases": [
+              "Reducing repeated dependency storage",
+              "Running workspace commands across related packages"
+            ]
+          },
+          "category": "developer-tools",
+          "displayName": "pnpm",
+          "docs": "https://pnpm.io/",
+          "homepage": "https://pnpm.io/",
+          "id": "brew:pnpm",
+          "installURL": "pkgmgrmgr://install?package=brew%3Apnpm",
+          "lastUpdatedAt": "2026-07-16T04:48:52Z",
+          "manager": "homebrew",
+          "repository": "https://github.com/pnpm/pnpm",
+          "researchedAt": "2026-07-16T22:49:02Z",
+          "sources": [
+            {
+              "kind": "primary",
+              "title": "pnpm documentation",
+              "url": "https://pnpm.io/"
+            },
+            {
+              "kind": "primary",
+              "title": "pnpm source repository",
+              "url": "https://github.com/pnpm/pnpm"
+            }
+          ],
+          "upstreamSummary": "Fast, disk space efficient package manager",
+          "version": null
+        },
+        {
+          "agentSummary": "kew is a terminal music player that indexes a local library and offers playlists, search, gapless playback, album art, and visualizations without a desktop media application. It suits keyboard-driven listening and remote shells connected to audio hardware. Check codec support and terminal capabilities first, and remember that local metadata quality determines how pleasant browsing feels.",
+          "assessment": {
+            "alternatives": [
+              "cmus",
+              "mpd with a terminal client",
+              "A graphical local-library player"
+            ],
+            "audiences": [
+              "Terminal users with a local music collection"
+            ],
+            "caveats": [
+              "Codec and artwork support vary by platform",
+              "It focuses on local files rather than streaming subscriptions"
+            ],
+            "complements": [
+              "Accurate music tags, terminal image protocols, and command-line audio tools"
+            ],
+            "prerequisites": [
+              "Local audio files, a supported audio device, and compatible terminal features"
+            ],
+            "useCases": [
+              "Browsing and playing albums without leaving the terminal",
+              "Controlling music from a keyboard-focused workstation"
+            ]
+          },
+          "category": "media",
+          "displayName": "kew",
+          "docs": "https://github.com/ravachol/kew#readme",
+          "homepage": "https://github.com/ravachol/kew",
+          "id": "brew:kew",
+          "installURL": "pkgmgrmgr://install?package=brew%3Akew",
+          "lastUpdatedAt": "2026-07-16T00:52:22Z",
+          "manager": "homebrew",
+          "repository": "https://github.com/ravachol/kew",
+          "researchedAt": "2026-07-16T22:49:02Z",
+          "sources": [
+            {
+              "kind": "primary",
+              "title": "kew source and documentation",
+              "url": "https://github.com/ravachol/kew"
+            },
+            {
+              "kind": "primary",
+              "title": "kew releases",
+              "url": "https://github.com/ravachol/kew/releases"
+            }
+          ],
+          "upstreamSummary": "Command-line music player",
+          "version": null
+        },
+        {
+          "agentSummary": "ggshield scans repositories, commits, files, and CI changes for secrets using GitGuardian's detection engine. It can add a useful guard before code reaches a remote, especially where teams handle many cloud credentials. Useful results depend on authentication, policy tuning, and a response process; treat findings as leads, revoke exposed credentials, and review what content leaves the machine.",
+          "assessment": {
+            "alternatives": [
+              "Gitleaks",
+              "TruffleHog",
+              "Host-provided secret scanning"
+            ],
+            "audiences": [
+              "Developers and security teams preventing credentials from entering source history"
+            ],
+            "caveats": [
+              "False positives need triage",
+              "Cloud-backed scanning requires reviewing data-handling terms"
+            ],
+            "complements": [
+              "Pre-commit hooks, protected secrets stores, key rotation, and repository scanning"
+            ],
+            "prerequisites": [
+              "A GitGuardian account or documented offline configuration, plus a credential response policy"
+            ],
+            "useCases": [
+              "Scanning staged changes and CI pipelines for secrets",
+              "Auditing repository history during incident response"
+            ]
+          },
+          "category": "security",
+          "displayName": "ggshield",
+          "docs": "https://docs.gitguardian.com/ggshield-docs/getting-started",
+          "homepage": "https://www.gitguardian.com",
+          "id": "brew:ggshield",
+          "installURL": "pkgmgrmgr://install?package=brew%3Aggshield",
+          "lastUpdatedAt": "2026-07-16T03:10:05Z",
+          "manager": "homebrew",
+          "repository": null,
+          "researchedAt": "2026-07-16T22:49:02Z",
+          "sources": [
+            {
+              "kind": "primary",
+              "title": "ggshield documentation",
+              "url": "https://docs.gitguardian.com/ggshield-docs/getting-started"
+            },
+            {
+              "kind": "primary",
+              "title": "ggshield source repository",
+              "url": "https://github.com/GitGuardian/ggshield"
+            }
+          ],
+          "upstreamSummary": "Scanner for secrets and sensitive data in code",
+          "version": null
+        },
+        {
           "agentSummary": "yaml is a focused package for developers who need javascript parser and stringifier for yaml. It is most useful when its documented workflow matches an existing project rather than as a default dependency. Review the current release notes, platform support, and maintenance model before adopting it, especially where output, compatibility, or security behavior affects automated production work.",
           "assessment": {
             "alternatives": [
@@ -5049,288 +5350,6 @@
           ],
           "upstreamSummary": "TypeScript Execute (tsx): Node.js enhanced with esbuild to run TypeScript & ESM files",
           "version": "4.23.0"
-        },
-        {
-          "agentSummary": "terser is a focused package for developers who need javascript parser, mangler/compressor and beautifier toolkit for es6+. It is most useful when its documented workflow matches an existing project rather than as a default dependency. Review the current release notes, platform support, and maintenance model before adopting it, especially where output, compatibility, or security behavior affects automated production work.",
-          "assessment": {
-            "alternatives": [
-              "Built-in platform tools or another package in the same category"
-            ],
-            "audiences": [
-              "Developers and teams whose workflow matches the documented scope"
-            ],
-            "caveats": [
-              "Confirm compatibility, update policy, and operational impact before production use"
-            ],
-            "complements": [
-              "Version control, CI, and project-specific documentation"
-            ],
-            "prerequisites": [
-              "A compatible runtime, operating system, or project configuration"
-            ],
-            "useCases": [
-              "Automating the task described by the upstream project"
-            ]
-          },
-          "category": "developer-tools",
-          "displayName": "terser",
-          "docs": null,
-          "homepage": "https://terser.org",
-          "id": "npm:terser",
-          "installURL": "pkgmgrmgr://install?package=npm%3Aterser",
-          "lastUpdatedAt": "2026-07-08T17:14:36Z",
-          "manager": "npm",
-          "repository": null,
-          "researchedAt": "2026-07-16T17:09:55Z",
-          "sources": [
-            {
-              "kind": "primary",
-              "title": "terser documentation",
-              "url": "https://terser.org"
-            },
-            {
-              "kind": "primary",
-              "title": "terser project and release information",
-              "url": "https://www.npmjs.com/package/terser"
-            }
-          ],
-          "upstreamSummary": "JavaScript parser, mangler/compressor and beautifier toolkit for ES6+",
-          "version": "5.49.0"
-        },
-        {
-          "agentSummary": "rollup is a focused package for developers who need next-generation es module bundler. It is most useful when its documented workflow matches an existing project rather than as a default dependency. Review the current release notes, platform support, and maintenance model before adopting it, especially where output, compatibility, or security behavior affects automated production work.",
-          "assessment": {
-            "alternatives": [
-              "Built-in platform tools or another package in the same category"
-            ],
-            "audiences": [
-              "Developers and teams whose workflow matches the documented scope"
-            ],
-            "caveats": [
-              "Confirm compatibility, update policy, and operational impact before production use"
-            ],
-            "complements": [
-              "Version control, CI, and project-specific documentation"
-            ],
-            "prerequisites": [
-              "A compatible runtime, operating system, or project configuration"
-            ],
-            "useCases": [
-              "Automating the task described by the upstream project"
-            ]
-          },
-          "category": "developer-tools",
-          "displayName": "rollup",
-          "docs": null,
-          "homepage": "https://rollupjs.org/",
-          "id": "npm:rollup",
-          "installURL": "pkgmgrmgr://install?package=npm%3Arollup",
-          "lastUpdatedAt": "2026-06-19T14:57:23Z",
-          "manager": "npm",
-          "repository": null,
-          "researchedAt": "2026-07-16T17:09:55Z",
-          "sources": [
-            {
-              "kind": "primary",
-              "title": "rollup documentation",
-              "url": "https://rollupjs.org/"
-            },
-            {
-              "kind": "primary",
-              "title": "rollup project and release information",
-              "url": "https://www.npmjs.com/package/rollup"
-            }
-          ],
-          "upstreamSummary": "Next-generation ES module bundler",
-          "version": "4.62.2"
-        },
-        {
-          "agentSummary": "prettier is a focused package for developers who need prettier is an opinionated code formatter. It is most useful when its documented workflow matches an existing project rather than as a default dependency. Review the current release notes, platform support, and maintenance model before adopting it, especially where output, compatibility, or security behavior affects automated production work.",
-          "assessment": {
-            "alternatives": [
-              "Built-in platform tools or another package in the same category"
-            ],
-            "audiences": [
-              "Developers and teams whose workflow matches the documented scope"
-            ],
-            "caveats": [
-              "Confirm compatibility, update policy, and operational impact before production use"
-            ],
-            "complements": [
-              "Version control, CI, and project-specific documentation"
-            ],
-            "prerequisites": [
-              "A compatible runtime, operating system, or project configuration"
-            ],
-            "useCases": [
-              "Automating the task described by the upstream project"
-            ]
-          },
-          "category": "data",
-          "displayName": "prettier",
-          "docs": null,
-          "homepage": "https://prettier.io",
-          "id": "npm:prettier",
-          "installURL": "pkgmgrmgr://install?package=npm%3Aprettier",
-          "lastUpdatedAt": "2026-07-09T16:17:00Z",
-          "manager": "npm",
-          "repository": null,
-          "researchedAt": "2026-07-16T17:09:55Z",
-          "sources": [
-            {
-              "kind": "primary",
-              "title": "prettier documentation",
-              "url": "https://prettier.io"
-            },
-            {
-              "kind": "primary",
-              "title": "prettier project and release information",
-              "url": "https://www.npmjs.com/package/prettier"
-            }
-          ],
-          "upstreamSummary": "Prettier is an opinionated code formatter",
-          "version": "3.9.5"
-        },
-        {
-          "agentSummary": "pnpm is a focused package for developers who need fast, disk space efficient package manager. It is most useful when its documented workflow matches an existing project rather than as a default dependency. Review the current release notes, platform support, and maintenance model before adopting it, especially where output, compatibility, or security behavior affects automated production work.",
-          "assessment": {
-            "alternatives": [
-              "Built-in platform tools or another package in the same category"
-            ],
-            "audiences": [
-              "Developers and teams whose workflow matches the documented scope"
-            ],
-            "caveats": [
-              "Confirm compatibility, update policy, and operational impact before production use"
-            ],
-            "complements": [
-              "Version control, CI, and project-specific documentation"
-            ],
-            "prerequisites": [
-              "A compatible runtime, operating system, or project configuration"
-            ],
-            "useCases": [
-              "Automating the task described by the upstream project"
-            ]
-          },
-          "category": "developer-tools",
-          "displayName": "pnpm",
-          "docs": null,
-          "homepage": "https://pnpm.io",
-          "id": "npm:pnpm",
-          "installURL": "pkgmgrmgr://install?package=npm%3Apnpm",
-          "lastUpdatedAt": "2026-07-11T21:13:20Z",
-          "manager": "npm",
-          "repository": null,
-          "researchedAt": "2026-07-16T17:09:55Z",
-          "sources": [
-            {
-              "kind": "primary",
-              "title": "pnpm documentation",
-              "url": "https://pnpm.io"
-            },
-            {
-              "kind": "primary",
-              "title": "pnpm project and release information",
-              "url": "https://www.npmjs.com/package/pnpm"
-            }
-          ],
-          "upstreamSummary": "Fast, disk space efficient package manager",
-          "version": "11.12.0"
-        },
-        {
-          "agentSummary": "playwright is a focused package for developers who need a high-level api to automate web browsers. It is most useful when its documented workflow matches an existing project rather than as a default dependency. Review the current release notes, platform support, and maintenance model before adopting it, especially where output, compatibility, or security behavior affects automated production work.",
-          "assessment": {
-            "alternatives": [
-              "Built-in platform tools or another package in the same category"
-            ],
-            "audiences": [
-              "Developers and teams whose workflow matches the documented scope"
-            ],
-            "caveats": [
-              "Confirm compatibility, update policy, and operational impact before production use"
-            ],
-            "complements": [
-              "Version control, CI, and project-specific documentation"
-            ],
-            "prerequisites": [
-              "A compatible runtime, operating system, or project configuration"
-            ],
-            "useCases": [
-              "Automating the task described by the upstream project"
-            ]
-          },
-          "category": "developer-tools",
-          "displayName": "playwright",
-          "docs": null,
-          "homepage": "https://playwright.dev",
-          "id": "npm:playwright",
-          "installURL": "pkgmgrmgr://install?package=npm%3Aplaywright",
-          "lastUpdatedAt": "2026-06-23T19:49:00Z",
-          "manager": "npm",
-          "repository": null,
-          "researchedAt": "2026-07-16T17:09:55Z",
-          "sources": [
-            {
-              "kind": "primary",
-              "title": "playwright documentation",
-              "url": "https://playwright.dev"
-            },
-            {
-              "kind": "primary",
-              "title": "playwright project and release information",
-              "url": "https://www.npmjs.com/package/playwright"
-            }
-          ],
-          "upstreamSummary": "A high-level API to automate web browsers",
-          "version": "1.61.1"
-        },
-        {
-          "agentSummary": "nanoid is a focused package for developers who need a tiny (118 bytes), secure url-friendly unique string id generator. It is most useful when its documented workflow matches an existing project rather than as a default dependency. Review the current release notes, platform support, and maintenance model before adopting it, especially where output, compatibility, or security behavior affects automated production work.",
-          "assessment": {
-            "alternatives": [
-              "Built-in platform tools or another package in the same category"
-            ],
-            "audiences": [
-              "Developers and teams whose workflow matches the documented scope"
-            ],
-            "caveats": [
-              "Confirm compatibility, update policy, and operational impact before production use"
-            ],
-            "complements": [
-              "Version control, CI, and project-specific documentation"
-            ],
-            "prerequisites": [
-              "A compatible runtime, operating system, or project configuration"
-            ],
-            "useCases": [
-              "Automating the task described by the upstream project"
-            ]
-          },
-          "category": "security",
-          "displayName": "nanoid",
-          "docs": null,
-          "homepage": "https://github.com/ai/nanoid#readme",
-          "id": "npm:nanoid",
-          "installURL": "pkgmgrmgr://install?package=npm%3Ananoid",
-          "lastUpdatedAt": "2026-06-24T18:37:08Z",
-          "manager": "npm",
-          "repository": null,
-          "researchedAt": "2026-07-16T17:09:55Z",
-          "sources": [
-            {
-              "kind": "primary",
-              "title": "nanoid documentation",
-              "url": "https://github.com/ai/nanoid#readme"
-            },
-            {
-              "kind": "primary",
-              "title": "nanoid project and release information",
-              "url": "https://www.npmjs.com/package/nanoid"
-            }
-          ],
-          "upstreamSummary": "A tiny (118 bytes), secure URL-friendly unique string ID generator",
-          "version": "5.1.16"
         }
       ],
       "publishedAt": "2026-07-16T17:09:55Z",
