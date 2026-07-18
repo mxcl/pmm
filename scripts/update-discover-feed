@@ -334,6 +334,8 @@ Do not add install URLs, publication dates, researched dates, or catalog metadat
 
 When the response is ready, reentrantly run exactly:
 ./scripts/update-discover-feed
+
+After it reports PMM_FEED_STATUS=COMMITTED, run ./scripts/update-discover-feed --check, verify the generated commit is limited to allowed feed files and does not modify or remove archived pages, then push main normally to origin. Never force-push.
 """
 
 
