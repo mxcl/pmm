@@ -24,7 +24,7 @@ V2_RECOMMENDATION_LIMIT = 10
 V2_RECENTLY_UPDATED_LIMIT = 5
 V2_PAGE_BASE_URL = "https://mxcl.dev/package-manager-manager/feed/v2/pages/"
 SUPPORTED_MANAGERS = {"homebrew", "npm"}
-SUMMARY_WORDS = range(40, 81)
+SUMMARY_WORDS = range(20, 31)
 EDITORIAL_WORDS = range(600, 1001)
 NEW_PACKAGE_MAX_AGE = timedelta(days=365)
 ASSESSMENT_FIELDS = (
@@ -326,7 +326,7 @@ Write .feed-work/response.json as one JSON object with:
 - newPackages: up to {request['newCandidateLimit']} IDs chosen only from newCandidates.
 - newPackageEvidence: an object for every chosen newPackages ID. Each value needs firstPublishedAt (an ISO 8601 timestamp), a concise reason, and one primary source URL proving the upstream project or package was first published within the last year. A catalog, formula, cask, or registry listing date alone does not prove a package is new; do not select a longstanding project newly added to a manager.
 - recommendations: exactly {request['recommendationCount']} IDs chosen only from recommendationCandidates.
-- packages: an object containing a card for every chosen ID and every editorial relatedPackageIDs entry. Each card needs agentSummary (40–80 words), all six assessment arrays (audiences, useCases, prerequisites, complements, alternatives, caveats), and at least two unique sources with title, https URL, and kind primary or independent.
+- packages: an object containing a card for every chosen ID and every editorial relatedPackageIDs entry. Each card needs agentSummary (20–30 words), all six assessment arrays (audiences, useCases, prerequisites, complements, alternatives, caveats), and at least two unique sources with title, https URL, and kind primary or independent.
 - editorial: {"null" if not request['editorialRequired'] else "an object with slug, title, deck, body, primaryPackageID, 2–4 relatedPackageIDs including the primary package, coverage containing history and actualUsage, at least four sources including two primary, and required artwork"}.
 
 {editorial} Structure the body as readable Markdown with at least three descriptive `##` subheadings and inline formatting or a list. Raw HTML is not allowed. For every editorial, use image_gen to create a wide, text-free editorial illustration that reflects the story. Save it under www/feed/assets/ and set artwork.path to its feed/assets/ path. Artwork must contain alt, attribution, license, and boxColors. Derive boxColors by visually sampling the generated image: backgroundStart and backgroundEnd are the two dominant colors the app should use behind the editorial box, and foreground is a high-contrast text color. All three colors must be #RRGGBB. Do not use a generic placeholder or a package icon.
@@ -381,7 +381,7 @@ def package_card(identifier: str, raw: object, catalog: dict[str, dict], at: dat
         raise FeedError(f"packages.{identifier} must be an object")
     summary = raw.get("agentSummary")
     if words(summary) not in SUMMARY_WORDS:
-        raise FeedError(f"packages.{identifier}.agentSummary must be 40–80 words")
+        raise FeedError(f"packages.{identifier}.agentSummary must be 20–30 words")
     if re.search(r"<[A-Za-z/][^>]*>", summary):
         raise FeedError(f"packages.{identifier}.agentSummary cannot contain raw HTML")
     assessment = raw.get("assessment")
@@ -744,7 +744,7 @@ def validate_package_card(package: object, identifier: str) -> None:
     if package.get("installURL") != install_url(identifier):
         raise FeedError(f"invalid install URL for {identifier}")
     if words(package.get("agentSummary")) not in SUMMARY_WORDS:
-        raise FeedError(f"{identifier} summary must be 40–80 words")
+        raise FeedError(f"{identifier} summary must be 20–30 words")
     parse_date(package.get("researchedAt"))
     source_list(package.get("sources"), f"packages.{identifier}.sources", 2)
     assessment = package.get("assessment")
@@ -1008,6 +1008,28 @@ def repair_editorial_first(head: dict, root: Path) -> dict:
     return result
 
 
+def backfill_summaries(feed: dict, head: dict, raw: object, root: Path) -> tuple[dict, dict]:
+    if not isinstance(raw, dict) or set(raw) != set(feed["packages"]):
+        raise FeedError("summary backfill must contain exactly every live package ID")
+    summaries = {}
+    for identifier, summary in raw.items():
+        if not isinstance(summary, str) or words(summary) not in SUMMARY_WORDS or re.search(r"<[A-Za-z/][^>]*>", summary):
+            raise FeedError(f"summary backfill for {identifier} must be 20–30 words without raw HTML")
+        summaries[identifier] = summary.strip()
+    next_feed, next_head = json.loads(json.dumps(feed)), json.loads(json.dumps(head))
+    for identifier, package in next_feed["packages"].items():
+        package["agentSummary"] = summaries[identifier]
+    for block in next_head["content"]:
+        snapshots = ([block["package"]] if isinstance(block.get("package"), dict) else []) + (block.get("packages") or []) + (block.get("relatedPackages") or [])
+        for package in snapshots:
+            if package.get("id") not in summaries:
+                raise FeedError(f"summary backfill is missing archived package {package.get('id')}")
+            package["agentSummary"] = summaries[package["id"]]
+    validate_feed(next_feed, root)
+    validate_v2_chain(root, next_head)
+    return next_feed, next_head
+
+
 def run() -> int:
     root, feed_path, work = root_paths()
     archive_path = v2_path(feed_path)
@@ -1054,6 +1076,19 @@ def run() -> int:
             head = repair_editorial_first(read_json(archive_path), root)
             write_json(archive_path, head)
             changed = commit_feed(root, feed_path, feed, [archive_path])
+            print("PMM_FEED_STATUS=COMMITTED" if changed else "PMM_FEED_STATUS=NOOP")
+            return 0
+        if "--backfill-summaries" in sys.argv:
+            payload_path = work / "summary-backfill.json"
+            feed, head = backfill_summaries(read_json(feed_path), read_json(archive_path), read_json(payload_path), root)
+            write_json(feed_path, feed)
+            write_json(archive_path, head)
+            changed = commit_feed(root, feed_path, feed, [archive_path])
+            payload_path.unlink()
+            try:
+                work.rmdir()
+            except OSError:
+                pass
             print("PMM_FEED_STATUS=COMMITTED" if changed else "PMM_FEED_STATUS=NOOP")
             return 0
         request_path, response_path = work / "request.json", work / "response.json"
@@ -1138,7 +1173,7 @@ def fixture_catalog(at: datetime, count: int = 32) -> dict:
 
 
 def fixture_card() -> dict:
-    summary = "A focused command line tool for developers who need repeatable local workflows, straightforward automation, and predictable output. It fits small scripts and larger repositories, works without a service account, and remains easy to remove when the workflow no longer needs it. Review its documented platform requirements before adopting it across a team."
+    summary = "A focused command-line tool for developers who need repeatable local workflows, predictable output, and straightforward automation without depending on a hosted service."
     return {
         "agentSummary": summary,
         "assessment": {field: [f"Fixture {field}"] for field in ASSESSMENT_FIELDS},
@@ -1263,6 +1298,17 @@ def self_test() -> None:
         repaired_head = repair_editorial_first(broken_head, root)
         assert repaired_head["content"][0]["type"] == "editorial"
         assert {item["id"] for item in repaired_head["content"]} == {item["id"] for item in broken_head["content"]}
+        long_summary = "A deliberately long package summary for migration testing that explains workflows, compatibility, adoption, maintenance, security, automation, documentation, prerequisites, alternatives, caveats, and operational tradeoffs in much more detail than the compact Discover card should display."
+        long_feed, long_head = json.loads(json.dumps(completed_feed)), json.loads(json.dumps(completed_archive))
+        for package in long_feed["packages"].values():
+            package["agentSummary"] = long_summary
+        for block in long_head["content"]:
+            snapshots = ([block["package"]] if isinstance(block.get("package"), dict) else []) + (block.get("packages") or []) + (block.get("relatedPackages") or [])
+            for package in snapshots:
+                package["agentSummary"] = long_summary
+        short_feed, short_head = backfill_summaries(long_feed, long_head, {identifier: fixture_card()["agentSummary"] for identifier in long_feed["packages"]}, root)
+        assert all(words(package["agentSummary"]) in SUMMARY_WORDS for package in short_feed["packages"].values())
+        validate_v2_chain(root, short_head)
         recommendation_shelf = next(iter(content(completed_archive, "personalizedRecommendations")))
         assert len(recommendation_shelf["packages"]) == V2_RECOMMENDATION_LIMIT
         fallback_ids = next(iter(content(completed_feed, "personalizedRecommendations")))["fallbackPackageIDs"]
