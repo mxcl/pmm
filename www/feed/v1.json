@@ -107,8 +107,8 @@
     {
       "id": "new-packages",
       "packageIDs": [
-        "brew:woxi",
         "brew:zsh-patina",
+        "brew:woxi",
         "brew:faker",
         "brew:mosdepth",
         "brew:cyclonedx-npm",
@@ -121,6 +121,7 @@
     {
       "id": "recently-updated",
       "packageIDs": [
+        "brew:zsh-patina",
         "brew:woxi",
         "brew:vals",
         "brew:pnpm",
@@ -129,7 +130,6 @@
         "brew:dolt",
         "brew:deno",
         "brew:topgrade",
-        "brew:zsh-patina",
         "brew:datasette",
         "brew:faker",
         "npm:autoprefixer"
@@ -281,7 +281,7 @@
       "type": "editorial"
     }
   ],
-  "generatedAt": "2026-07-18T13:02:33Z",
+  "generatedAt": "2026-07-19T13:03:12Z",
   "packages": {
     "brew:cyclonedx-npm": {
       "agentSummary": "cyclonedx-npm is a focused package for developers who need creates cyclonedx software bill of materials (sbom) from npm projects. It is most useful when its documented workflow matches an existing project rather than as a default dependency. Review the current release notes, platform support, and maintenance model before adopting it, especially where output, compatibility, or security behavior affects automated production work.",
@@ -966,47 +966,47 @@
       "version": null
     },
     "brew:zsh-patina": {
-      "agentSummary": "zsh-patina is a focused package for developers who need blazingly fast zsh syntax highlighter. It is most useful when its documented workflow matches an existing project rather than as a default dependency. Review the current release notes, platform support, and maintenance model before adopting it, especially where output, compatibility, or security behavior affects automated production work.",
+      "agentSummary": "zsh-patina is a Zsh syntax highlighter aimed at interactive shell users who want prompt-time highlighting without a large plugin stack. Its upstream project emphasizes speed and supports automatic installation of shell integration. It is a useful fit for a carefully managed Zsh setup, but it is not a shell framework: evaluate its theme and plugin compatibility before replacing an established highlighter.",
       "assessment": {
         "alternatives": [
-          "Built-in platform tools or another package in the same category"
+          "zsh-syntax-highlighting and fast-syntax-highlighting"
         ],
         "audiences": [
-          "Developers and teams whose workflow matches the documented scope"
+          "Zsh users who want syntax feedback while typing commands"
         ],
         "caveats": [
-          "Confirm compatibility, update policy, and operational impact before production use"
+          "Shell plugins can affect startup time and may need ordering or theme adjustments alongside existing Zsh configuration"
         ],
         "complements": [
-          "Version control, CI, and project-specific documentation"
+          "A Zsh prompt, completion system, and plugin manager or shell configuration"
         ],
         "prerequisites": [
-          "A compatible runtime, operating system, or project configuration"
+          "A configured interactive Zsh shell"
         ],
         "useCases": [
-          "Automating the task described by the upstream project"
+          "Highlighting commands, paths, and shell syntax in interactive Zsh sessions"
         ]
       },
-      "category": null,
+      "category": "developer-tools",
       "displayName": "zsh-patina",
-      "docs": null,
+      "docs": "https://github.com/michel-kraemer/zsh-patina",
       "homepage": "https://github.com/michel-kraemer/zsh-patina",
       "id": "brew:zsh-patina",
       "installURL": "pkgmgrmgr://install?package=brew%3Azsh-patina",
-      "lastUpdatedAt": "2026-07-15T14:05:15Z",
+      "lastUpdatedAt": "2026-07-18T12:44:14Z",
       "manager": "homebrew",
       "repository": "https://github.com/michel-kraemer/zsh-patina",
-      "researchedAt": "2026-07-16T17:09:55Z",
+      "researchedAt": "2026-07-19T13:03:12Z",
       "sources": [
         {
           "kind": "primary",
-          "title": "zsh-patina documentation",
+          "title": "zsh-patina repository and setup documentation",
           "url": "https://github.com/michel-kraemer/zsh-patina"
         },
         {
           "kind": "primary",
-          "title": "zsh-patina project and release information",
-          "url": "https://formulae.brew.sh/formula/zsh-patina"
+          "title": "zsh-patina 1.0.0 release",
+          "url": "https://github.com/michel-kraemer/zsh-patina/releases/tag/1.0.0"
         }
       ],
       "upstreamSummary": "Blazingly fast Zsh syntax highlighter",
@@ -1817,7 +1817,7 @@
   },
   "schemaVersion": 1,
   "source": {
-    "generatedAt": "2026-07-18T05:08:40Z",
+    "generatedAt": "2026-07-19T04:47:58Z",
     "url": "https://www.automicvault.com/db.json"
   }
 }

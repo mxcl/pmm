@@ -1,6 +1,69 @@
 {
   "content": [
     {
+      "batchID": "20260719T130312Z-59a92177",
+      "evidence": {
+        "brew:zsh-patina": {
+          "firstPublishedAt": "2026-03-13T20:43:52Z",
+          "reason": "The project's first public 1.0.0 GitHub release was published in March 2026, so this is a genuinely new upstream project rather than an older project newly listed by Homebrew.",
+          "sourceURL": "https://github.com/michel-kraemer/zsh-patina/releases/tag/1.0.0"
+        }
+      },
+      "id": "new-packages:20260719T130312Z-59a92177",
+      "packages": [
+        {
+          "agentSummary": "zsh-patina is a Zsh syntax highlighter aimed at interactive shell users who want prompt-time highlighting without a large plugin stack. Its upstream project emphasizes speed and supports automatic installation of shell integration. It is a useful fit for a carefully managed Zsh setup, but it is not a shell framework: evaluate its theme and plugin compatibility before replacing an established highlighter.",
+          "assessment": {
+            "alternatives": [
+              "zsh-syntax-highlighting and fast-syntax-highlighting"
+            ],
+            "audiences": [
+              "Zsh users who want syntax feedback while typing commands"
+            ],
+            "caveats": [
+              "Shell plugins can affect startup time and may need ordering or theme adjustments alongside existing Zsh configuration"
+            ],
+            "complements": [
+              "A Zsh prompt, completion system, and plugin manager or shell configuration"
+            ],
+            "prerequisites": [
+              "A configured interactive Zsh shell"
+            ],
+            "useCases": [
+              "Highlighting commands, paths, and shell syntax in interactive Zsh sessions"
+            ]
+          },
+          "category": "developer-tools",
+          "displayName": "zsh-patina",
+          "docs": "https://github.com/michel-kraemer/zsh-patina",
+          "homepage": "https://github.com/michel-kraemer/zsh-patina",
+          "id": "brew:zsh-patina",
+          "installURL": "pkgmgrmgr://install?package=brew%3Azsh-patina",
+          "lastUpdatedAt": "2026-07-18T12:44:14Z",
+          "manager": "homebrew",
+          "repository": "https://github.com/michel-kraemer/zsh-patina",
+          "researchedAt": "2026-07-19T13:03:12Z",
+          "sources": [
+            {
+              "kind": "primary",
+              "title": "zsh-patina repository and setup documentation",
+              "url": "https://github.com/michel-kraemer/zsh-patina"
+            },
+            {
+              "kind": "primary",
+              "title": "zsh-patina 1.0.0 release",
+              "url": "https://github.com/michel-kraemer/zsh-patina/releases/tag/1.0.0"
+            }
+          ],
+          "upstreamSummary": "Blazingly fast Zsh syntax highlighter",
+          "version": null
+        }
+      ],
+      "publishedAt": "2026-07-19T13:03:12Z",
+      "title": "New Packages",
+      "type": "newPackages"
+    },
+    {
       "batchID": "20260718T130233Z-d0da1eff",
       "evidence": {
         "brew:woxi": {
@@ -4814,7 +4877,7 @@
       "type": "recentlyUpdated"
     }
   ],
-  "generatedAt": "2026-07-18T13:02:33Z",
+  "generatedAt": "2026-07-19T13:03:12Z",
   "nextPageURL": null,
   "pageID": "20260716T225252Z-723bde92",
   "schemaVersion": 2
