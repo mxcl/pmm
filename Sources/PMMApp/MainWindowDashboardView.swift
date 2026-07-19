@@ -374,11 +374,11 @@ private struct DashboardDiscoverPackageLink: View {
             Text(label ?? package.displayName)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(SystemColor.primaryText)
-                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
             Text(package.agentSummary)
                 .font(.system(size: 11))
                 .foregroundStyle(SystemColor.secondaryText)
-                .lineLimit(4)
+                .fixedSize(horizontal: false, vertical: true)
             if let ecosystem = package.ecosystem {
                 Label(ecosystem, systemImage: "shippingbox")
                     .font(.caption)
