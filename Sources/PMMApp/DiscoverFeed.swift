@@ -138,13 +138,12 @@ final class DiscoverFeedStore: ObservableObject {
     }
 
     var newestBatch: [DiscoverFeedContent] {
-        guard let first = pages.first?.content.first else { return [] }
-        return pages.first?.content.prefix { $0.batchID == first.batchID }.map { $0 } ?? []
+        guard let first = uniqueContent.first else { return [] }
+        return uniqueContent.prefix { $0.batchID == first.batchID }.map { $0 }
     }
 
     var olderContent: [DiscoverFeedContent] {
-        let all = pages.flatMap(\.content)
-        return Array(all.dropFirst(newestBatch.count))
+        Array(uniqueContent.dropFirst(newestBatch.count))
     }
 
     var hasNextPage: Bool { pages.last?.nextPageURL != nil }
@@ -193,6 +192,15 @@ final class DiscoverFeedStore: ObservableObject {
         }
         pages.append(page)
         loadedURLs.insert(url)
+    }
+
+    private var uniqueContent: [DiscoverFeedContent] {
+        var seenContent = Set<String>()
+        return pages.flatMap(\.content).filter { item in
+            let title = item.title?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+            let identity = title.isEmpty && item.type == "editorial" ? item.id : title
+            return seenContent.insert("\(item.type):\(identity)").inserted
+        }
     }
 }
 

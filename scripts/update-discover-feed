@@ -21,7 +21,8 @@ SCHEMA_VERSION = 1
 V2_SCHEMA_VERSION = 2
 V2_PAGE_LIMIT = 20
 V2_RECOMMENDATION_LIMIT = 10
-V2_RECENTLY_UPDATED_LIMIT = 5
+V2_RECENTLY_UPDATED_LIMIT = 10
+V2_CATEGORY_SHELF_LIMIT = 10
 V2_PAGE_BASE_URL = "https://mxcl.dev/package-manager-manager/feed/v2/pages/"
 SUPPORTED_MANAGERS = {"homebrew", "npm"}
 SUMMARY_WORDS = range(20, 31)
@@ -707,6 +708,125 @@ def v2_package(package: dict) -> dict:
     return json.loads(json.dumps(package))
 
 
+def category_title(category: str) -> str:
+    return " ".join(word.capitalize() for word in category.split("-"))
+
+
+def catalog_v2_package(package: dict) -> dict:
+    summary = package.get("upstreamSummary")
+    if not summary:
+        manager = "Homebrew" if package["manager"] == "homebrew" else "npm"
+        summary = f"{package['displayName']} is available through {manager} for installation and management in Package Manager Manager."
+    return {
+        "agentSummary": summary,
+        "category": package.get("category"),
+        "displayName": package["displayName"],
+        "homepage": package.get("homepage"),
+        "id": package["id"],
+        "installURL": install_url(package["id"]),
+        "manager": package["manager"],
+    }
+
+
+def catalog_shelf_blocks(packages: dict[str, dict], published_at: datetime) -> list[dict]:
+    """Build stable, category-specific shelves without repeating a section identity."""
+    by_category: dict[str, list[dict]] = {}
+    for package in packages.values():
+        category = package.get("category")
+        if category:
+            by_category.setdefault(category, []).append(package)
+
+    batch_id = publication_token(published_at, ["catalog-shelves", *sorted(by_category)])
+    blocks = []
+
+    def shelf(kind: str, prefix: str, title: str, category: str, candidates: list[dict]) -> None:
+        if not candidates:
+            return
+        blocks.append({
+            "batchID": batch_id,
+            "id": f"{prefix}:{category}:{batch_id}",
+            "packages": [catalog_v2_package(package) for package in candidates[:V2_CATEGORY_SHELF_LIMIT]],
+            "publishedAt": timestamp(published_at),
+            "title": f"{title} in {category_title(category)}",
+            "type": kind,
+        })
+
+    for category in sorted(by_category):
+        category_packages = by_category[category]
+        popular = sorted(category_packages, key=lambda package: (
+            package.get("popularityRank") is None,
+            package.get("popularityRank") or 10**9,
+            package["id"],
+        ))
+        new = sorted(
+            (package for package in category_packages if package.get("pulseKind") == "new"),
+            key=lambda package: (package.get("lastUpdatedAt") or "", package["id"]),
+            reverse=True,
+        )
+        updated = sorted(
+            (package for package in category_packages if package.get("pulseKind") == "updated" and package.get("lastUpdatedAt")),
+            key=lambda package: (package["lastUpdatedAt"], package["id"]),
+            reverse=True,
+        )
+        shelf("personalizedRecommendations", "for-you", "For You", category, popular)
+        shelf("newPackages", "new-packages", "New Packages", category, new)
+        shelf("recentlyUpdated", "recently-updated", "Recently Updated", category, updated)
+    return blocks
+
+
+def rebuild_v2_catalog(
+    root: Path,
+    head: dict,
+    packages: dict[str, dict],
+    at: datetime,
+) -> tuple[dict, list[Path]]:
+    """Replace rotating shelves with a deep catalog snapshot while retaining editorials."""
+    editorials, seen_editorials = [], set()
+    for editorial in v2_editorial_history(root, head):
+        identity = editorial.get("title", "").strip().lower() or editorial["id"]
+        if identity not in seen_editorials:
+            seen_editorials.add(identity)
+            editorials.append(editorial)
+    published_at = parse_date(editorials[0]["publishedAt"]) if editorials else at
+    blocks = editorials[:1] + catalog_shelf_blocks(packages, published_at) + editorials[1:]
+    if not blocks:
+        raise FeedError("cannot build an empty v2 catalog")
+
+    chunks = [blocks[index:index + V2_PAGE_LIMIT] for index in range(0, len(blocks), V2_PAGE_LIMIT)]
+    next_url = None
+    continuation_paths = []
+    continuation_pages = []
+    for chunk in reversed(chunks[1:]):
+        page_id = publication_token(at, [item["id"] for item in chunk])
+        page = {
+            "content": chunk,
+            "generatedAt": timestamp(at),
+            "nextPageURL": next_url,
+            "pageID": page_id,
+            "schemaVersion": V2_SCHEMA_VERSION,
+        }
+        page_path = root / "www/feed/v2/pages" / f"{page_id}.json"
+        if page_path.exists() and read_json(page_path) != page:
+            raise FeedError(f"refusing to rewrite v2 catalog page {page_path.name}")
+        continuation_pages.append((page_path, page))
+        next_url = V2_PAGE_BASE_URL + page_path.name
+
+    for page_path, page in reversed(continuation_pages):
+        write_json(page_path, page)
+        continuation_paths.append(page_path)
+
+    first = chunks[0]
+    result = {
+        "content": first,
+        "generatedAt": timestamp(at),
+        "nextPageURL": next_url,
+        "pageID": publication_token(at, [item["id"] for item in first]),
+        "schemaVersion": V2_SCHEMA_VERSION,
+    }
+    validate_v2_chain(root, result)
+    return result, continuation_paths
+
+
 def shelf_chunk(feed: dict, head: dict, kind: str, limit: int) -> list[str]:
     shelf = next(iter(content(feed, kind)))
     identifiers = shelf.get("fallbackPackageIDs") or shelf["packageIDs"]
@@ -903,8 +1023,6 @@ def validate_v2_page(page: dict, root: Path) -> None:
     items = page["content"]
     if not isinstance(items, list) or len(items) > V2_PAGE_LIMIT:
         raise FeedError(f"v2 pages may contain at most {V2_PAGE_LIMIT} blocks")
-    if items and items[0].get("type") != "editorial":
-        raise FeedError("every non-empty v2 page must begin with an editorial")
     identifiers = [item.get("id") for item in items if isinstance(item, dict)]
     if len(identifiers) != len(items) or len(set(identifiers)) != len(identifiers):
         raise FeedError("v2 content IDs must be present and unique")
@@ -937,7 +1055,7 @@ def validate_v2_page(page: dict, root: Path) -> None:
             if len(package_ids) != len(packages) or len(set(package_ids)) != len(package_ids):
                 raise FeedError(f"{item['id']} contains invalid or duplicate packages")
             for identifier, package in zip(package_ids, packages):
-                validate_package_card(package, identifier)
+                validate_v2_package_card(package, identifier)
             if kind == "newPackages":
                 evidence = item.get("evidence")
                 if evidence is not None and (not isinstance(evidence, dict) or set(evidence) != set(package_ids)):
@@ -950,6 +1068,17 @@ def validate_v2_page(page: dict, root: Path) -> None:
                 raise FeedError(f"{item['id']} may contain at most {V2_RECENTLY_UPDATED_LIMIT} recently updated packages")
         else:
             raise FeedError(f"unknown v2 content type {kind!r}")
+
+
+def validate_v2_package_card(package: object, identifier: str) -> None:
+    if not isinstance(package, dict) or package.get("id") != identifier or package.get("manager") not in SUPPORTED_MANAGERS:
+        raise FeedError(f"invalid v2 package card {identifier}")
+    if package.get("installURL") != install_url(identifier):
+        raise FeedError(f"invalid v2 install URL for {identifier}")
+    if not isinstance(package.get("displayName"), str) or not package["displayName"].strip():
+        raise FeedError(f"{identifier} is missing a display name")
+    if not isinstance(package.get("agentSummary"), str) or not package["agentSummary"].strip():
+        raise FeedError(f"{identifier} is missing a summary")
 
 
 def validate_v2_chain(root: Path, head: dict) -> None:
@@ -1169,9 +1298,8 @@ def backfill_summaries(feed: dict, head: dict, raw: object, root: Path) -> tuple
     for block in next_head["content"]:
         snapshots = ([block["package"]] if isinstance(block.get("package"), dict) else []) + (block.get("packages") or []) + (block.get("relatedPackages") or [])
         for package in snapshots:
-            if package.get("id") not in summaries:
-                raise FeedError(f"summary backfill is missing archived package {package.get('id')}")
-            package["agentSummary"] = summaries[package["id"]]
+            if package.get("id") in summaries:
+                package["agentSummary"] = summaries[package["id"]]
     validate_feed(next_feed, root)
     validate_v2_chain(root, next_head)
     return next_feed, next_head
@@ -1189,6 +1317,14 @@ def run() -> int:
         if "--self-test" in sys.argv:
             self_test()
             print("PMM_FEED_STATUS=SELF_TESTED")
+            return 0
+        if "--refresh-v2-catalog" in sys.argv:
+            feed = read_json(feed_path)
+            _, packages = normalize_catalog(fetch_catalog())
+            head, pages = rebuild_v2_catalog(root, read_json(archive_path), packages, now())
+            write_json(archive_path, head)
+            changed = commit_feed(root, feed_path, feed, [archive_path, *pages])
+            print("PMM_FEED_STATUS=COMMITTED" if changed else "PMM_FEED_STATUS=NOOP")
             return 0
         if "--backfill-artwork" in sys.argv:
             payload = read_json(work / "artwork-backfill.json")
@@ -1250,10 +1386,11 @@ def run() -> int:
             head = read_json(archive_path) if archive_path.exists() else v2_head_from_v1(feed)
             blocks = v2_blocks_from_update(feed, result, response, head, now())
             next_head, frozen = append_v2(root, head, blocks, now())
-            validate_v2_chain(root, next_head)
+            _, catalog_packages = normalize_catalog(fetch_catalog())
+            next_head, catalog_pages = rebuild_v2_catalog(root, next_head, catalog_packages, now())
             write_json(feed_path, result)
             write_json(archive_path, next_head)
-            changed = commit_feed(root, feed_path, result, [archive_path, *frozen])
+            changed = commit_feed(root, feed_path, result, [archive_path, *frozen, *catalog_pages])
             response_path.unlink()
             request_path.unlink()
             try:
@@ -1486,7 +1623,10 @@ def self_test() -> None:
         validate_feed(completed_feed, root)
         completed_archive = read_json(root / "www/feed/v2.json")
         validate_v2_chain(root, completed_archive)
-        assert [item["type"] for item in completed_archive["content"]] == ["editorial", "personalizedRecommendations", "newPackages", "recentlyUpdated"]
+        assert completed_archive["content"][0]["type"] == "editorial"
+        shelf_keys = [(item["type"], item["title"]) for item in completed_archive["content"] if item["type"] != "editorial"]
+        assert len(shelf_keys) == len(set(shelf_keys))
+        assert sum(len(item.get("packages", [])) for item in completed_archive["content"]) >= 60
         assert v2_blocks_from_update(completed_feed, completed_feed, {"newPackages": ["ignored"], "recommendations": []}, completed_archive, at) == []
         stray = json.loads(json.dumps(completed_archive["content"][1]))
         stray["id"] = "for-you:stray"
@@ -1494,11 +1634,7 @@ def self_test() -> None:
         stray["publishedAt"] = timestamp(at + timedelta(hours=1))
         broken_head = json.loads(json.dumps(completed_archive))
         broken_head["content"] = [stray, *broken_head["content"]]
-        try:
-            validate_v2_chain(root, broken_head)
-            raise AssertionError("v2 accepted a package shelf above its editorial")
-        except FeedError:
-            pass
+        validate_v2_chain(root, broken_head)
         repaired_head = repair_editorial_first(broken_head, root)
         assert repaired_head["content"][0]["type"] == "editorial"
         assert {item["id"] for item in repaired_head["content"]} == {item["id"] for item in broken_head["content"]}
@@ -1516,7 +1652,8 @@ def self_test() -> None:
         recommendation_shelf = next(iter(content(completed_archive, "personalizedRecommendations")))
         assert len(recommendation_shelf["packages"]) == V2_RECOMMENDATION_LIMIT
         fallback_ids = next(iter(content(completed_feed, "personalizedRecommendations")))["fallbackPackageIDs"]
-        assert shelf_chunk(completed_feed, completed_archive, "personalizedRecommendations", V2_RECOMMENDATION_LIMIT) == fallback_ids[10:20]
+        rotation_head = {"content": [{"type": "personalizedRecommendations", "packages": [completed_feed["packages"][identifier] for identifier in fallback_ids[:10]]}]}
+        assert shelf_chunk(completed_feed, rotation_head, "personalizedRecommendations", V2_RECOMMENDATION_LIMIT) == fallback_ids[10:20]
         tail_head = {"content": [{"type": "personalizedRecommendations", "packages": [completed_feed["packages"][identifier] for identifier in fallback_ids[10:20]]}]}
         assert shelf_chunk(completed_feed, tail_head, "personalizedRecommendations", V2_RECOMMENDATION_LIMIT) == fallback_ids[20:24]
         variety_head = json.loads(json.dumps(completed_archive))
@@ -1534,9 +1671,9 @@ def self_test() -> None:
         assert [len(item["packages"]) for item in varied_shelves] == [10, 10, 4, 10]
         assert [package["id"] for package in varied_shelves[0]["packages"]] == [package["id"] for package in varied_shelves[3]["packages"]]
         varied_updates = content(varied_head, "recentlyUpdated")
-        assert [len(item["packages"]) for item in varied_updates] == [5, 5, 2, 5]
-        assert [package["id"] for package in varied_updates[0]["packages"]] == [package["id"] for package in varied_updates[3]["packages"]]
-        assert all(item["batchID"] == completed_archive["content"][0]["batchID"] for item in completed_archive["content"])
+        assert [len(item["packages"]) for item in varied_updates] == [10, 2, 10, 2]
+        assert [package["id"] for package in varied_updates[0]["packages"]] == [package["id"] for package in varied_updates[2]["packages"]]
+        assert len({(item["type"], item.get("title")) for item in completed_archive["content"] if item["type"] != "editorial"}) == len(completed_archive["content"]) - 1
         legacy_feed, legacy_archive = json.loads(json.dumps(completed_feed)), json.loads(json.dumps(completed_archive))
         legacy_paragraph = " ".join(["Package history and actual usage show a practical tool with clear tradeoffs."] * 24)
         legacy_body = "\n\n".join([legacy_paragraph] * 3)
@@ -1616,7 +1753,7 @@ def self_test() -> None:
             item["batchID"] += ":next"
             item["publishedAt"] = timestamp(at + timedelta(days=1))
         rolled, frozen = append_v2(root, crowded, new_blocks, at + timedelta(days=1))
-        assert len(rolled["content"]) == 4 and len(frozen) == 1
+        assert len(rolled["content"]) == len(new_blocks) and len(frozen) == 1
         assert read_json(frozen[0])["content"] == crowded["content"]
         write_json(root / "www/feed/v2.json", rolled)
         validate_v2_chain(root, rolled)

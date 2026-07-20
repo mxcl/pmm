@@ -80,12 +80,12 @@ import Testing
 
     await store.loadInitial()
     #expect(store.newestBatch.map(\.id) == ["editorial:new", "recommendations:new", "new:new", "updated:new"])
-    #expect(store.olderContent.map(\.id) == ["recommendations:previous"])
+    #expect(store.olderContent.isEmpty)
     #expect(store.hasNextPage)
 
     await store.loadNext()
     #expect(store.pages.map(\.pageID) == ["head", "older"])
-    #expect(store.olderContent.map(\.id) == ["recommendations:previous", "editorial:old"])
+    #expect(store.olderContent.map(\.id) == ["editorial:old"])
     #expect(!store.hasNextPage)
 }
 
@@ -116,6 +116,33 @@ import Testing
 
     #expect(store.pages.count == 1)
     #expect(store.nextPageLoadFailed)
+}
+
+@Test @MainActor func discoverFeedStoreHidesRepeatedSectionsButKeepsDifferentlyNamedShelves() async throws {
+    let packageJSON = "{\"id\":\"brew:ffmpeg\",\"displayName\":\"ffmpeg\",\"agentSummary\":\"Media tools\",\"manager\":\"homebrew\"}"
+    let head = try decodePage("""
+    {"pageID":"head","generatedAt":"2026-07-20T12:00:00Z","nextPageURL":"https://example.com/older.json","content":[
+      {"id":"editorial:new","type":"editorial","batchID":"batch-new","publishedAt":"2026-07-20T12:00:00Z","title":"Newest"},
+      {"id":"for-you:new","type":"personalizedRecommendations","batchID":"shelves-new","publishedAt":"2026-07-20T12:00:00Z","title":"For You","packages":[\(packageJSON)]}
+    ]}
+    """)
+    let older = try decodePage("""
+    {"pageID":"older","generatedAt":"2026-07-19T12:00:00Z","nextPageURL":null,"content":[
+      {"id":"editorial:duplicate","type":"editorial","batchID":"shelves-old","publishedAt":"2026-07-19T12:00:00Z","title":"Newest"},
+      {"id":"for-you:old","type":"personalizedRecommendations","batchID":"shelves-old","publishedAt":"2026-07-19T12:00:00Z","title":"For You","packages":[\(packageJSON)]},
+      {"id":"for-you:media","type":"personalizedRecommendations","batchID":"shelves-old","publishedAt":"2026-07-19T12:00:00Z","title":"For You in Media","packages":[\(packageJSON)]}
+    ]}
+    """)
+    let store = DiscoverFeedStore(pageLoader: { url in
+        url == DiscoverFeedPage.url ? head : older
+    })
+
+    await store.loadInitial()
+    await store.loadNext()
+
+    #expect(store.newestBatch.map(\.id) == ["editorial:new"])
+    #expect(store.olderContent.map(\.id) == ["for-you:new", "for-you:media"])
+    #expect(store.olderContent.flatMap { $0.packages ?? [] }.map(\.id) == ["brew:ffmpeg", "brew:ffmpeg"])
 }
 
 private func decodePage(_ json: String) throws -> DiscoverFeedPage {
