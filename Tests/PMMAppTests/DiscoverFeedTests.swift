@@ -39,6 +39,26 @@ import Testing
     #expect(page.content.last?.packages?.first?.ecosystem == "Homebrew")
 }
 
+@Test func discoverSectionTitlesVaryBySharedPackageCategory() {
+    let mediaPackages = [
+        discoverPackage("brew:ffmpeg", category: "media"),
+        discoverPackage("brew:imagemagick", category: "media"),
+    ]
+
+    #expect(dashboardDiscoverSectionTitle("For You", packages: mediaPackages) == "For You in Media")
+    #expect(dashboardDiscoverSectionTitle("New Packages", packages: [discoverPackage("brew:nmap", category: "networking")]) == "New Packages in Networking")
+}
+
+@Test func discoverSectionTitlesKeepCustomAndMixedCategoryHeadings() {
+    let mixedPackages = [
+        discoverPackage("brew:ffmpeg", category: "media"),
+        discoverPackage("brew:nmap", category: "networking"),
+    ]
+
+    #expect(dashboardDiscoverSectionTitle("For You", packages: mixedPackages) == "For You")
+    #expect(dashboardDiscoverSectionTitle("Staff Picks", packages: [discoverPackage("brew:ffmpeg", category: "media")]) == "Staff Picks")
+}
+
 @Test @MainActor func discoverFeedStoreLoadsPagesInOrder() async throws {
     let head = try decodePage("""
     {"pageID":"head","generatedAt":"2026-07-16T12:00:00Z","nextPageURL":"https://example.com/older.json","content":[
@@ -100,4 +120,16 @@ import Testing
 
 private func decodePage(_ json: String) throws -> DiscoverFeedPage {
     try JSONDecoder().decode(DiscoverFeedPage.self, from: Data(json.utf8))
+}
+
+private func discoverPackage(_ id: String, category: String?) -> DiscoverFeedPackage {
+    DiscoverFeedPackage(
+        id: id,
+        displayName: id,
+        agentSummary: "",
+        manager: nil,
+        category: category,
+        homepage: nil,
+        installURL: nil
+    )
 }

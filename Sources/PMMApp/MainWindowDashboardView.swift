@@ -171,17 +171,26 @@ private struct DashboardDiscoverFeedView: View {
         case "editorial":
             DashboardDiscoverEditorialCard(editorial: item) { selectedEditorial = item }
         case "newPackages":
+            let packages = item.packages ?? []
+            let title = dashboardDiscoverSectionTitle(
+                item.title ?? "New Packages",
+                packages: packages
+            )
             if isInNewestBatch {
                 HStack(alignment: .top, spacing: 24) {
-                    packageSection(title: item.title ?? "New Packages", packages: item.packages ?? [])
+                    packageSection(title: title, packages: packages)
                     DashboardSponsoredCard()
                         .frame(width: 310)
                 }
             } else {
-                packageSection(title: item.title ?? "New Packages", packages: item.packages ?? [])
+                packageSection(title: title, packages: packages)
             }
         case "personalizedRecommendations":
-            packageSection(title: item.title ?? "Recommended", packages: item.packages ?? [])
+            let packages = item.packages ?? []
+            packageSection(
+                title: dashboardDiscoverSectionTitle(item.title ?? "For You", packages: packages),
+                packages: packages
+            )
         case "recentlyUpdated":
             packageSection(title: item.title ?? "Recently Updated", packages: item.packages ?? [])
         default:
@@ -210,6 +219,22 @@ private struct DashboardDiscoverFeedView: View {
                 .task(id: store.pages.count) { await store.loadNext() }
         }
     }
+}
+
+func dashboardDiscoverSectionTitle(
+    _ title: String,
+    packages: [DiscoverFeedPackage]
+) -> String {
+    let genericTitles = ["for you", "new packages", "recommended"]
+    guard genericTitles.contains(title.lowercased()) else { return title }
+
+    let categories = Set(packages.compactMap(\.category).filter { !$0.isEmpty })
+    guard categories.count == 1,
+          let category = categories.first,
+          let categoryTitle = mainWindowCategoryTitle(category)
+    else { return title }
+
+    return "\(title) in \(categoryTitle)"
 }
 
 private struct DashboardDiscoverEditorialCard: View {
