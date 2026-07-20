@@ -633,6 +633,44 @@ private func attributeRunCount(in string: NSAttributedString) -> Int {
 }
 
 @MainActor
+@Test func discoverPackagesReflectInstalledInventoryState() {
+    let model = MainWindowModel(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
+    let installed = ManagedPackage(
+        manager: .homebrew,
+        identifier: "brew:bat",
+        installedVersion: "1",
+        latestVersion: "1"
+    )
+    let discovered = DiscoverFeedPackage(
+        id: installed.identifier,
+        displayName: installed.displayName,
+        agentSummary: "A better cat",
+        manager: "homebrew",
+        category: "developer-tools",
+        homepage: nil,
+        installURL: URL(string: "pkgmgrmgr://install?package=brew%3Abat")
+    )
+    let missing = DiscoverFeedPackage(
+        id: "brew:ripgrep",
+        displayName: "ripgrep",
+        agentSummary: "Search tool",
+        manager: "homebrew",
+        category: "developer-tools",
+        homepage: nil,
+        installURL: URL(string: "pkgmgrmgr://install?package=brew%3Aripgrep")
+    )
+
+    model.apply(snapshot: PackageHostSnapshot(
+        inventory: PackageInventory(packages: [installed]),
+        catalogPackages: [],
+        isRefreshing: false
+    ))
+
+    #expect(model.isDiscoverPackageInstalled(discovered))
+    #expect(!model.isDiscoverPackageInstalled(missing))
+}
+
+@MainActor
 @Test func discoverPackageScrollRequestSurvivesInventoryLoading() {
     let root = FileManager.default.temporaryDirectory
         .appendingPathComponent(UUID().uuidString, isDirectory: true)

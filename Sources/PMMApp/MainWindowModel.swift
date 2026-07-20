@@ -823,6 +823,11 @@ final class MainWindowModel: NSObject, ObservableObject {
         return didOpen
     }
 
+    func isDiscoverPackageInstalled(_ package: DiscoverFeedPackage) -> Bool {
+        guard let request = MainWindowPackageURLRequest(identifier: package.id) else { return false }
+        return packages.contains(where: request.matches)
+    }
+
     @discardableResult
     func openPackageURL(_ url: URL) -> Bool {
         guard let command = MainWindowPackageURLCommand(url: url) else { return false }

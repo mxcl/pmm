@@ -49,6 +49,7 @@ struct MainWindowDashboardView: View {
                 store: store,
                 posts: model.dashboardBlogPosts,
                 supportingContentIsLoading: model.dashboardBlogEntriesAreLoading,
+                isPackageInstalled: model.isDiscoverPackageInstalled,
                 openPackage: { model.openDiscoverPackage($0) },
                 installPackage: { model.openDiscoverPackage($0, installing: true) }
             )
@@ -90,6 +91,7 @@ private struct DashboardDiscoverFeedView: View {
     @ObservedObject var store: DiscoverFeedStore
     let posts: [DashboardBlogEntry]
     let supportingContentIsLoading: Bool
+    let isPackageInstalled: (DiscoverFeedPackage) -> Bool
     let openPackage: (DiscoverFeedPackage) -> Void
     let installPackage: (DiscoverFeedPackage) -> Void
 
@@ -107,6 +109,7 @@ private struct DashboardDiscoverFeedView: View {
                         posts: Array(posts.prefix(4)),
                         package: spotlightPackage,
                         isLoading: supportingContentIsLoading,
+                        isPackageInstalled: isPackageInstalled,
                         openPackage: openPackage,
                         installPackage: installPackage
                     )
@@ -141,6 +144,7 @@ private struct DashboardDiscoverFeedView: View {
             DashboardDiscoverEditorialReader(
                 editorial: editorial,
                 package: editorial.package,
+                isPackageInstalled: isPackageInstalled,
                 openPackage: openPackage,
                 installPackage: installPackage
             )
@@ -201,6 +205,7 @@ private struct DashboardDiscoverFeedView: View {
             title: title,
             packages: packages,
             maximumPackageCount: maximumPackageCount,
+            isPackageInstalled: isPackageInstalled,
             openPackage: openPackage,
             installPackage: installPackage
         )
@@ -319,6 +324,7 @@ private extension Color {
 private struct DashboardDiscoverEditorialReader: View {
     let editorial: DiscoverFeedContent
     let package: DiscoverFeedPackage?
+    let isPackageInstalled: (DiscoverFeedPackage) -> Bool
     let openPackage: (DiscoverFeedPackage) -> Void
     let installPackage: (DiscoverFeedPackage) -> Void
     @Environment(\.dismiss) private var dismiss
@@ -350,6 +356,7 @@ private struct DashboardDiscoverEditorialReader: View {
                             title: "Related Packages",
                             packages: relatedPackages,
                             maximumPackageCount: 5,
+                            isPackageInstalled: isPackageInstalled,
                             openPackage: { package in
                                 dismiss()
                                 openPackage(package)
@@ -436,6 +443,7 @@ private struct DashboardDiscoverPackageSection: View {
     let title: String
     let packages: [DiscoverFeedPackage]
     let maximumPackageCount: Int?
+    let isPackageInstalled: (DiscoverFeedPackage) -> Bool
     let openPackage: (DiscoverFeedPackage) -> Void
     let installPackage: (DiscoverFeedPackage) -> Void
 
@@ -452,6 +460,7 @@ private struct DashboardDiscoverPackageSection: View {
                 ForEach(visiblePackages) { package in
                     DashboardDiscoverPackageLink(
                         package: package,
+                        isInstalled: isPackageInstalled(package),
                         open: { openPackage(package) },
                         install: { installPackage(package) }
                     )
@@ -464,6 +473,7 @@ private struct DashboardDiscoverPackageSection: View {
 private struct DashboardDiscoverPackageLink: View {
     let package: DiscoverFeedPackage
     var eyebrow: String? = nil
+    let isInstalled: Bool
     let open: () -> Void
     let install: () -> Void
 
@@ -504,7 +514,12 @@ private struct DashboardDiscoverPackageLink: View {
                 Button("Details", action: open)
                     .buttonStyle(.plain)
                 Spacer()
-                if package.installURL != nil {
+                if isInstalled {
+                    Button("Installed", action: {})
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
+                        .disabled(true)
+                } else if package.installURL != nil {
                     Button("Install", action: install)
                         .buttonStyle(.borderedProminent)
                         .controlSize(.small)
@@ -598,6 +613,7 @@ private struct DashboardBlogAndPackageSection: View {
     let posts: [DashboardBlogEntry]
     let package: DiscoverFeedPackage?
     let isLoading: Bool
+    let isPackageInstalled: (DiscoverFeedPackage) -> Bool
     let openPackage: (DiscoverFeedPackage) -> Void
     let installPackage: (DiscoverFeedPackage) -> Void
 
@@ -651,6 +667,7 @@ private struct DashboardBlogAndPackageSection: View {
             DashboardDiscoverPackageLink(
                 package: package,
                 eyebrow: "FOR YOU",
+                isInstalled: isPackageInstalled(package),
                 open: { openPackage(package) },
                 install: { installPackage(package) }
             )
