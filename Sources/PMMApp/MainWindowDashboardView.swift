@@ -4,6 +4,10 @@ import SwiftUI
 
 private let dashboardItemCornerRadius: CGFloat = 17.5
 private let dashboardBlogURL = URL(string: "https://mxcl.dev/package-manager-manager/blog/")!
+private let dashboardBlogColumns = [
+    GridItem(.flexible(), spacing: 12),
+    GridItem(.flexible(), spacing: 12),
+]
 
 struct MainWindowDashboardView: View {
     @ObservedObject var model: MainWindowModel
@@ -100,7 +104,7 @@ private struct DashboardDiscoverFeedView: View {
                     }
 
                     DashboardBlogAndPackageSection(
-                        post: posts.first,
+                        posts: Array(posts.prefix(4)),
                         package: spotlightPackage,
                         isLoading: supportingContentIsLoading,
                         openPackage: openPackage,
@@ -591,7 +595,7 @@ private struct DashboardSponsoredCard: View {
 }
 
 private struct DashboardBlogAndPackageSection: View {
-    let post: DashboardBlogEntry?
+    let posts: [DashboardBlogEntry]
     let package: DiscoverFeedPackage?
     let isLoading: Bool
     let openPackage: (DiscoverFeedPackage) -> Void
@@ -618,12 +622,20 @@ private struct DashboardBlogAndPackageSection: View {
     @ViewBuilder
     private var blogContent: some View {
         if isLoading {
-            ProgressView()
-                .controlSize(.small)
-                .frame(maxWidth: .infinity, minHeight: 250)
-                .background(SystemColor.controlFill, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        } else if let post {
-            DashboardBlogPostCard(post: post)
+            LazyVGrid(columns: dashboardBlogColumns, spacing: 12) {
+                ForEach(0..<4, id: \.self) { _ in
+                    ProgressView()
+                        .controlSize(.small)
+                        .frame(maxWidth: .infinity, minHeight: 250)
+                        .background(SystemColor.controlFill, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                }
+            }
+        } else if !posts.isEmpty {
+            LazyVGrid(columns: dashboardBlogColumns, spacing: 12) {
+                ForEach(posts) { post in
+                    DashboardBlogPostCard(post: post)
+                }
+            }
         } else {
             Text("No blog posts yet")
                 .font(.callout)
