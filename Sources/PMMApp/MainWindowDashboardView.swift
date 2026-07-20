@@ -7,6 +7,8 @@ private let dashboardBlogURL = URL(string: "https://mxcl.dev/package-manager-man
 
 struct MainWindowDashboardView: View {
     @ObservedObject var model: MainWindowModel
+    @ObservedObject var store: DiscoverFeedStore
+    @Binding var scrollPosition: ScrollPosition
 
     var body: some View {
         ScrollView {
@@ -14,6 +16,7 @@ struct MainWindowDashboardView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(28)
         }
+        .scrollPosition($scrollPosition)
         .scrollEdgeEffectStyle(.soft, for: .top)
         .ignoresSafeArea(.container, edges: .top)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -26,6 +29,7 @@ struct MainWindowDashboardView: View {
                 .foregroundStyle(SystemColor.primaryText)
                 .padding(.horizontal, 8)
             DashboardDiscoverFeedView(
+                store: store,
                 posts: model.dashboardBlogPosts,
                 supportingContentIsLoading: model.dashboardBlogEntriesAreLoading,
                 openPackage: { model.openDiscoverPackage($0) },
@@ -66,12 +70,12 @@ private struct DashboardCard<Content: View>: View {
 }
 
 private struct DashboardDiscoverFeedView: View {
+    @ObservedObject var store: DiscoverFeedStore
     let posts: [DashboardBlogEntry]
     let supportingContentIsLoading: Bool
     let openPackage: (DiscoverFeedPackage) -> Void
     let installPackage: (DiscoverFeedPackage) -> Void
 
-    @StateObject private var store = DiscoverFeedStore()
     @State private var selectedEditorial: DiscoverFeedContent?
 
     var body: some View {
