@@ -68,7 +68,7 @@ struct MainWindowRootView: View {
     let showsAppUpdateButton: Bool
     let updateApp: () -> Void
     @StateObject private var discoverFeedStore = DiscoverFeedStore()
-    @State private var dashboardScrollPosition = ScrollPosition()
+    @State private var dashboardScrollOffset: CGFloat = 0
 
     var body: some View {
         Group {
@@ -79,7 +79,7 @@ struct MainWindowRootView: View {
                     MainWindowDashboardView(
                         model: model,
                         store: discoverFeedStore,
-                        scrollPosition: $dashboardScrollPosition
+                        scrollOffset: $dashboardScrollOffset
                     )
                         .navigationSplitViewColumnWidth(min: 602, ideal: 1128)
                         .toolbar { appUpdateToolbarItem }

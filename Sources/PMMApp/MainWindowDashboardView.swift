@@ -8,7 +8,15 @@ private let dashboardBlogURL = URL(string: "https://mxcl.dev/package-manager-man
 struct MainWindowDashboardView: View {
     @ObservedObject var model: MainWindowModel
     @ObservedObject var store: DiscoverFeedStore
-    @Binding var scrollPosition: ScrollPosition
+    @Binding var scrollOffset: CGFloat
+    @State private var scrollPosition: ScrollPosition
+
+    init(model: MainWindowModel, store: DiscoverFeedStore, scrollOffset: Binding<CGFloat>) {
+        self.model = model
+        self.store = store
+        _scrollOffset = scrollOffset
+        _scrollPosition = State(initialValue: ScrollPosition(y: scrollOffset.wrappedValue))
+    }
 
     var body: some View {
         ScrollView {
@@ -17,6 +25,11 @@ struct MainWindowDashboardView: View {
                 .padding(28)
         }
         .scrollPosition($scrollPosition)
+        .onScrollGeometryChange(for: CGFloat.self) { geometry in
+            max(0, geometry.contentOffset.y + geometry.contentInsets.top)
+        } action: { _, offset in
+            scrollOffset = offset
+        }
         .scrollEdgeEffectStyle(.soft, for: .top)
         .ignoresSafeArea(.container, edges: .top)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
