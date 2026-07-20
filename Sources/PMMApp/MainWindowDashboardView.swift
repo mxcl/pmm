@@ -66,46 +66,6 @@ private struct DashboardCard<Content: View>: View {
     }
 }
 
-private struct DashboardSectionHeader: View {
-    let title: String
-    let systemImage: String?
-    let viewAllAction: (() -> Void)?
-    let showsViewAll: Bool
-
-    init(title: String, systemImage: String? = nil, showsViewAll: Bool = true, viewAllAction: (() -> Void)? = nil) {
-        self.title = title
-        self.systemImage = systemImage
-        self.showsViewAll = showsViewAll
-        self.viewAllAction = viewAllAction
-    }
-
-    var body: some View {
-        HStack(spacing: 8) {
-            if let systemImage {
-                Image(systemName: systemImage)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(Color.accentColor)
-            }
-            Text(title)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(SystemColor.primaryText)
-            Spacer()
-            if let viewAllAction {
-                Button("View all", action: viewAllAction)
-                    .buttonStyle(.plain)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Color.accentColor)
-            } else if showsViewAll {
-                Text("View all")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Color.accentColor)
-            }
-        }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 14)
-    }
-}
-
 private struct DashboardDiscoverFeedView: View {
     let posts: [DashboardBlogEntry]
     let packs: [DashboardBlogEntry]
@@ -124,10 +84,8 @@ private struct DashboardDiscoverFeedView: View {
                         discoverBlock(item, isInNewestBatch: true)
                     }
 
-                    HStack(alignment: .top, spacing: 24) {
-                        DashboardUpdatesCard(posts: posts, isLoading: supportingContentIsLoading)
-                        DashboardInstallPacksCard(packs: packs, isLoading: supportingContentIsLoading)
-                    }
+                    DashboardBlogPostsSection(posts: posts, isLoading: supportingContentIsLoading)
+                    DashboardInstallPacksSection(packs: packs, isLoading: supportingContentIsLoading)
 
                     ForEach(store.olderContent) { item in
                         discoverBlock(item, isInNewestBatch: false)
@@ -444,7 +402,7 @@ private struct DashboardDiscoverPackageSection: View {
                 .font(.title2.weight(.bold))
                 .foregroundStyle(SystemColor.primaryText)
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: 12)], spacing: 12) {
-                ForEach(packages) { package in
+                ForEach(packages.prefix(5)) { package in
                     DashboardDiscoverPackageLink(
                         package: package,
                         open: { openPackage(package) },
@@ -584,58 +542,26 @@ private struct DashboardSponsoredCard: View {
     }
 }
 
-private struct DashboardUpdatesCard: View {
+private struct DashboardBlogPostsSection: View {
     let posts: [DashboardBlogEntry]
     let isLoading: Bool
 
-    @Environment(\.openURL) private var openURL
-
     var body: some View {
-        DashboardCard {
-            DashboardSectionHeader(title: "Blog & Updates") {
-                openURL(dashboardBlogURL)
-            }
-            VStack(spacing: 0) {
-                if isLoading {
-                    ProgressView()
-                        .controlSize(.small)
-                        .frame(maxWidth: .infinity, minHeight: 120)
-                } else if posts.isEmpty {
-                    Text("No blog posts yet")
-                        .font(.system(size: 12))
-                        .foregroundStyle(SystemColor.secondaryText)
-                        .frame(maxWidth: .infinity, minHeight: 92)
-                } else {
-                    ForEach(posts) { post in
-                        Link(destination: post.url) {
-                            HStack(spacing: 12) {
-                                Image(systemName: post.systemImage)
-                                    .font(.system(size: 20, weight: .medium))
-                                    .foregroundStyle(SystemColor.primaryText)
-                                    .frame(width: 48, height: 48)
-                                    .background(SystemColor.controlFill, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text(post.title)
-                                        .font(.system(size: 12, weight: .semibold))
-                                        .foregroundStyle(SystemColor.primaryText)
-                                        .lineLimit(1)
-                                    Text(post.subtitle)
-                                        .font(.system(size: 11))
-                                        .foregroundStyle(SystemColor.secondaryText)
-                                        .lineLimit(1)
-                                    Text(post.publishedAt)
-                                        .font(.system(size: 11))
-                                        .foregroundStyle(SystemColor.quietText)
-                                }
-                                Spacer(minLength: 0)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.horizontal, 18)
-                        .padding(.vertical, 12)
-                        if post.id != posts.last?.id {
-                            Divider()
-                        }
+        VStack(alignment: .leading, spacing: 12) {
+            DashboardFeedSectionHeading(title: "Blog & Updates")
+            if isLoading {
+                ProgressView()
+                    .controlSize(.small)
+                    .frame(maxWidth: .infinity, minHeight: 160)
+            } else if posts.isEmpty {
+                Text("No blog posts yet")
+                    .font(.callout)
+                    .foregroundStyle(SystemColor.secondaryText)
+                    .frame(maxWidth: .infinity, minHeight: 120)
+            } else {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 240), spacing: 12)], spacing: 12) {
+                    ForEach(posts.prefix(5)) { post in
+                        DashboardBlogPostCard(post: post)
                     }
                 }
             }
@@ -643,69 +569,122 @@ private struct DashboardUpdatesCard: View {
     }
 }
 
-private struct DashboardInstallPacksCard: View {
+private struct DashboardInstallPacksSection: View {
     let packs: [DashboardBlogEntry]
     let isLoading: Bool
 
-    @Environment(\.openURL) private var openURL
-
     var body: some View {
-        DashboardCard {
-            DashboardSectionHeader(title: "Install Packs") {
-                openURL(dashboardBlogURL)
-            }
-            VStack(spacing: 0) {
-                if isLoading {
-                    ProgressView()
-                        .controlSize(.small)
-                        .frame(maxWidth: .infinity, minHeight: 120)
-                } else if packs.isEmpty {
-                    Text("No install packs yet")
-                        .font(.system(size: 12))
-                        .foregroundStyle(SystemColor.secondaryText)
-                        .frame(maxWidth: .infinity, minHeight: 92)
-                } else {
+        VStack(alignment: .leading, spacing: 12) {
+            DashboardFeedSectionHeading(title: "Install Packs")
+            if isLoading {
+                ProgressView()
+                    .controlSize(.small)
+                    .frame(maxWidth: .infinity, minHeight: 150)
+            } else if packs.isEmpty {
+                Text("No install packs yet")
+                    .font(.callout)
+                    .foregroundStyle(SystemColor.secondaryText)
+                    .frame(maxWidth: .infinity, minHeight: 120)
+            } else {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: 12)], spacing: 12) {
                     ForEach(packs) { pack in
-                        HStack(spacing: 12) {
-                            Link(destination: pack.url) {
-                                HStack(spacing: 12) {
-                                    Image(systemName: pack.systemImage)
-                                        .font(.system(size: 16, weight: .semibold))
-                                        .foregroundStyle(.white)
-                                        .frame(width: 30, height: 30)
-                                        .background(Color.accentColor.opacity(0.75), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-                                    VStack(alignment: .leading, spacing: 3) {
-                                        Text(pack.title)
-                                            .font(.system(size: 12, weight: .semibold))
-                                            .foregroundStyle(SystemColor.primaryText)
-                                            .lineLimit(1)
-                                        Text(pack.subtitle)
-                                            .font(.system(size: 11))
-                                            .foregroundStyle(SystemColor.secondaryText)
-                                            .lineLimit(1)
-                                    }
-                                }
-                            }
-                            .buttonStyle(.plain)
-                            Spacer(minLength: 8)
-                            Link(destination: pack.url) {
-                                Text("View")
-                                    .font(.system(size: 12, weight: .medium))
+                        Link(destination: pack.url) {
+                            VStack(alignment: .leading, spacing: 10) {
+                                Image(systemName: pack.systemImage)
+                                    .font(.system(size: 22, weight: .semibold))
+                                    .foregroundStyle(.white)
+                                    .frame(width: 44, height: 44)
+                                    .background(Color.accentColor.opacity(0.78), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                Text(pack.title)
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(SystemColor.primaryText)
+                                    .lineLimit(2)
+                                Text(pack.subtitle)
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(SystemColor.secondaryText)
+                                    .lineLimit(3)
+                                Spacer(minLength: 0)
+                                Text("View pack")
+                                    .font(.caption.weight(.semibold))
                                     .foregroundStyle(Color.accentColor)
-                                    .frame(width: 48, height: 30)
-                                    .background(SystemColor.controlFill, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
                             }
-                            .buttonStyle(.plain)
+                            .frame(maxWidth: .infinity, minHeight: 150, alignment: .topLeading)
+                            .padding(18)
+                            .background(SystemColor.controlFill, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                         }
-                        .padding(.horizontal, 18)
-                        .padding(.vertical, 12)
-                        if pack.id != packs.last?.id {
-                            Divider()
-                        }
+                        .buttonStyle(.plain)
                     }
                 }
             }
         }
+    }
+}
+
+private struct DashboardFeedSectionHeading: View {
+    let title: String
+
+    var body: some View {
+        HStack {
+            Text(title)
+                .font(.title2.weight(.bold))
+                .foregroundStyle(SystemColor.primaryText)
+            Spacer()
+            Link("View all", destination: dashboardBlogURL)
+                .font(.caption.weight(.semibold))
+        }
+    }
+}
+
+private struct DashboardBlogPostCard: View {
+    let post: DashboardBlogEntry
+
+    var body: some View {
+        Link(destination: post.url) {
+            VStack(alignment: .leading, spacing: 0) {
+                AsyncImage(url: post.imageURL) { phase in
+                    switch phase {
+                    case .empty:
+                        ProgressView()
+                            .controlSize(.small)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(SystemColor.controlFill)
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    case .failure:
+                        Image(systemName: post.systemImage)
+                            .font(.system(size: 30, weight: .medium))
+                            .foregroundStyle(SystemColor.secondaryText)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(SystemColor.controlFill)
+                    @unknown default:
+                        EmptyView()
+                    }
+                }
+                .frame(height: 140)
+                .clipped()
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(post.title)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(SystemColor.primaryText)
+                        .lineLimit(2)
+                    Text(post.subtitle)
+                        .font(.system(size: 11))
+                        .foregroundStyle(SystemColor.secondaryText)
+                        .lineLimit(2)
+                    Text(post.publishedAt)
+                        .font(.caption)
+                        .foregroundStyle(SystemColor.quietText)
+                }
+                .padding(16)
+            }
+            .frame(maxWidth: .infinity, minHeight: 250, alignment: .topLeading)
+            .background(SystemColor.controlFill)
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        }
+        .buttonStyle(.plain)
     }
 }
 

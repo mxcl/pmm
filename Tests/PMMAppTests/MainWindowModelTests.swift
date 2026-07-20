@@ -565,6 +565,7 @@ private func attributeRunCount(in string: NSAttributedString) -> Int {
 
     #expect(index.posts.map(\.category) == [.pack, .blog])
     #expect(index.posts.map(\.systemImage) == ["sparkles", "square.grid.2x2"])
+    #expect(index.posts[1].imageURL.absoluteString == "https://mxcl.dev/package-manager-manager/blog/introducing-package-manager-manager/hero.png")
 }
 
 @MainActor

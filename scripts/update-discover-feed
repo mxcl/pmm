@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import hashlib
 import os
+import random
 import re
 import subprocess
 import sys
@@ -22,7 +23,7 @@ V2_SCHEMA_VERSION = 2
 V2_PAGE_LIMIT = 20
 V2_RECOMMENDATION_LIMIT = 10
 V2_RECENTLY_UPDATED_LIMIT = 10
-V2_CATEGORY_SHELF_LIMIT = 10
+V2_CATEGORY_SHELF_LIMIT = 5
 V2_PAGE_BASE_URL = "https://mxcl.dev/package-manager-manager/feed/v2/pages/"
 SUPPORTED_MANAGERS = {"homebrew", "npm"}
 SUMMARY_WORDS = range(20, 31)
@@ -737,19 +738,19 @@ def catalog_shelf_blocks(packages: dict[str, dict], published_at: datetime) -> l
             by_category.setdefault(category, []).append(package)
 
     batch_id = publication_token(published_at, ["catalog-shelves", *sorted(by_category)])
-    blocks = []
+    blocks: list[tuple[dict, str]] = []
 
     def shelf(kind: str, prefix: str, title: str, category: str, candidates: list[dict]) -> None:
         if not candidates:
             return
-        blocks.append({
+        blocks.append(({
             "batchID": batch_id,
             "id": f"{prefix}:{category}:{batch_id}",
             "packages": [catalog_v2_package(package) for package in candidates[:V2_CATEGORY_SHELF_LIMIT]],
             "publishedAt": timestamp(published_at),
             "title": f"{title} in {category_title(category)}",
             "type": kind,
-        })
+        }, category))
 
     for category in sorted(by_category):
         category_packages = by_category[category]
@@ -771,7 +772,17 @@ def catalog_shelf_blocks(packages: dict[str, dict], published_at: datetime) -> l
         shelf("personalizedRecommendations", "for-you", "For You", category, popular)
         shelf("newPackages", "new-packages", "New Packages", category, new)
         shelf("recentlyUpdated", "recently-updated", "Recently Updated", category, updated)
-    return blocks
+    random.Random(batch_id).shuffle(blocks)
+    varied, last_category, last_kind = [], None, None
+    while blocks:
+        index = next((
+            index for index, (block, category) in enumerate(blocks)
+            if category != last_category and block["type"] != last_kind
+        ), next((index for index, (_, category) in enumerate(blocks) if category != last_category), 0))
+        block, last_category = blocks.pop(index)
+        last_kind = block["type"]
+        varied.append(block)
+    return varied
 
 
 def rebuild_v2_catalog(
@@ -788,7 +799,22 @@ def rebuild_v2_catalog(
             seen_editorials.add(identity)
             editorials.append(editorial)
     published_at = parse_date(editorials[0]["publishedAt"]) if editorials else at
-    blocks = editorials[:1] + catalog_shelf_blocks(packages, published_at) + editorials[1:]
+    shelves = catalog_shelf_blocks(packages, published_at)
+    blocks = []
+    if editorials:
+        offset = 0
+        for index, editorial in enumerate(editorials):
+            blocks.append(editorial)
+            remaining_editorials = len(editorials) - index
+            shelf_count = (len(shelves) - offset + remaining_editorials - 1) // remaining_editorials
+            for shelf in shelves[offset:offset + shelf_count]:
+                shelf = json.loads(json.dumps(shelf))
+                shelf["batchID"] = publication_token(parse_date(editorial["publishedAt"]), ["catalog-shelves", editorial["id"]])
+                shelf["publishedAt"] = editorial["publishedAt"]
+                blocks.append(shelf)
+            offset += shelf_count
+    else:
+        blocks = shelves
     if not blocks:
         raise FeedError("cannot build an empty v2 catalog")
 
@@ -1626,7 +1652,7 @@ def self_test() -> None:
         assert completed_archive["content"][0]["type"] == "editorial"
         shelf_keys = [(item["type"], item["title"]) for item in completed_archive["content"] if item["type"] != "editorial"]
         assert len(shelf_keys) == len(set(shelf_keys))
-        assert sum(len(item.get("packages", [])) for item in completed_archive["content"]) >= 60
+        assert sum(len(item.get("packages", [])) for item in completed_archive["content"]) >= 35
         assert v2_blocks_from_update(completed_feed, completed_feed, {"newPackages": ["ignored"], "recommendations": []}, completed_archive, at) == []
         stray = json.loads(json.dumps(completed_archive["content"][1]))
         stray["id"] = "for-you:stray"
@@ -1650,7 +1676,7 @@ def self_test() -> None:
         assert all(words(package["agentSummary"]) in SUMMARY_WORDS for package in short_feed["packages"].values())
         validate_v2_chain(root, short_head)
         recommendation_shelf = next(iter(content(completed_archive, "personalizedRecommendations")))
-        assert len(recommendation_shelf["packages"]) == V2_RECOMMENDATION_LIMIT
+        assert len(recommendation_shelf["packages"]) == V2_CATEGORY_SHELF_LIMIT
         fallback_ids = next(iter(content(completed_feed, "personalizedRecommendations")))["fallbackPackageIDs"]
         rotation_head = {"content": [{"type": "personalizedRecommendations", "packages": [completed_feed["packages"][identifier] for identifier in fallback_ids[:10]]}]}
         assert shelf_chunk(completed_feed, rotation_head, "personalizedRecommendations", V2_RECOMMENDATION_LIMIT) == fallback_ids[10:20]

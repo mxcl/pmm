@@ -320,6 +320,7 @@ struct DashboardBlogEntry: Codable, Equatable, Identifiable, Sendable {
     let url: URL
 
     var id: String { slug }
+    var imageURL: URL { url.appending(path: "hero.png") }
 }
 
 struct DashboardBlogIndex: Decodable, Sendable {
