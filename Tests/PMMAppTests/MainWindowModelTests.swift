@@ -581,11 +581,49 @@ private func attributeRunCount(in string: NSAttributedString) -> Int {
 
     #expect(model.openPackageURL(URL(string: "pkgmgrmgr://install?package=brew%3Abat&package=npm%3Aeslint")!))
     #expect(model.pendingInstallPackConfirmation == MainWindowInstallPackConfirmation(packageIDs: [bat.id, eslint.id], packageCount: 2))
-    #expect(model.selectedPackage == nil)
+    #expect(model.selectedPackage == bat)
 
     model.cancelPendingInstallPack()
 
     #expect(model.pendingInstallPackConfirmation == nil)
+}
+
+@MainActor
+@Test func discoverPackageOpensInAppBeforeInstallConfirmation() {
+    let model = MainWindowModel(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
+    let package = ManagedPackage(
+        manager: .homebrew,
+        identifier: "brew:bat",
+        installedVersion: nil,
+        latestVersion: "1",
+        category: "developer-tools"
+    )
+    let discovered = DiscoverFeedPackage(
+        id: package.identifier,
+        displayName: package.displayName,
+        agentSummary: "A better cat",
+        manager: "homebrew",
+        category: "developer-tools",
+        homepage: nil,
+        installURL: URL(string: "pkgmgrmgr://install?package=brew%3Abat")
+    )
+
+    model.apply(snapshot: PackageHostSnapshot(
+        inventory: PackageInventory(packages: []),
+        catalogPackages: [package],
+        isRefreshing: false
+    ))
+
+    #expect(model.openDiscoverPackage(discovered))
+    #expect(model.selectedPackage == package)
+    #expect(model.pendingInstallPackConfirmation == nil)
+
+    #expect(model.openDiscoverPackage(discovered, installing: true))
+    #expect(model.selectedPackage == package)
+    #expect(model.pendingInstallPackConfirmation == MainWindowInstallPackConfirmation(
+        packageIDs: [package.id],
+        packageCount: 1
+    ))
 }
 
 @Test func installedSectionSortsPackagesAlphabetically() {

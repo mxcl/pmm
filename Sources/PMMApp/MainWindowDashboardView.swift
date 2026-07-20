@@ -28,7 +28,9 @@ struct MainWindowDashboardView: View {
             DashboardDiscoverFeedView(
                 posts: model.dashboardBlogPosts,
                 packs: model.dashboardInstallPacks,
-                supportingContentIsLoading: model.dashboardBlogEntriesAreLoading
+                supportingContentIsLoading: model.dashboardBlogEntriesAreLoading,
+                openPackage: { model.openDiscoverPackage($0) },
+                installPackage: { model.openDiscoverPackage($0, installing: true) }
             )
         }
     }
@@ -108,6 +110,8 @@ private struct DashboardDiscoverFeedView: View {
     let posts: [DashboardBlogEntry]
     let packs: [DashboardBlogEntry]
     let supportingContentIsLoading: Bool
+    let openPackage: (DiscoverFeedPackage) -> Void
+    let installPackage: (DiscoverFeedPackage) -> Void
 
     @StateObject private var store = DiscoverFeedStore()
     @State private var selectedEditorial: DiscoverFeedContent?
@@ -152,7 +156,12 @@ private struct DashboardDiscoverFeedView: View {
             await store.loadInitial()
         }
         .sheet(item: $selectedEditorial) { editorial in
-            DashboardDiscoverEditorialReader(editorial: editorial, package: editorial.package)
+            DashboardDiscoverEditorialReader(
+                editorial: editorial,
+                package: editorial.package,
+                openPackage: openPackage,
+                installPackage: installPackage
+            )
         }
     }
 
@@ -164,20 +173,29 @@ private struct DashboardDiscoverFeedView: View {
         case "newPackages":
             if isInNewestBatch {
                 HStack(alignment: .top, spacing: 24) {
-                    DashboardDiscoverPackageSection(title: item.title ?? "New Packages", packages: item.packages ?? [])
+                    packageSection(title: item.title ?? "New Packages", packages: item.packages ?? [])
                     DashboardSponsoredCard()
                         .frame(width: 310)
                 }
             } else {
-                DashboardDiscoverPackageSection(title: item.title ?? "New Packages", packages: item.packages ?? [])
+                packageSection(title: item.title ?? "New Packages", packages: item.packages ?? [])
             }
         case "personalizedRecommendations":
-            DashboardDiscoverPackageSection(title: item.title ?? "Recommended", packages: item.packages ?? [])
+            packageSection(title: item.title ?? "Recommended", packages: item.packages ?? [])
         case "recentlyUpdated":
-            DashboardDiscoverPackageSection(title: item.title ?? "Recently Updated", packages: item.packages ?? [])
+            packageSection(title: item.title ?? "Recently Updated", packages: item.packages ?? [])
         default:
             EmptyView()
         }
+    }
+
+    private func packageSection(title: String, packages: [DiscoverFeedPackage]) -> some View {
+        DashboardDiscoverPackageSection(
+            title: title,
+            packages: packages,
+            openPackage: openPackage,
+            installPackage: installPackage
+        )
     }
 
     @ViewBuilder
@@ -277,6 +295,8 @@ private extension Color {
 private struct DashboardDiscoverEditorialReader: View {
     let editorial: DiscoverFeedContent
     let package: DiscoverFeedPackage?
+    let openPackage: (DiscoverFeedPackage) -> Void
+    let installPackage: (DiscoverFeedPackage) -> Void
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -292,6 +312,7 @@ private struct DashboardDiscoverEditorialReader: View {
             Divider()
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
+                    editorialHeaderImage
                     if let deck = editorial.deck {
                         Text(deck)
                             .font(.title3)
@@ -301,7 +322,18 @@ private struct DashboardDiscoverEditorialReader: View {
                         DashboardDiscoverMarkdown(markdown: body)
                     }
                     if !relatedPackages.isEmpty {
-                        DashboardDiscoverPackageSection(title: "Related Packages", packages: relatedPackages)
+                        DashboardDiscoverPackageSection(
+                            title: "Related Packages",
+                            packages: relatedPackages,
+                            openPackage: { package in
+                                dismiss()
+                                openPackage(package)
+                            },
+                            installPackage: { package in
+                                dismiss()
+                                installPackage(package)
+                            }
+                        )
                     }
                 }
                 .frame(maxWidth: 680, alignment: .leading)
@@ -313,6 +345,32 @@ private struct DashboardDiscoverEditorialReader: View {
 
     private var relatedPackages: [DiscoverFeedPackage] {
         editorial.relatedPackages ?? package.map { [$0] } ?? []
+    }
+
+    @ViewBuilder
+    private var editorialHeaderImage: some View {
+        if let url = editorial.artworkURL {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .empty:
+                    ProgressView()
+                        .frame(maxWidth: .infinity, minHeight: 280)
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                case .failure:
+                    Color.secondary.opacity(0.12)
+                        .overlay { Image(systemName: "photo") }
+                @unknown default:
+                    EmptyView()
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 320)
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .clipped()
+        }
     }
 }
 
@@ -352,6 +410,8 @@ private struct DashboardDiscoverMarkdown: View {
 private struct DashboardDiscoverPackageSection: View {
     let title: String
     let packages: [DiscoverFeedPackage]
+    let openPackage: (DiscoverFeedPackage) -> Void
+    let installPackage: (DiscoverFeedPackage) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -359,7 +419,13 @@ private struct DashboardDiscoverPackageSection: View {
                 .font(.title2.weight(.bold))
                 .foregroundStyle(SystemColor.primaryText)
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: 12)], spacing: 12) {
-                ForEach(packages) { DashboardDiscoverPackageLink(package: $0) }
+                ForEach(packages) { package in
+                    DashboardDiscoverPackageLink(
+                        package: package,
+                        open: { openPackage(package) },
+                        install: { installPackage(package) }
+                    )
+                }
             }
         }
     }
@@ -368,35 +434,43 @@ private struct DashboardDiscoverPackageSection: View {
 private struct DashboardDiscoverPackageLink: View {
     let package: DiscoverFeedPackage
     var label: String? = nil
+    let open: () -> Void
+    let install: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
-            Text(label ?? package.displayName)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(SystemColor.primaryText)
-                .fixedSize(horizontal: false, vertical: true)
-            Text(package.agentSummary)
-                .font(.system(size: 11))
-                .foregroundStyle(SystemColor.secondaryText)
-                .fixedSize(horizontal: false, vertical: true)
-            if let ecosystem = package.ecosystem {
-                Label(ecosystem, systemImage: "shippingbox")
-                    .font(.caption)
-                    .foregroundStyle(SystemColor.secondaryText)
-            }
-            if let category = package.category {
-                Label(category.replacingOccurrences(of: "-", with: " ").capitalized, systemImage: "tag")
-                    .font(.caption)
-                    .foregroundStyle(Color.accentColor)
-            }
-            Spacer(minLength: 0)
-            HStack {
-                if let homepage = package.homepage {
-                    Link("Details", destination: homepage)
+            Button(action: open) {
+                VStack(alignment: .leading, spacing: 7) {
+                    Text(label ?? package.displayName)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(SystemColor.primaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(package.agentSummary)
+                        .font(.system(size: 11))
+                        .foregroundStyle(SystemColor.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if let ecosystem = package.ecosystem {
+                        Label(ecosystem, systemImage: "shippingbox")
+                            .font(.caption)
+                            .foregroundStyle(SystemColor.secondaryText)
+                    }
+                    if let category = package.category {
+                        Label(category.replacingOccurrences(of: "-", with: " ").capitalized, systemImage: "tag")
+                            .font(.caption)
+                            .foregroundStyle(Color.accentColor)
+                    }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            HStack {
+                Button("Details", action: open)
+                    .buttonStyle(.plain)
                 Spacer()
-                if let installURL = package.installURL {
-                    Link("Install", destination: installURL)
+                if package.installURL != nil {
+                    Button("Install", action: install)
                         .buttonStyle(.borderedProminent)
                         .controlSize(.small)
                 }

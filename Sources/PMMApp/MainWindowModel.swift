@@ -806,6 +806,14 @@ final class MainWindowModel: NSObject, ObservableObject {
     }
 
     @discardableResult
+    func openDiscoverPackage(_ package: DiscoverFeedPackage, installing: Bool = false) -> Bool {
+        guard let request = MainWindowPackageURLRequest(identifier: package.id) else { return false }
+        let command: MainWindowPackageURLCommand = installing ? .install([request]) : .select(request)
+        pendingPackageURLCommand = command
+        return openPackageURLCommand(command)
+    }
+
+    @discardableResult
     func openPackageURL(_ url: URL) -> Bool {
         guard let command = MainWindowPackageURLCommand(url: url) else { return false }
         pendingPackageURLCommand = command
@@ -1148,6 +1156,7 @@ final class MainWindowModel: NSObject, ObservableObject {
             }
             return false
         }
+        openDashboardPackage(installablePackages[0])
         pendingInstallPackConfirmation = MainWindowInstallPackConfirmation(
             packageIDs: installablePackages.map(\.id),
             packageCount: installablePackages.count
