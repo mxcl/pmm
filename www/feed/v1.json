@@ -107,6 +107,7 @@
     {
       "id": "new-packages",
       "packageIDs": [
+        "brew:droast",
         "brew:advai-cli",
         "brew:zsh-patina",
         "brew:woxi",
@@ -122,6 +123,7 @@
     {
       "id": "recently-updated",
       "packageIDs": [
+        "brew:droast",
         "brew:advai-cli",
         "brew:zsh-patina",
         "brew:woxi",
@@ -132,8 +134,7 @@
         "brew:dolt",
         "brew:deno",
         "brew:topgrade",
-        "brew:datasette",
-        "brew:faker"
+        "brew:datasette"
       ],
       "title": "Recently Updated",
       "type": "recentlyUpdated"
@@ -329,7 +330,7 @@
       "type": "editorial"
     }
   ],
-  "generatedAt": "2026-07-21T13:01:08Z",
+  "generatedAt": "2026-07-22T13:03:26Z",
   "packages": {
     "brew:advai-cli": {
       "agentSummary": "advai-cli is a local-first command line tool that combines skill management, external CLI workflows, browser-bridge automation, and a terminal AI chat interface.",
@@ -573,6 +574,53 @@
         }
       ],
       "upstreamSummary": "Git for Data",
+      "version": null
+    },
+    "brew:droast": {
+      "agentSummary": "Droast is an opinionated Dockerfile linter that checks build hygiene, security, and correctness, with CLI, editor, and CI integrations for teams maintaining container build files.",
+      "assessment": {
+        "alternatives": [
+          "Hadolint or manually reviewed container build policies"
+        ],
+        "audiences": [
+          "Teams maintaining Dockerfiles or Containerfiles"
+        ],
+        "caveats": [
+          "Its opinionated rules may require configuration or accepted exceptions for established build conventions"
+        ],
+        "complements": [
+          "Image scanning and container build testing"
+        ],
+        "prerequisites": [
+          "Dockerfile or Containerfile sources to analyze"
+        ],
+        "useCases": [
+          "Checking container build files locally and in CI"
+        ]
+      },
+      "category": null,
+      "displayName": "droast",
+      "docs": null,
+      "homepage": "https://ewry.net/droast-dockerfile-linter/",
+      "id": "brew:droast",
+      "installURL": "pkgmgrmgr://install?package=brew%3Adroast",
+      "lastUpdatedAt": "2026-07-21T21:31:54Z",
+      "manager": "homebrew",
+      "repository": "https://github.com/immanuwell/dockerfile-roast",
+      "researchedAt": "2026-07-22T13:03:26Z",
+      "sources": [
+        {
+          "kind": "primary",
+          "title": "droast source repository and documentation",
+          "url": "https://github.com/immanuwell/dockerfile-roast"
+        },
+        {
+          "kind": "primary",
+          "title": "droast 1.0.0 release",
+          "url": "https://github.com/immanuwell/dockerfile-roast/releases/tag/1.0.0"
+        }
+      ],
+      "upstreamSummary": "Opinionated Dockerfile linter",
       "version": null
     },
     "brew:faker": {
@@ -1965,7 +2013,7 @@
   },
   "schemaVersion": 1,
   "source": {
-    "generatedAt": "2026-07-21T01:26:27Z",
+    "generatedAt": "2026-07-22T02:44:06Z",
     "url": "https://www.automicvault.com/db.json"
   }
 }
