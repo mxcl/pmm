@@ -684,12 +684,7 @@ private func mainWindowHomeRelativePath(_ path: String?) -> String {
 
 func mainWindowCategoryTitle(_ category: String?) -> String? {
     guard let category, !category.isEmpty else { return nil }
-    if let section = MainWindowSection.categorySections.first(where: { $0.categoryIdentifier == category }) {
-        return section.title
-    }
-    return category.split(separator: "-").map { word in
-        word.prefix(1).uppercased() + word.dropFirst()
-    }.joined(separator: " ")
+    return MainWindowSection.category(category).title
 }
 
 private struct PackageLinkStack: View {

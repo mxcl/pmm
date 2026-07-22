@@ -859,6 +859,29 @@ private func attributeRunCount(in string: NSAttributedString) -> Int {
     #expect(index.packagesBySection[.developerTools]?.map(\.displayName) == ["new", "middle", "old"])
 }
 
+@MainActor
+@Test func categorySectionsAreDerivedFromCatalogCategoryValues() {
+    let model = MainWindowModel(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
+    let machineLearning = package(.homebrew, "ollama", installedVersion: nil, category: "machine-learning")
+    let duplicateCategory = package(.npm, "transformers", installedVersion: nil, category: "machine-learning")
+    let developerTool = package(.cargoInstall, "ripgrep", installedVersion: nil, category: "developer-tools")
+    let uncategorized = package(.homebrew, "mystery", installedVersion: nil)
+
+    model.apply(snapshot: PackageHostSnapshot(
+        inventory: PackageInventory(packages: []),
+        catalogPackages: [machineLearning, duplicateCategory, developerTool, uncategorized],
+        isRefreshing: false
+    ))
+
+    #expect(model.visibleCategorySections == [.developerTools, .category("machine-learning")])
+    #expect(MainWindowSection.category("machine-learning").title == "Machine Learning")
+    #expect(MainWindowSection.category("machine-learning").systemImage == "square.grid.2x2")
+
+    model.selectSection(.category("machine-learning"))
+
+    #expect(Set(model.displayedPackages.map(\.id)) == Set([machineLearning.id, duplicateCategory.id]))
+}
+
 @Test func categoryCatalogPackageVersionTextShowsManager() {
     let package = ManagedPackage(
         manager: .npm,

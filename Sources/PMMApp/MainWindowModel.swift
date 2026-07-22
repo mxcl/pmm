@@ -2,7 +2,7 @@ import Foundation
 import PMMCore
 import SystemConfiguration
 
-enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
+enum MainWindowSection: Hashable, Identifiable, Sendable {
     case home
     case installed
     case outdated
@@ -13,31 +13,44 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
     case javascript
     case python
     case skills
-    case developerTools
-    case cloudInfrastructure
-    case networking
-    case system
-    case security
-    case data
-    case languageRuntime
-    case media
-    case productivity
-    case science
-    case games
-    case toys
-    case other
+    case category(String)
     case about
 
-    var id: String { rawValue }
+    var id: String {
+        switch self {
+        case .home: "home"
+        case .installed: "installed"
+        case .outdated: "outdated"
+        case .newUpdated: "newUpdated"
+        case .rust: "rust"
+        case .homebrew: "homebrew"
+        case .apps: "apps"
+        case .javascript: "javascript"
+        case .python: "python"
+        case .skills: "skills"
+        case .category(let identifier): "category:\(identifier)"
+        case .about: "about"
+        }
+    }
 
     static let librarySections: [MainWindowSection] = [.home, .installed, .outdated]
     static let managerSections: [MainWindowSection] = [.rust, .homebrew, .apps, .javascript, .python, .skills]
         .sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
-    static let categorySections: [MainWindowSection] = [
-        .developerTools, .cloudInfrastructure, .networking, .system, .security,
-        .data, .languageRuntime, .media, .productivity, .science, .games, .toys, .other
-    ].sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
     static let categoryShortcutSections: [MainWindowSection] = [.newUpdated]
+
+    static let developerTools = category("developer-tools")
+    static let cloudInfrastructure = category("cloud-infrastructure")
+    static let networking = category("networking")
+    static let system = category("system")
+    static let security = category("security")
+    static let data = category("data")
+    static let languageRuntime = category("language-runtime")
+    static let media = category("media")
+    static let productivity = category("productivity")
+    static let science = category("science")
+    static let games = category("games")
+    static let toys = category("toys")
+    static let other = category("other")
 
     var title: String {
         switch self {
@@ -51,19 +64,7 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
         case .javascript: "JavaScript"
         case .python: "Python"
         case .skills: "Skills"
-        case .developerTools: "Developer Tools"
-        case .cloudInfrastructure: "Cloud Infrastructure"
-        case .networking: "Networking"
-        case .system: "System"
-        case .security: "Security"
-        case .data: "Data"
-        case .languageRuntime: "Language Runtime"
-        case .media: "Media"
-        case .productivity: "Productivity"
-        case .science: "Science"
-        case .games: "Games"
-        case .toys: "Toys"
-        case .other: "Other"
+        case .category(let identifier): Self.categoryTitle(identifier)
         case .about: "About"
         }
     }
@@ -80,19 +81,7 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
         case .javascript: "curlybraces"
         case .python: "arrow.forward.to.line"
         case .skills: "wand.and.stars"
-        case .developerTools: "chevron.left.forwardslash.chevron.right"
-        case .cloudInfrastructure: "cloud"
-        case .networking: "network"
-        case .system: "gearshape"
-        case .security: "shield"
-        case .data: "chart.bar.doc.horizontal"
-        case .languageRuntime: "curlybraces"
-        case .media: "play.rectangle"
-        case .productivity: "checklist"
-        case .science: "atom"
-        case .games: "gamecontroller"
-        case .toys: "puzzlepiece"
-        case .other: "ellipsis"
+        case .category(let identifier): Self.categorySystemImage(identifier)
         case .about: "info.circle"
         }
     }
@@ -120,21 +109,38 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
     }
 
     var categoryIdentifier: String? {
-        switch self {
-        case .developerTools: "developer-tools"
-        case .cloudInfrastructure: "cloud-infrastructure"
-        case .networking: "networking"
-        case .system: "system"
-        case .security: "security"
-        case .data: "data"
-        case .languageRuntime: "language-runtime"
-        case .media: "media"
-        case .productivity: "productivity"
-        case .science: "science"
-        case .games: "games"
-        case .toys: "toys"
-        case .other: "other"
-        default: nil
+        guard case .category(let identifier) = self else { return nil }
+        return identifier
+    }
+
+    private static func categoryTitle(_ identifier: String) -> String {
+        switch identifier {
+        case "developer-tools": "Developer Tools"
+        case "cloud-infrastructure": "Cloud Infrastructure"
+        case "language-runtime": "Language Runtime"
+        default:
+            identifier.split(separator: "-").map { word in
+                word.prefix(1).uppercased() + word.dropFirst()
+            }.joined(separator: " ")
+        }
+    }
+
+    private static func categorySystemImage(_ identifier: String) -> String {
+        switch identifier {
+        case "developer-tools": "chevron.left.forwardslash.chevron.right"
+        case "cloud-infrastructure": "cloud"
+        case "networking": "network"
+        case "system": "gearshape"
+        case "security": "shield"
+        case "data": "chart.bar.doc.horizontal"
+        case "language-runtime": "curlybraces"
+        case "media": "play.rectangle"
+        case "productivity": "checklist"
+        case "science": "atom"
+        case "games": "gamecontroller"
+        case "toys": "puzzlepiece"
+        case "other": "ellipsis"
+        default: "square.grid.2x2"
         }
     }
 }
@@ -693,7 +699,7 @@ final class MainWindowModel: NSObject, ObservableObject {
     }
 
     var visibleCategorySections: [MainWindowSection] {
-        MainWindowSection.categorySections.filter { (count(for: $0) ?? 0) > 0 }
+        packageIndex.categorySections
     }
 
     var displayedPackages: [ManagedPackage] {
@@ -823,7 +829,7 @@ final class MainWindowModel: NSObject, ObservableObject {
     }
 
     func openDashboardPackage(_ package: ManagedPackage) {
-        let section = MainWindowSection.categorySections.first { $0.categoryIdentifier == package.category } ?? .newUpdated
+        let section = package.category.map(MainWindowSection.category) ?? .newUpdated
         selectSection(section)
         let package = packageIndex.packagesBySection[section]?.first { $0.id == package.id } ?? package
         select(package)
@@ -1219,7 +1225,7 @@ final class MainWindowModel: NSObject, ObservableObject {
         if packageIndex.packagesBySection[preferred]?.contains(where: { $0.id == package.id }) == true {
             return preferred
         }
-        return MainWindowSection.categorySections.first { $0.categoryIdentifier == package.category } ?? preferred
+        return package.category.map(MainWindowSection.category) ?? preferred
     }
 
     private func recordNewUpdatedSidebarClick() {
@@ -1415,6 +1421,7 @@ struct PackageIndex: Sendable {
 
     let packagesBySection: [MainWindowSection: [ManagedPackage]]
     let countsBySection: [MainWindowSection: Int]
+    let categorySections: [MainWindowSection]
     let recommendedPackages: [ManagedPackage]
     let newUpdatedUnreadCount: Int?
     let hasCatalog: Bool
@@ -1445,7 +1452,11 @@ struct PackageIndex: Sendable {
             .skills: packages.filter { $0.manager == .skills }.sorted(by: Self.alphabetical),
         ]
 
-        for section in MainWindowSection.categorySections {
+        categorySections = Set(catalogPackages.compactMap(\.category).filter { !$0.isEmpty })
+            .map(MainWindowSection.category)
+            .sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
+
+        for section in categorySections {
             bySection[section] = catalogPackages
                 .filter { $0.category == section.categoryIdentifier }
                 .sorted(by: Self.newestUpdatedFirst)
@@ -1453,7 +1464,7 @@ struct PackageIndex: Sendable {
 
         packagesBySection = bySection
         countsBySection = bySection.mapValues(\.count)
-        recommendedPackages = MainWindowSection.categorySections
+        recommendedPackages = categorySections
             .flatMap { bySection[$0] ?? [] }
             .filter { $0.pulseKind != "new" }
             .sorted(by: Self.newestUpdatedFirst)
