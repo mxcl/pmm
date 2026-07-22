@@ -764,7 +764,7 @@ public struct PackageScanner: @unchecked Sendable {
             .replacingOccurrences(of: "\u{001B}\\[[0-9;]*m", with: "", options: .regularExpression)
             .split(whereSeparator: \.isNewline)
             .compactMap { rawLine in
-                let line = String(rawLine)
+                let line = rawLine.trimmingCharacters(in: .whitespaces)
                 if line == "Global Skills" { return nil }
                 guard let nameEnd = line.firstIndex(where: \.isWhitespace),
                       let agents = line.range(of: " Agents:") else { return nil }

@@ -694,8 +694,8 @@ private final class EmptyNPMRegistryURLProtocol: URLProtocol, @unchecked Sendabl
     defer { try? FileManager.default.removeItem(at: home) }
     let runner = RecordingRunner(responses: [
         "/fake/skills list --global": CommandResult(stdout: """
-        \u{001B}[36mglobal-skill\u{001B}[0m  ~/.agents/skills/global-skill  \u{001B}[38;5;102mAgents:\u{001B}[0m Codex
-        manual-skill  ~/.codex/skills/manual-skill  Agents: Codex
+          \u{001B}[36mglobal-skill\u{001B}[0m  ~/.agents/skills/global-skill  \u{001B}[38;5;102mAgents:\u{001B}[0m Codex
+          manual-skill  ~/.codex/skills/manual-skill  Agents: Codex
         """, stderr: "", status: 0)
     ])
     let scanner = PackageScanner(
