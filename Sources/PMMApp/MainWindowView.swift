@@ -1025,7 +1025,12 @@ struct PackageEcosystemMark: View {
 
     var body: some View {
         Group {
-            if package.manager == .macApp {
+            if package.manager == .macApp, package.appProvenance == .appStore {
+                Image(systemName: "appstore")
+                    .symbolRenderingMode(.monochrome)
+                    .font(.system(size: size * 0.9, weight: .semibold))
+                    .offset(y: isBaselineAligned ? 1 : 0)
+            } else if package.manager == .macApp {
                 Text((package.appProvenance ?? .unknown).title.uppercased())
                     .font(.system(size: 7, weight: .black, design: .rounded))
                     .tracking(0.35)

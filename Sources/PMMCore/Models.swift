@@ -40,7 +40,7 @@ public enum MacAppProvenance: String, Codable, CaseIterable, Sendable {
         case .homebrew: "Homebrew"
         case .appStore: "App Store"
         case .setapp: "Setapp"
-        case .direct: "Direct"
+        case .direct: "DIY"
         case .unknown: "Unknown"
         }
     }
