@@ -111,6 +111,7 @@ public struct PackageDatabase: Sendable {
                 bundleIdentifier: pair.key,
                 cask: nonEmptyString(raw["cask"]),
                 feedURL: nonEmptyString(raw["feed_url"]) ?? nonEmptyString(raw["feedURL"]),
+                appStoreID: integer(raw["app_store_id"]),
                 channel: nonEmptyString(raw["channel"]),
                 versionSource: nonEmptyString(raw["version_source"]) == "cask" ? .homebrewCask : nil,
                 advisoryURL: nonEmptyString(raw["advisory_url"]) ?? nonEmptyString(raw["download_url"]),
@@ -176,6 +177,10 @@ private func homebrewInstallLocation(prefix: String?, identifierPrefix: String, 
 private func nonEmptyString(_ value: Any?) -> String? {
     guard let string = value as? String, !string.isEmpty else { return nil }
     return string
+}
+
+private func integer(_ value: Any?) -> Int? {
+    value as? Int ?? (value as? String).flatMap(Int.init)
 }
 
 private func docsURL(_ raw: [String: Any]) -> String? {

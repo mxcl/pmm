@@ -24,19 +24,33 @@ public struct PackageScanner: @unchecked Sendable {
     private let homeDirectory: URL
     private let toolPaths: [String: String]
     private let environment: [String: String]
+    private let applicationDirectories: [URL]
+    private let urlSession: URLSession
+    private let appVersionCacheURL: URL
 
     public init(
         runner: CommandRunning = SystemCommandRunner(),
         fileManager: FileManager = .default,
         homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser,
         toolPaths: [String: String] = [:],
-        environment: [String: String] = ProcessInfo.processInfo.environment
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        applicationDirectories: [URL]? = nil,
+        urlSession: URLSession = .shared,
+        appVersionCacheURL: URL? = nil
     ) {
         self.runner = runner
         self.fileManager = fileManager
         self.homeDirectory = homeDirectory
         self.toolPaths = toolPaths
         self.environment = environment
+        self.applicationDirectories = applicationDirectories ?? [
+            fileManager.urls(for: .applicationDirectory, in: .localDomainMask).first,
+            fileManager.urls(for: .applicationDirectory, in: .userDomainMask).first,
+        ].compactMap { $0 }
+        self.urlSession = urlSession
+        self.appVersionCacheURL = appVersionCacheURL
+            ?? fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+                .appendingPathComponent("Package Manager Manager/mac-app-version-cache.json")
     }
 
     public func inventory(database: PackageDatabase) async -> PackageInventory {
@@ -875,7 +889,28 @@ public struct PackageScanner: @unchecked Sendable {
         database: PackageDatabase,
         mode: PackageScanMode
     ) async -> PackageManagerScanResult {
-        await withCheckedContinuation { continuation in
+        if manager == .macApp {
+            do {
+                let scanner = MacAppScanner(
+                    runner: runner,
+                    fileManager: fileManager,
+                    applicationDirectories: applicationDirectories,
+                    brew: executable(named: "brew"),
+                    mdls: toolPaths["mdls"] ?? "/usr/bin/mdls",
+                    session: urlSession,
+                    cacheURL: appVersionCacheURL,
+                    now: { Date() },
+                    storefrontCountry: Locale.current.region?.identifier ?? "US"
+                )
+                return PackageManagerScanResult(
+                    manager: manager,
+                    packages: try await scanner.scan(database: database, mode: mode)
+                )
+            } catch {
+                return PackageManagerScanResult(manager: manager, packages: [], errors: [error.localizedDescription])
+            }
+        }
+        return await withCheckedContinuation { continuation in
             DispatchQueue.global(qos: .utility).async {
                 do {
                     let packages: [ManagedPackage]

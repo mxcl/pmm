@@ -66,6 +66,7 @@ public struct MacAppCatalogEntry: Equatable, Sendable {
     public let bundleIdentifier: String
     public let cask: String?
     public let feedURL: String?
+    public let appStoreID: Int?
     public let channel: String?
     public let versionSource: MacAppVersionSource?
     public let advisoryURL: String?
@@ -78,6 +79,7 @@ public struct MacAppCatalogEntry: Equatable, Sendable {
         bundleIdentifier: String,
         cask: String? = nil,
         feedURL: String? = nil,
+        appStoreID: Int? = nil,
         channel: String? = nil,
         versionSource: MacAppVersionSource? = nil,
         advisoryURL: String? = nil,
@@ -89,6 +91,7 @@ public struct MacAppCatalogEntry: Equatable, Sendable {
         self.bundleIdentifier = bundleIdentifier
         self.cask = cask
         self.feedURL = feedURL
+        self.appStoreID = appStoreID
         self.channel = channel
         self.versionSource = versionSource
         self.advisoryURL = advisoryURL
@@ -103,6 +106,7 @@ public struct MacAppCatalogEntry: Equatable, Sendable {
             bundleIdentifier: bundleIdentifier,
             cask: cask,
             feedURL: feedURL,
+            appStoreID: appStoreID,
             channel: channel,
             versionSource: versionSource,
             advisoryURL: advisoryURL,
