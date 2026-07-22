@@ -296,10 +296,13 @@ private struct DashboardDiscoverEditorialCard: View {
     @ViewBuilder
     private var editorialArtwork: some View {
         if let url = editorial.artworkURL {
-            AsyncImage(url: url) { image in
-                image.resizable().scaledToFill()
-            } placeholder: {
-                Color.white.opacity(0.08)
+            DiscoverRemoteImage(url: url) { phase in
+                switch phase {
+                case .success(let image):
+                    image.resizable().scaledToFill()
+                case .empty, .failure:
+                    Color.white.opacity(0.08)
+                }
             }
             .clipped()
         } else {
@@ -382,7 +385,7 @@ private struct DashboardDiscoverEditorialReader: View {
     @ViewBuilder
     private var editorialHeaderImage: some View {
         if let url = editorial.artworkURL {
-            AsyncImage(url: url) { phase in
+            DiscoverRemoteImage(url: url) { phase in
                 switch phase {
                 case .empty:
                     ProgressView()
@@ -394,8 +397,6 @@ private struct DashboardDiscoverEditorialReader: View {
                 case .failure:
                     Color.secondary.opacity(0.12)
                         .overlay { Image(systemName: "photo") }
-                @unknown default:
-                    EmptyView()
                 }
             }
             .frame(maxWidth: .infinity)
@@ -702,7 +703,7 @@ private struct DashboardBlogPostCard: View {
     var body: some View {
         Link(destination: post.url) {
             VStack(alignment: .leading, spacing: 0) {
-                AsyncImage(url: post.imageURL) { phase in
+                DiscoverRemoteImage(url: post.imageURL) { phase in
                     switch phase {
                     case .empty:
                         ProgressView()
@@ -719,8 +720,6 @@ private struct DashboardBlogPostCard: View {
                             .foregroundStyle(SystemColor.secondaryText)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .background(SystemColor.controlFill)
-                    @unknown default:
-                        EmptyView()
                     }
                 }
                 .frame(height: 140)
