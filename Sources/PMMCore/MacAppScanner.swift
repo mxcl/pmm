@@ -450,10 +450,11 @@ final class SparkleAppcastParser: NSObject, XMLParserDelegate {
         element = elementName
         text = ""
         if elementName == "item" { item = SparkleAppcastItem() }
-        guard item != nil, elementName == "enclosure" else { return }
-        item?.version = attributeDict["sparkle:version"] ?? item?.version ?? ""
-        item?.shortVersion = attributeDict["sparkle:shortVersionString"] ?? item?.shortVersion
-        item?.infoURL = attributeDict["url"] ?? item?.infoURL
+        guard var item, elementName == "enclosure" else { return }
+        item.version = attributeDict["sparkle:version"] ?? item.version
+        item.shortVersion = attributeDict["sparkle:shortVersionString"] ?? item.shortVersion
+        item.infoURL = attributeDict["url"] ?? item.infoURL
+        self.item = item
     }
 
     func parser(_ parser: XMLParser, foundCharacters string: String) {
@@ -467,17 +468,21 @@ final class SparkleAppcastParser: NSObject, XMLParserDelegate {
         qualifiedName qName: String?
     ) {
         let value = nonEmpty(text)
-        if item != nil {
+        if var item {
             switch elementName {
-            case "sparkle:version": item?.version = value ?? ""
-            case "sparkle:shortVersionString": item?.shortVersion = value
-            case "sparkle:channel": item?.channel = value
-            case "sparkle:releaseNotesLink", "link": item?.infoURL = value ?? item?.infoURL
+            case "sparkle:version": item.version = value ?? ""
+            case "sparkle:shortVersionString": item.shortVersion = value
+            case "sparkle:channel": item.channel = value
+            case "sparkle:releaseNotesLink", "link": item.infoURL = value ?? item.infoURL
             case "item":
-                if let item, !item.version.isEmpty { items.append(item) }
+                if !item.version.isEmpty { items.append(item) }
                 self.item = nil
+                element = ""
+                text = ""
+                return
             default: break
             }
+            self.item = item
         }
         element = ""
         text = ""

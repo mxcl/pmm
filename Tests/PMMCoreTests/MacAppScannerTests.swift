@@ -168,6 +168,16 @@ struct MacAppScannerTests {
         #expect(parser.items == [SparkleAppcastItem(version: "42", shortVersion: "4.2", channel: nil, infoURL: "https://example.com/app.zip")])
     }
 
+    @Test func parsesSparkleEnclosuresWithVersionInSiblingElements() {
+        let parser = SparkleAppcastParser()
+        #expect(parser.parse(Data("""
+        <rss xmlns:sparkle="https://sparkle-project.org/xml-namespaces/sparkle"><channel>
+          <item><enclosure url="https://example.com/app.zip"/><sparkle:version>42</sparkle:version></item>
+        </channel></rss>
+        """.utf8)))
+        #expect(parser.items == [SparkleAppcastItem(version: "42", shortVersion: nil, channel: nil, infoURL: "https://example.com/app.zip")])
+    }
+
     private func testSession() -> URLSession {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [MacAppURLProtocol.self]
