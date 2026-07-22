@@ -23,7 +23,7 @@ struct MenuBarMenuState: Equatable {
     var errorMessage: String?
 
     var statusSymbolName: String {
-        outdatedRows.isEmpty ? "shippingbox" : "shippingbox.fill"
+        actionableOutdatedPackages.isEmpty ? "shippingbox" : "shippingbox.fill"
     }
 
     var rows: [MenuBarMenuRow] {
@@ -54,12 +54,16 @@ struct MenuBarMenuState: Equatable {
             }
             .map {
                 MenuBarPackageRow(
-                    managerTitle: $0.manager.title,
+                    managerTitle: $0.appProvenance?.title ?? $0.manager.title,
                     name: $0.displayName,
                     installedVersion: $0.installedVersion ?? "?",
                     latestVersion: $0.latestVersion ?? "?"
                 )
             }
+    }
+
+    private var actionableOutdatedPackages: [ManagedPackage] {
+        (inventory?.outdatedPackages ?? []).filter(PackageUpdater.supports)
     }
 }
 

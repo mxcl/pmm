@@ -9,7 +9,7 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
     case newUpdated
     case rust
     case homebrew
-    case casks
+    case apps
     case javascript
     case python
     case skills
@@ -31,7 +31,7 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
     var id: String { rawValue }
 
     static let librarySections: [MainWindowSection] = [.home, .installed, .outdated]
-    static let managerSections: [MainWindowSection] = [.rust, .homebrew, .casks, .javascript, .python, .skills]
+    static let managerSections: [MainWindowSection] = [.rust, .homebrew, .apps, .javascript, .python, .skills]
         .sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
     static let categorySections: [MainWindowSection] = [
         .developerTools, .cloudInfrastructure, .networking, .system, .security,
@@ -47,7 +47,7 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
         case .newUpdated: "New"
         case .rust: "Rust"
         case .homebrew: "Homebrew"
-        case .casks: "Casks"
+        case .apps: "Apps"
         case .javascript: "JavaScript"
         case .python: "Python"
         case .skills: "Skills"
@@ -76,7 +76,7 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
         case .newUpdated: "sparkles"
         case .rust: "hammer"
         case .homebrew: "mug"
-        case .casks: "macwindow"
+        case .apps: "macwindow"
         case .javascript: "curlybraces"
         case .python: "arrow.forward.to.line"
         case .skills: "wand.and.stars"
@@ -110,7 +110,8 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
     var packageManagers: Set<PackageManagerKind> {
         switch self {
         case .rust: [.cargoInstall, .rustup, .mise]
-        case .homebrew, .casks: [.homebrew]
+        case .homebrew: [.homebrew]
+        case .apps: [.homebrew, .macApp]
         case .javascript: [.npm, .npx, .mise]
         case .python: [.uv, .uvx, .mise]
         case .skills: [.skills]
@@ -140,6 +141,7 @@ enum MainWindowSection: String, CaseIterable, Identifiable, Sendable {
 
 enum MainWindowLinkTab: String, CaseIterable, Identifiable {
     case homepage
+    case update
     case repo
     case docs
     case registry
@@ -149,6 +151,7 @@ enum MainWindowLinkTab: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .homepage: "Home"
+        case .update: "Update"
         case .registry: "Registry"
         case .docs: "Docs"
         case .repo: "Repo"
@@ -159,6 +162,7 @@ enum MainWindowLinkTab: String, CaseIterable, Identifiable {
     func urlString(in package: ManagedPackage) -> String? {
         switch self {
         case .homepage: package.homepage
+        case .update: package.advisoryURL
         case .registry: mainWindowRegistryURLString(for: package)
         case .docs: package.docs
         case .repo: package.repo
@@ -266,10 +270,10 @@ struct MainWindowPackageURLRequest: Equatable {
     }
 
     var section: MainWindowSection {
-        if manager == .homebrew, name.hasPrefix("cask/") { return .casks }
+        if manager == .homebrew, name.hasPrefix("cask/") { return .apps }
         return switch manager {
         case .cargoInstall, .rustup: .rust
-        case .macApp: .casks
+        case .macApp: .apps
         case .homebrew: .homebrew
         case .npm, .npx: .javascript
         case .mise: .installed
@@ -1419,7 +1423,7 @@ struct PackageIndex: Sendable {
             .newUpdated: newUpdated,
             .rust: packages.filter { mainWindowManagerSection(for: $0) == .rust }.sorted(by: Self.alphabetical),
             .homebrew: packages.filter { $0.manager == .homebrew }.sorted(by: Self.alphabetical),
-            .casks: packages.filter { $0.identifier.hasPrefix("brew:cask:") }.sorted(by: Self.alphabetical),
+            .apps: packages.filter { mainWindowManagerSection(for: $0) == .apps }.sorted(by: Self.alphabetical),
             .javascript: packages.filter { mainWindowManagerSection(for: $0) == .javascript }.sorted(by: Self.alphabetical),
             .python: packages.filter { mainWindowManagerSection(for: $0) == .python }.sorted(by: Self.alphabetical),
             .skills: packages.filter { $0.manager == .skills }.sorted(by: Self.alphabetical),
@@ -1499,10 +1503,10 @@ struct PackageIndex: Sendable {
 }
 
 func mainWindowManagerSection(for package: ManagedPackage) -> MainWindowSection {
-    if package.identifier.hasPrefix("brew:cask:") { return .casks }
+    if package.identifier.hasPrefix("brew:cask:") { return .apps }
     switch package.manager {
     case .cargoInstall, .rustup: return .rust
-    case .macApp: return .casks
+    case .macApp: return .apps
     case .homebrew: return .homebrew
     case .npm, .npx: return .javascript
     case .skills: return .skills

@@ -75,6 +75,24 @@ private final class LockedStrings: @unchecked Sendable {
     ])
 }
 
+@Test func advisoryAppsAppearWithoutChangingMenuBarStatus() {
+    let state = MenuBarMenuState(inventory: PackageInventory(packages: [
+        ManagedPackage(
+            manager: .macApp,
+            identifier: "mac-app:com.example.Fork",
+            displayName: "Fork",
+            installedVersion: "1.0.0",
+            latestVersion: "2.0.0",
+            appProvenance: .direct
+        )
+    ]))
+
+    #expect(state.statusSymbolName == "shippingbox")
+    #expect(state.rows == [
+        .package(MenuBarPackageRow(managerTitle: "Direct", name: "Fork", installedVersion: "1.0.0", latestVersion: "2.0.0"))
+    ])
+}
+
 @Test func menuBarCommandValidationAcceptsSupportedActions() throws {
     let outdated = ManagedPackage(manager: .homebrew, name: "git", installedVersion: "1.0.0", latestVersion: "2.0.0")
     let catalogOnly = ManagedPackage(manager: .npm, name: "eslint", installedVersion: nil, latestVersion: "9.0.0")

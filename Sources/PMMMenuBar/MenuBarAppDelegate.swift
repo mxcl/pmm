@@ -222,6 +222,7 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
                 errors: Self.scanErrors(errorsByManager)
             )
             self.snapshot.catalogPackages = enriched.1
+            self.snapshot.loadingManagers?.insert(.macApp)
             self.publishSnapshot()
 
             let brewUpdateTask = Task.detached(priority: .background) { () -> (Date?, String?) in
@@ -233,7 +234,7 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
             let scanner = PackageScanner()
-            for await result in scanner.results(for: [.npm, .npx, .uv], database: database, mode: .fresh) {
+            for await result in scanner.results(for: [.macApp, .npm, .npx, .uv], database: database, mode: .fresh) {
                 guard !Task.isCancelled else { return }
                 self.applyScanResult(
                     result,
@@ -241,6 +242,7 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
                     errorsByManager: &errorsByManager,
                     preserveExistingOnError: true
                 )
+                self.snapshot.loadingManagers?.remove(result.manager)
                 self.publishSnapshot()
             }
 

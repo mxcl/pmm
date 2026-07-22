@@ -515,7 +515,7 @@ private func attributeRunCount(in string: NSAttributedString) -> Int {
     #expect(cask.manager == .homebrew)
     #expect(cask.name == "cask/codex")
     #expect(cask.identifier == "brew:cask:codex")
-    #expect(cask.section == .casks)
+    #expect(cask.section == .apps)
 
     let scoped = try #require(MainWindowPackageURLRequest(identifier: "npm:@scope/tool"))
     #expect(scoped.manager == .npm)
@@ -809,15 +809,24 @@ private func attributeRunCount(in string: NSAttributedString) -> Int {
             installedVersion: "1.0.0",
             latestVersion: "1.0.0"
         ),
+        ManagedPackage(
+            manager: .macApp,
+            identifier: "mac-app:com.example.Fork",
+            displayName: "Fork",
+            installedVersion: "2.0.0",
+            latestVersion: "2.1.0",
+            bundleIdentifier: "com.example.Fork",
+            appProvenance: .direct
+        ),
         package(.npm, "alpha"),
         package(.npm, "beta"),
     ]
     let index = PackageIndex(packages: packages, catalogPackages: [], newUpdatedLastClickedAt: nil)
 
-    #expect(MainWindowSection.managerSections.map(\.title) == ["Casks", "Homebrew", "JavaScript", "Python", "Rust", "Skills"])
+    #expect(MainWindowSection.managerSections.map(\.title) == ["Apps", "Homebrew", "JavaScript", "Python", "Rust", "Skills"])
     #expect(index.packagesBySection[.rust]?.map(\.displayName) == ["ripgrep", "rustup"])
     #expect(index.packagesBySection[.homebrew]?.map(\.displayName) == ["git", "visual-studio-code"])
-    #expect(index.packagesBySection[.casks]?.map(\.displayName) == ["visual-studio-code"])
+    #expect(index.packagesBySection[.apps]?.map(\.displayName) == ["Fork", "visual-studio-code"])
     #expect(index.packagesBySection[.javascript]?.map(\.displayName) == ["acorn", "alpha", "beta", "zeta"])
     #expect(index.packagesBySection[.python]?.map(\.displayName) == ["python", "ruff"])
     #expect(index.packagesBySection[.skills]?.map(\.displayName) == ["example"])
@@ -1157,6 +1166,22 @@ private func attributeRunCount(in string: NSAttributedString) -> Int {
 
     #expect(links.map(\.tab) == [.homepage, .repo, .docs, .registry])
     #expect(links.map(\.url.absoluteString) == ["https://git-scm.com/", "https://github.com/git/git", "https://git-scm.com/docs", "https://formulae.brew.sh/formula/git"])
+}
+
+@Test func advisoryAppLinksExposeTheirUpdateDestination() {
+    let links = mainWindowLinks(for: ManagedPackage(
+        manager: .macApp,
+        identifier: "mac-app:com.example.Fork",
+        displayName: "Fork",
+        installedVersion: "1.0.0",
+        latestVersion: "2.0.0",
+        bundleIdentifier: "com.example.Fork",
+        appProvenance: .direct,
+        advisoryURL: "https://example.com/download"
+    ))
+
+    #expect(links.map(\.tab) == [.update])
+    #expect(links.first?.url.absoluteString == "https://example.com/download")
 }
 
 @Test func packageLinksFallBackToRepoThenDocsWhenHomepageIsMissing() {

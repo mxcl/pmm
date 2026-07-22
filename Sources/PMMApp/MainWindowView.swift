@@ -404,6 +404,9 @@ struct MainWindowDossierView: View {
                             PackageConfigurationSection(locations: model.selectedPackageConfigurationLocations)
                             PackageLocationSection(package: package)
                         }
+                        if package.manager == .macApp {
+                            MacAppDetailsSection(package: package)
+                        }
                         if !mainWindowBrowserLinks(for: package).isEmpty {
                             InfoSection(title: "External URLs") {
                                 PackageLinkStack(model: model)
@@ -1022,7 +1025,16 @@ struct PackageEcosystemMark: View {
 
     var body: some View {
         Group {
-            if let image = section.sidebarImage {
+            if package.manager == .macApp {
+                Text((package.appProvenance ?? .unknown).title.uppercased())
+                    .font(.system(size: 7, weight: .black, design: .rounded))
+                    .tracking(0.35)
+                    .lineLimit(1)
+                    .fixedSize()
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 2)
+                    .background(color.opacity(0.12), in: Capsule())
+            } else if let image = section.sidebarImage {
                 Image(image)
                     .renderingMode(.template)
                     .resizable()
@@ -1035,18 +1047,15 @@ struct PackageEcosystemMark: View {
             }
         }
         .foregroundStyle(color)
-        .frame(
-            width: section.sidebarImage == nil ? size - 1 : size + 1,
-            height: section.sidebarImage == nil ? size - 1 : size + 1
-        )
-        .accessibilityLabel(section.title)
+        .frame(height: size + 1)
+        .accessibilityLabel(package.manager == .macApp ? (package.appProvenance ?? .unknown).title : section.title)
     }
 
     private var section: MainWindowSection { mainWindowManagerSection(for: package) }
 
     private var color: Color {
         switch section {
-        case .casks: .teal
+        case .apps: .teal
         case .homebrew: .orange
         case .javascript: .yellow
         case .python: .blue
@@ -1145,7 +1154,7 @@ private struct DossierHeader: View {
                 if package.manager == .mise { MiseMark() }
             }
             HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text(package.manager.title.uppercased())
+                Text((package.appProvenance?.title ?? package.manager.title).uppercased())
                     .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(SystemColor.quietText)
                     .tracking(0.8)
@@ -1164,6 +1173,28 @@ private struct DossierHeader: View {
                     .foregroundStyle(SystemColor.secondaryText)
                     .lineSpacing(2)
                     .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+}
+
+private struct MacAppDetailsSection: View {
+    let package: ManagedPackage
+
+    var body: some View {
+        InfoSection(title: "App") {
+            InfoRow(label: "Source", value: (package.appProvenance ?? .unknown).title)
+            if let bundleIdentifier = package.bundleIdentifier {
+                InfoRow(label: "Bundle Identifier", value: bundleIdentifier)
+            }
+            if let bundleVersion = package.bundleVersion {
+                InfoRow(label: "Build", value: bundleVersion)
+            }
+            if let versionSource = package.versionSource {
+                InfoRow(label: "Version Source", value: versionSource.title)
+            }
+            if let checkedAt = package.versionCheckedAt {
+                InfoRow(label: "Checked", value: checkedAt.formatted(date: .abbreviated, time: .shortened))
             }
         }
     }
