@@ -7,12 +7,20 @@ public struct PackageDatabase: Sendable {
     private let casks: [String: PackageMetadata]
     private let crates: [String: PackageMetadata]
     private let npms: [String: PackageMetadata]
+    private let apps: [String: MacAppCatalogEntry]
 
-    public init(formulas: [String: PackageMetadata] = [:], casks: [String: PackageMetadata] = [:], crates: [String: PackageMetadata] = [:], npms: [String: PackageMetadata] = [:]) {
+    public init(
+        formulas: [String: PackageMetadata] = [:],
+        casks: [String: PackageMetadata] = [:],
+        crates: [String: PackageMetadata] = [:],
+        npms: [String: PackageMetadata] = [:],
+        apps: [String: MacAppCatalogEntry] = [:]
+    ) {
         self.formulas = formulas
         self.casks = casks
         self.crates = crates
         self.npms = npms
+        self.apps = apps
     }
 
     public static func load(from url: URL = Self.url) async -> PackageDatabase {
@@ -47,7 +55,8 @@ public struct PackageDatabase: Sendable {
             formulas: decodeMetadataMap(db?["formulas"]),
             casks: decodeMetadataMap(db?["casks"]),
             crates: decodeMetadataMap(db?["crates"]),
-            npms: decodeMetadataMap(db?["npms"])
+            npms: decodeMetadataMap(db?["npms"]),
+            apps: decodeAppMap(db?["apps"])
         )
     }
 
@@ -75,7 +84,7 @@ public struct PackageDatabase: Sendable {
         switch manager {
         case .cargoInstall:
             return crates[name]
-        case .rustup, .mise, .skills:
+        case .macApp, .rustup, .mise, .skills:
             return nil
         case .homebrew:
             return formulas[name] ?? casks[name]
@@ -83,6 +92,33 @@ public struct PackageDatabase: Sendable {
             return npms[name]
         case .uv, .uvx:
             return nil
+        }
+    }
+
+    public func app(for bundleIdentifier: String) -> MacAppCatalogEntry? {
+        guard var entry = apps[bundleIdentifier] else { return nil }
+        if let cask = entry.cask, let caskMetadata = casks[cask] {
+            entry = entry.applyingFallback(caskMetadata)
+        }
+        return entry
+    }
+
+    private static func decodeAppMap(_ value: Any?) -> [String: MacAppCatalogEntry] {
+        guard let map = value as? [String: Any] else { return [:] }
+        return map.reduce(into: [:]) { result, pair in
+            guard let raw = pair.value as? [String: Any] else { return }
+            result[pair.key] = MacAppCatalogEntry(
+                bundleIdentifier: pair.key,
+                cask: nonEmptyString(raw["cask"]),
+                feedURL: nonEmptyString(raw["feed_url"]) ?? nonEmptyString(raw["feedURL"]),
+                channel: nonEmptyString(raw["channel"]),
+                versionSource: nonEmptyString(raw["version_source"]) == "cask" ? .homebrewCask : nil,
+                advisoryURL: nonEmptyString(raw["advisory_url"]) ?? nonEmptyString(raw["download_url"]),
+                summary: nonEmptyString(raw["summary"]),
+                category: nonEmptyString(raw["category"]),
+                homepage: nonEmptyString(raw["homepage"]),
+                version: nonEmptyString(raw["version"])
+            )
         }
     }
 

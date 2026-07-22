@@ -881,6 +881,7 @@ public struct PackageScanner: @unchecked Sendable {
                     let packages: [ManagedPackage]
                     switch manager {
                     case .cargoInstall: packages = try scanCargoInstall(database: database)
+                    case .macApp: packages = []
                     case .rustup: packages = try scanRustup(database: database)
                     case .homebrew: packages = try scanHomebrew(database: database, mode: mode)
                     case .mise: packages = try scanMise(database: database)

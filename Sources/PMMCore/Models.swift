@@ -2,6 +2,7 @@ import Foundation
 
 public enum PackageManagerKind: String, Codable, CaseIterable, Sendable {
     case cargoInstall = "cargo-install"
+    case macApp = "mac-app"
     case rustup
     case homebrew
     case mise
@@ -14,6 +15,7 @@ public enum PackageManagerKind: String, Codable, CaseIterable, Sendable {
     public var title: String {
         switch self {
         case .cargoInstall: "cargo install"
+        case .macApp: "App"
         case .rustup: "rustup"
         case .homebrew: "Homebrew"
         case .mise: "mise"
@@ -23,6 +25,92 @@ public enum PackageManagerKind: String, Codable, CaseIterable, Sendable {
         case .uv: "uv"
         case .uvx: "uvx"
         }
+    }
+}
+
+public enum MacAppProvenance: String, Codable, CaseIterable, Sendable {
+    case homebrew
+    case appStore = "app-store"
+    case setapp
+    case direct
+    case unknown
+
+    public var title: String {
+        switch self {
+        case .homebrew: "Homebrew"
+        case .appStore: "App Store"
+        case .setapp: "Setapp"
+        case .direct: "Direct"
+        case .unknown: "Unknown"
+        }
+    }
+}
+
+public enum MacAppVersionSource: String, Codable, Sendable {
+    case appStore = "app-store"
+    case setapp
+    case sparkle
+    case homebrewCask = "homebrew-cask"
+
+    public var title: String {
+        switch self {
+        case .appStore: "App Store"
+        case .setapp: "Setapp"
+        case .sparkle: "Sparkle"
+        case .homebrewCask: "Homebrew Cask"
+        }
+    }
+}
+
+public struct MacAppCatalogEntry: Equatable, Sendable {
+    public let bundleIdentifier: String
+    public let cask: String?
+    public let feedURL: String?
+    public let channel: String?
+    public let versionSource: MacAppVersionSource?
+    public let advisoryURL: String?
+    public let summary: String?
+    public let category: String?
+    public let homepage: String?
+    public let version: String?
+
+    public init(
+        bundleIdentifier: String,
+        cask: String? = nil,
+        feedURL: String? = nil,
+        channel: String? = nil,
+        versionSource: MacAppVersionSource? = nil,
+        advisoryURL: String? = nil,
+        summary: String? = nil,
+        category: String? = nil,
+        homepage: String? = nil,
+        version: String? = nil
+    ) {
+        self.bundleIdentifier = bundleIdentifier
+        self.cask = cask
+        self.feedURL = feedURL
+        self.channel = channel
+        self.versionSource = versionSource
+        self.advisoryURL = advisoryURL
+        self.summary = summary
+        self.category = category
+        self.homepage = homepage
+        self.version = version
+    }
+
+    func applyingFallback(_ metadata: PackageMetadata) -> MacAppCatalogEntry {
+        MacAppCatalogEntry(
+            bundleIdentifier: bundleIdentifier,
+            cask: cask,
+            feedURL: feedURL,
+            channel: channel,
+            versionSource: versionSource,
+            advisoryURL: advisoryURL,
+            summary: summary ?? metadata.summary,
+            category: category ?? metadata.category,
+            homepage: homepage ?? metadata.homepage,
+            version: version ?? metadata.version
+        )
     }
 }
 
@@ -45,6 +133,12 @@ public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
     public let installLocation: String?
     public let binaryPath: String?
     public let executableNames: [String]
+    public let bundleIdentifier: String?
+    public let bundleVersion: String?
+    public let appProvenance: MacAppProvenance?
+    public let versionSource: MacAppVersionSource?
+    public let advisoryURL: String?
+    public let versionCheckedAt: Date?
 
     public var name: String { identifier }
 
@@ -64,7 +158,13 @@ public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
         pulseKind: String? = nil,
         installLocation: String? = nil,
         binaryPath: String? = nil,
-        executableNames: [String] = []
+        executableNames: [String] = [],
+        bundleIdentifier: String? = nil,
+        bundleVersion: String? = nil,
+        appProvenance: MacAppProvenance? = nil,
+        versionSource: MacAppVersionSource? = nil,
+        advisoryURL: String? = nil,
+        versionCheckedAt: Date? = nil
     ) {
         self.init(
             manager: manager,
@@ -82,7 +182,13 @@ public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
             pulseKind: pulseKind,
             installLocation: installLocation,
             binaryPath: binaryPath,
-            executableNames: executableNames
+            executableNames: executableNames,
+            bundleIdentifier: bundleIdentifier,
+            bundleVersion: bundleVersion,
+            appProvenance: appProvenance,
+            versionSource: versionSource,
+            advisoryURL: advisoryURL,
+            versionCheckedAt: versionCheckedAt
         )
     }
 
@@ -102,7 +208,13 @@ public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
         pulseKind: String? = nil,
         installLocation: String? = nil,
         binaryPath: String? = nil,
-        executableNames: [String] = []
+        executableNames: [String] = [],
+        bundleIdentifier: String? = nil,
+        bundleVersion: String? = nil,
+        appProvenance: MacAppProvenance? = nil,
+        versionSource: MacAppVersionSource? = nil,
+        advisoryURL: String? = nil,
+        versionCheckedAt: Date? = nil
     ) {
         self.manager = manager
         self.identifier = identifier
@@ -120,6 +232,12 @@ public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
         self.installLocation = installLocation
         self.binaryPath = binaryPath
         self.executableNames = Self.normalizedExecutableNames(executableNames, binaryPath: binaryPath)
+        self.bundleIdentifier = bundleIdentifier
+        self.bundleVersion = bundleVersion
+        self.appProvenance = appProvenance
+        self.versionSource = versionSource
+        self.advisoryURL = advisoryURL
+        self.versionCheckedAt = versionCheckedAt
     }
 
     public init(from decoder: Decoder) throws {
@@ -147,7 +265,13 @@ public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
             pulseKind: try container.decodeIfPresent(String.self, forKey: .pulseKind),
             installLocation: try container.decodeIfPresent(String.self, forKey: .installLocation),
             binaryPath: try container.decodeIfPresent(String.self, forKey: .binaryPath),
-            executableNames: try container.decodeIfPresent([String].self, forKey: .executableNames) ?? []
+            executableNames: try container.decodeIfPresent([String].self, forKey: .executableNames) ?? [],
+            bundleIdentifier: try container.decodeIfPresent(String.self, forKey: .bundleIdentifier),
+            bundleVersion: try container.decodeIfPresent(String.self, forKey: .bundleVersion),
+            appProvenance: try container.decodeIfPresent(MacAppProvenance.self, forKey: .appProvenance),
+            versionSource: try container.decodeIfPresent(MacAppVersionSource.self, forKey: .versionSource),
+            advisoryURL: try container.decodeIfPresent(String.self, forKey: .advisoryURL),
+            versionCheckedAt: try container.decodeIfPresent(Date.self, forKey: .versionCheckedAt)
         )
     }
 
@@ -172,6 +296,12 @@ public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
         if !executableNames.isEmpty {
             try container.encode(executableNames, forKey: .executableNames)
         }
+        try container.encodeIfPresent(bundleIdentifier, forKey: .bundleIdentifier)
+        try container.encodeIfPresent(bundleVersion, forKey: .bundleVersion)
+        try container.encodeIfPresent(appProvenance, forKey: .appProvenance)
+        try container.encodeIfPresent(versionSource, forKey: .versionSource)
+        try container.encodeIfPresent(advisoryURL, forKey: .advisoryURL)
+        try container.encodeIfPresent(versionCheckedAt, forKey: .versionCheckedAt)
     }
 
     public var isOutdated: Bool {
@@ -201,7 +331,13 @@ public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
             pulseKind: metadata.pulseKind ?? pulseKind,
             installLocation: installLocation,
             binaryPath: binaryPath,
-            executableNames: executableNames
+            executableNames: executableNames,
+            bundleIdentifier: bundleIdentifier,
+            bundleVersion: bundleVersion,
+            appProvenance: appProvenance,
+            versionSource: versionSource,
+            advisoryURL: advisoryURL,
+            versionCheckedAt: versionCheckedAt
         )
     }
 
@@ -224,7 +360,13 @@ public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
                 pulseKind: newest.pulseKind,
                 installLocation: newest.installLocation,
                 binaryPath: newest.binaryPath,
-                executableNames: newest.executableNames
+                executableNames: newest.executableNames,
+                bundleIdentifier: newest.bundleIdentifier,
+                bundleVersion: newest.bundleVersion,
+                appProvenance: newest.appProvenance,
+                versionSource: newest.versionSource,
+                advisoryURL: newest.advisoryURL,
+                versionCheckedAt: newest.versionCheckedAt
             )
         }
         .sorted {
@@ -281,6 +423,12 @@ public struct ManagedPackage: Codable, Equatable, Identifiable, Sendable {
         case installLocation
         case binaryPath
         case executableNames
+        case bundleIdentifier
+        case bundleVersion
+        case appProvenance
+        case versionSource
+        case advisoryURL
+        case versionCheckedAt
     }
 }
 

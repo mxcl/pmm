@@ -269,6 +269,7 @@ struct MainWindowPackageURLRequest: Equatable {
         if manager == .homebrew, name.hasPrefix("cask/") { return .casks }
         return switch manager {
         case .cargoInstall, .rustup: .rust
+        case .macApp: .casks
         case .homebrew: .homebrew
         case .npm, .npx: .javascript
         case .mise: .installed
@@ -353,7 +354,7 @@ func mainWindowRegistryURLString(for package: ManagedPackage) -> String? {
     case .uv, .uvx:
         guard package.identifier.hasPrefix("uv:tool:") || package.manager == .uvx else { return nil }
         return "https://pypi.org/project/\(package.packageToken)/"
-    case .rustup, .mise:
+    case .macApp, .rustup, .mise:
         return nil
     case .skills:
         return nil
@@ -1501,6 +1502,7 @@ func mainWindowManagerSection(for package: ManagedPackage) -> MainWindowSection 
     if package.identifier.hasPrefix("brew:cask:") { return .casks }
     switch package.manager {
     case .cargoInstall, .rustup: return .rust
+    case .macApp: return .casks
     case .homebrew: return .homebrew
     case .npm, .npx: return .javascript
     case .skills: return .skills

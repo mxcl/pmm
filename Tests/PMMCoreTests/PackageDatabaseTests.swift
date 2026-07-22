@@ -32,6 +32,14 @@ import Testing
               "summary": "TypeScript is a language for application scale JavaScript development",
               "version": "5.9.2"
             }
+          },
+          "apps": {
+            "com.example.Editor": {
+              "cask": "example-editor",
+              "feed_url": "https://example.com/appcast.xml",
+              "channel": "beta",
+              "advisory_url": "https://example.com/download"
+            }
           }
         }
       }
@@ -51,6 +59,38 @@ import Testing
     #expect(db.metadata(for: .cargoInstall, name: "ripgrep")?.version == "14.1.1")
     #expect(db.metadata(for: .npm, name: "typescript")?.summary == "TypeScript is a language for application scale JavaScript development")
     #expect(db.metadata(for: .npm, name: "typescript")?.version == "5.9.2")
+    let app = try #require(db.app(for: "com.example.Editor"))
+    #expect(app.cask == "example-editor")
+    #expect(app.feedURL == "https://example.com/appcast.xml")
+    #expect(app.channel == "beta")
+    #expect(app.advisoryURL == "https://example.com/download")
+}
+
+@Test func appCatalogUsesCaskMetadataAsFallback() throws {
+    let db = PackageDatabase(
+        casks: [
+            "fork": PackageMetadata(
+                summary: "Fast Git client",
+                category: "developer-tools",
+                homepage: "https://git-fork.com",
+                version: "2.70"
+            )
+        ],
+        apps: [
+            "com.DanPristupov.Fork": MacAppCatalogEntry(
+                bundleIdentifier: "com.DanPristupov.Fork",
+                cask: "fork",
+                versionSource: .homebrewCask
+            )
+        ]
+    )
+
+    let app = try #require(db.app(for: "com.DanPristupov.Fork"))
+    #expect(app.summary == "Fast Git client")
+    #expect(app.category == "developer-tools")
+    #expect(app.homepage == "https://git-fork.com")
+    #expect(app.version == "2.70")
+    #expect(app.versionSource == .homebrewCask)
 }
 
 @Test func exposesCatalogPackagesFromDatabaseMetadata() {
