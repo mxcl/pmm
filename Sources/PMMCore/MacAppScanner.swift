@@ -32,7 +32,12 @@ struct MacAppScanner: @unchecked Sendable {
             await withTaskGroup(of: MacAppCheckResult.self) { group in
                 for package in discovered[start..<end] {
                     group.addTask {
-                        await check(package, database: database, cached: cachedRecords[package.id])
+                        await check(
+                            package,
+                            database: database,
+                            cached: cachedRecords[package.id],
+                            ignoresCache: mode.ignoresCache
+                        )
                     }
                 }
                 for await result in group {
@@ -157,10 +162,11 @@ struct MacAppScanner: @unchecked Sendable {
     private func check(
         _ package: ManagedPackage,
         database: PackageDatabase,
-        cached: MacAppVersionCacheRecord?
+        cached: MacAppVersionCacheRecord?,
+        ignoresCache: Bool
     ) async -> MacAppCheckResult {
         let catalog = package.bundleIdentifier.flatMap(database.app)
-        if let cached, now().timeIntervalSince(cached.checkedAt) < Self.cacheLifetime {
+        if !ignoresCache, let cached, now().timeIntervalSince(cached.checkedAt) < Self.cacheLifetime {
             return MacAppCheckResult(package: package.applying(cached, catalog: catalog), record: cached)
         }
 

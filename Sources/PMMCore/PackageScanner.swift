@@ -3,6 +3,10 @@ import Foundation
 public enum PackageScanMode: Sendable {
     case local
     case fresh
+    case freshIgnoringCache
+
+    var isFresh: Bool { self != .local }
+    var ignoresCache: Bool { self == .freshIgnoringCache }
 }
 
 public struct PackageManagerScanResult: Sendable {
@@ -53,11 +57,11 @@ public struct PackageScanner: @unchecked Sendable {
                 .appendingPathComponent("Package Manager Manager/mac-app-version-cache.json")
     }
 
-    public func inventory(database: PackageDatabase) async -> PackageInventory {
+    public func inventory(database: PackageDatabase, mode: PackageScanMode = .fresh) async -> PackageInventory {
         let generatedAt = Date()
         var errorsByManager: [PackageManagerKind: [String]] = [:]
         var packages: [ManagedPackage] = []
-        for await result in results(for: Set(PackageManagerKind.allCases), database: database, mode: .fresh) {
+        for await result in results(for: Set(PackageManagerKind.allCases), database: database, mode: mode) {
             packages += result.packages
             errorsByManager[result.manager] = result.errors
         }
@@ -119,7 +123,7 @@ public struct PackageScanner: @unchecked Sendable {
 
     private func scanHomebrew(database: PackageDatabase, mode: PackageScanMode) throws -> [ManagedPackage] {
         guard let brew = executable(named: "brew") else { return [] }
-        let outdated: (formulae: [String: String], casks: [String: String]) = mode == .fresh
+        let outdated: (formulae: [String: String], casks: [String: String]) = mode.isFresh
             ? try homebrewOutdated(brew)
             : ([:], [:])
         let prefix = successfulBrewLine(brew, ["--prefix"])
@@ -174,7 +178,7 @@ public struct PackageScanner: @unchecked Sendable {
         let root = successfulLine(npm, ["root", "-g"])
         let prefix = successfulLine(npm, ["prefix", "-g"])
         let bin = prefix.map { "\($0)/bin" }
-        let outdated = mode == .fresh ? npmOutdated(npm) : [:]
+        let outdated = mode.isFresh ? npmOutdated(npm) : [:]
         let result = try runner.run(npm, ["ls", "-g", "--depth=0", "--json"])
         guard let json = jsonObject(result.stdout),
               let dependencies = json["dependencies"] as? [String: Any] else { return [] }
@@ -290,7 +294,7 @@ public struct PackageScanner: @unchecked Sendable {
         guard let uv = executable(named: "uv") else { return [] }
         let toolDir = successfulLine(uv, ["tool", "dir", "--offline", "--color", "never"])
         let pythonDir = successfulLine(uv, ["python", "dir", "--offline", "--color", "never"])
-        return try uvTools(uv, toolDir: toolDir, includeOutdated: mode == .fresh, database: database) + uvPythons(uv, pythonDir: pythonDir)
+        return try uvTools(uv, toolDir: toolDir, includeOutdated: mode.isFresh, database: database) + uvPythons(uv, pythonDir: pythonDir)
     }
 
     public func scanUVX(database: PackageDatabase) throws -> [ManagedPackage] {
@@ -923,7 +927,7 @@ public struct PackageScanner: @unchecked Sendable {
                     case .npm: packages = try scanNPM(database: database, mode: mode)
                     case .npx:
                         let cached = try scanNPX(database: database)
-                        if mode == .fresh {
+                        if mode.isFresh {
                             let latest = npxResolvedLatestVersions(for: Set(cached.map(\.packageToken)))
                             packages = cached.map {
                                 $0.applyingNPXSourceMetadata(nil, latestVersion: latest[$0.packageToken])

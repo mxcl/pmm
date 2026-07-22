@@ -42,8 +42,10 @@ public struct RemoteSSHClient: Sendable {
         self.sshExecutable = sshExecutable
     }
 
-    public func inventory(on host: RemoteHost) async throws -> RemoteControlResponse {
-        try await run(host, arguments: ["inventory", "--protocol", String(remoteControlProtocolVersion)])
+    public func inventory(on host: RemoteHost, ignoringAppCache: Bool = false) async throws -> RemoteControlResponse {
+        var arguments = ["inventory", "--protocol", String(remoteControlProtocolVersion)]
+        if ignoringAppCache { arguments.append("--ignore-app-cache") }
+        return try await run(host, arguments: arguments)
     }
 
     public func update(

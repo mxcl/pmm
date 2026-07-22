@@ -112,6 +112,9 @@ struct MacAppScannerTests {
 
         _ = try await fixture.packages(scanner: scanner, mode: .fresh)
         #expect(MacAppURLProtocol.requests == 1)
+
+        _ = try await fixture.packages(scanner: scanner, mode: .freshIgnoringCache)
+        #expect(MacAppURLProtocol.requests == 2)
     }
 
     @Test func appStoreUsesAdamIDAndStoreVersion() async throws {

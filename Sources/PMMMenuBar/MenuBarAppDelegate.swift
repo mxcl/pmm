@@ -133,7 +133,7 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
         notificationCenter.removeObserver(self)
     }
 
-    private func refresh() {
+    private func refresh(ignoringAppCache: Bool = false) {
         guard refreshTask == nil, actionTask == nil else { return }
         rescanTask?.cancel()
         rescanTask = nil
@@ -187,7 +187,8 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
                 databaseTask: databaseTask,
                 generatedAt: generatedAt,
                 previousLastBrewUpdateAt: previousLastBrewUpdateAt,
-                errorsByManager: errorsByManager
+                errorsByManager: errorsByManager,
+                appScanMode: ignoringAppCache ? .freshIgnoringCache : .fresh
             )
         }
     }
@@ -196,7 +197,8 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
         databaseTask: Task<PackageDatabase, Never>,
         generatedAt: Date,
         previousLastBrewUpdateAt: Date?,
-        errorsByManager initialErrors: [PackageManagerKind: [String]]
+        errorsByManager initialErrors: [PackageManagerKind: [String]],
+        appScanMode: PackageScanMode
     ) {
         rescanTask?.cancel()
         rescanTask = Task { [weak self] in
@@ -234,7 +236,18 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
             let scanner = PackageScanner()
-            for await result in scanner.results(for: [.macApp, .npm, .npx, .uv], database: database, mode: .fresh) {
+            for await result in scanner.results(for: [.macApp], database: database, mode: appScanMode) {
+                guard !Task.isCancelled else { return }
+                self.applyScanResult(
+                    result,
+                    generatedAt: generatedAt,
+                    errorsByManager: &errorsByManager,
+                    preserveExistingOnError: true
+                )
+                self.snapshot.loadingManagers?.remove(result.manager)
+                self.publishSnapshot()
+            }
+            for await result in scanner.results(for: [.npm, .npx, .uv], database: database, mode: .fresh) {
                 guard !Task.isCancelled else { return }
                 self.applyScanResult(
                     result,
@@ -641,11 +654,11 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func refreshNow(_ sender: Any?) {
-        refresh()
+        refresh(ignoringAppCache: true)
     }
 
     @objc private func refreshRequested(_ notification: Notification) {
-        refresh()
+        refresh(ignoringAppCache: true)
     }
 
     @objc private func installRequested(_ notification: Notification) {

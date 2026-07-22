@@ -702,7 +702,7 @@ final class MainWindowModel: NSObject, ObservableObject {
 
     func reload() {
         PackageHostNotifications.postRefreshRequested()
-        reloadRemoteHosts()
+        reloadRemoteHosts(ignoringAppCache: true)
     }
 
     func showHostManagement() {
@@ -737,13 +737,13 @@ final class MainWindowModel: NSObject, ObservableObject {
         if selectedRemoteHostID == hostID { selectSection(.home) }
     }
 
-    func reloadRemoteHosts() {
+    func reloadRemoteHosts(ignoringAppCache: Bool = false) {
         for host in remoteHosts where remoteActionHostID != host.id {
-            refreshRemoteHost(host.id)
+            refreshRemoteHost(host.id, ignoringAppCache: ignoringAppCache)
         }
     }
 
-    func refreshRemoteHost(_ hostID: UUID) {
+    func refreshRemoteHost(_ hostID: UUID, ignoringAppCache: Bool = false) {
         guard remoteActionHostID != hostID, let host = remoteHosts.first(where: { $0.id == hostID }) else { return }
         remoteTasks.removeValue(forKey: hostID)?.cancel()
         var state = remoteHostStates[hostID] ?? RemoteHostState()
@@ -753,7 +753,7 @@ final class MainWindowModel: NSObject, ObservableObject {
         let remoteClient = remoteClient
         remoteTasks[hostID] = Task { [weak self] in
             do {
-                let response = try await remoteClient.inventory(on: host)
+                let response = try await remoteClient.inventory(on: host, ignoringAppCache: ignoringAppCache)
                 guard !Task.isCancelled else { return }
                 self?.remoteHostStates[hostID] = RemoteHostState(inventory: response.inventory)
             } catch is CancellationError {

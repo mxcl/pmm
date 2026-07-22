@@ -42,7 +42,10 @@ if args.first == "remote" {
 
     let database = await PackageDatabase.load()
     let scanner = PackageScanner()
-    var inventory = await scanner.inventory(database: database)
+    var inventory = await scanner.inventory(
+        database: database,
+        mode: args.contains("--ignore-app-cache") ? .freshIgnoringCache : .fresh
+    )
     var failures = [RemoteControlFailure]()
 
     func perform(_ package: ManagedPackage, update: Bool) async -> RemoteControlFailure? {

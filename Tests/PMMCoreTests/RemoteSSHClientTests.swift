@@ -41,6 +41,22 @@ import Testing
     #expect(runner.options?.streamsStandardOutput == false)
 }
 
+@Test func remoteSSHCanRequestAnUncachedAppInventory() async throws {
+    let response = RemoteControlResponse(inventory: PackageInventory(packages: []))
+    let runner = RecordingRemoteRunner(result: CommandResult(
+        stdout: String(decoding: try JSONEncoder().encode(response), as: UTF8.self),
+        stderr: "",
+        status: 0
+    ))
+
+    _ = try await RemoteSSHClient(runner: runner).inventory(
+        on: RemoteHost(destination: "mac-mini"),
+        ignoringAppCache: true
+    )
+
+    #expect(runner.arguments?.last?.contains("'--ignore-app-cache'") == true)
+}
+
 @Test func remoteSSHDecodesPartialFailureResponseDespiteNonzeroStatus() async throws {
     let response = RemoteControlResponse(
         inventory: PackageInventory(packages: []),
@@ -71,6 +87,7 @@ private final class RecordingRemoteRunner: CommandRunning, @unchecked Sendable {
     private let lock = NSLock()
     private var _ranOnMainThread: Bool?
     private var _options: CommandRunOptions?
+    private var _arguments: [String]?
 
     init(result: CommandResult) {
         self.result = result
@@ -78,6 +95,7 @@ private final class RecordingRemoteRunner: CommandRunning, @unchecked Sendable {
 
     var ranOnMainThread: Bool? { lock.withLock { _ranOnMainThread } }
     var options: CommandRunOptions? { lock.withLock { _options } }
+    var arguments: [String]? { lock.withLock { _arguments } }
 
     func run(_ executable: String, _ arguments: [String]) throws -> CommandResult { result }
 
@@ -90,6 +108,7 @@ private final class RecordingRemoteRunner: CommandRunning, @unchecked Sendable {
         lock.withLock {
             _ranOnMainThread = Thread.isMainThread
             _options = options
+            _arguments = arguments
         }
         onOutput?(result.stderr)
         return result
