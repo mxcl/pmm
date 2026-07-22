@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import PMMCore
 import SwiftUI
 
@@ -8,10 +9,15 @@ final class MainWindowController: NSHostingController<MainWindowRootView> {
         dossierClient: PackageDossierClient(),
         dashboardBlogURL: MainWindowModel.defaultDashboardBlogURL
     )
+    private var outdatedPackageCountCancellable: AnyCancellable?
     private var showsAppUpdateButton = false
 
-    init() {
+    init(onOutdatedPackageCountChanged: @escaping @MainActor (Int) -> Void = { _ in }) {
         super.init(rootView: MainWindowRootView(model: model, showsAppUpdateButton: false, updateApp: {}))
+        outdatedPackageCountCancellable = model.$packages
+            .map { $0.lazy.filter(\.isOutdated).count }
+            .removeDuplicates()
+            .sink(receiveValue: onOutdatedPackageCountChanged)
     }
 
     @MainActor @preconcurrency required dynamic init?(coder: NSCoder) {

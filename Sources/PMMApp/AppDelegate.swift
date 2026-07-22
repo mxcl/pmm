@@ -77,7 +77,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let initialContentSize = NSSize(width: 1378, height: 824)
-        let controller = MainWindowController()
+        let controller = MainWindowController { outdatedPackageCount in
+            NSApp.dockTile.badgeLabel = dockBadgeLabel(outdatedPackageCount: outdatedPackageCount)
+        }
         let window = PMMWindow(
             contentRect: NSRect(origin: .zero, size: initialContentSize),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
@@ -335,6 +337,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alert.informativeText = informativeText
         alert.runModal()
     }
+}
+
+func dockBadgeLabel(outdatedPackageCount: Int) -> String? {
+    outdatedPackageCount > 0 ? String(outdatedPackageCount) : nil
 }
 
 private final class PMMWindow: NSWindow {
