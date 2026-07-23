@@ -204,6 +204,7 @@ private struct DashboardDiscoverFeedView: View {
         case "installPack":
             packageSection(
                 title: item.title ?? "Install Pack",
+                subtitle: item.deck,
                 packages: item.packages ?? [],
                 maximumPackageCount: nil
             )
@@ -220,11 +221,13 @@ private struct DashboardDiscoverFeedView: View {
 
     private func packageSection(
         title: String,
+        subtitle: String? = nil,
         packages: [DiscoverFeedPackage],
         maximumPackageCount: Int? = 5
     ) -> some View {
         DashboardDiscoverPackageSection(
             title: title,
+            subtitle: subtitle,
             packages: packages,
             maximumPackageCount: maximumPackageCount,
             isPackageInstalled: isPackageInstalled,
@@ -468,6 +471,7 @@ private struct DashboardDiscoverMarkdown: View {
 
 private struct DashboardDiscoverPackageSection: View {
     let title: String
+    var subtitle: String? = nil
     let packages: [DiscoverFeedPackage]
     let maximumPackageCount: Int?
     let isPackageInstalled: (DiscoverFeedPackage) -> Bool
@@ -480,9 +484,16 @@ private struct DashboardDiscoverPackageSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(title)
-                .font(.title2.weight(.bold))
-                .foregroundStyle(SystemColor.primaryText)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.title2.weight(.bold))
+                    .foregroundStyle(SystemColor.primaryText)
+                if let subtitle {
+                    Text(subtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(SystemColor.secondaryText)
+                }
+            }
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: 12)], spacing: 12) {
                 ForEach(visiblePackages) { package in
                     DashboardDiscoverPackageLink(
