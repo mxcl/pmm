@@ -4,10 +4,7 @@ import SwiftUI
 
 private let dashboardItemCornerRadius: CGFloat = 17.5
 private let dashboardBlogURL = URL(string: "https://mxcl.dev/package-manager-manager/blog/")!
-private let dashboardBlogColumns = [
-    GridItem(.flexible(), spacing: 12),
-    GridItem(.flexible(), spacing: 12),
-]
+private let dashboardBlogColumns = [GridItem(.adaptive(minimum: 200), spacing: 12)]
 
 struct MainWindowDashboardView: View {
     @ObservedObject var model: MainWindowModel
