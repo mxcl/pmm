@@ -54,7 +54,7 @@ enum MainWindowSection: Hashable, Identifiable, Sendable {
 
     var title: String {
         switch self {
-        case .home: "Home"
+        case .home: "Discover"
         case .installed: "Installed"
         case .outdated: "Outdated"
         case .newUpdated: "New"
@@ -71,7 +71,7 @@ enum MainWindowSection: Hashable, Identifiable, Sendable {
 
     var systemImage: String {
         switch self {
-        case .home: "house"
+        case .home: "safari"
         case .installed: "shippingbox"
         case .outdated: "clock"
         case .newUpdated: "sparkles"
