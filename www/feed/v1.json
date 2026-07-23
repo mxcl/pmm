@@ -108,6 +108,8 @@
       "id": "new-packages",
       "packageIDs": [
         "brew:droast",
+        "brew:rapid-mlx",
+        "brew:dskditto",
         "brew:advai-cli",
         "brew:zsh-patina",
         "brew:woxi",
@@ -124,6 +126,8 @@
       "id": "recently-updated",
       "packageIDs": [
         "brew:droast",
+        "brew:rapid-mlx",
+        "brew:dskditto",
         "brew:advai-cli",
         "brew:zsh-patina",
         "brew:woxi",
@@ -132,9 +136,7 @@
         "brew:ggshield",
         "brew:kew",
         "brew:dolt",
-        "brew:deno",
-        "brew:topgrade",
-        "brew:datasette"
+        "brew:deno"
       ],
       "title": "Recently Updated",
       "type": "recentlyUpdated"
@@ -330,7 +332,7 @@
       "type": "editorial"
     }
   ],
-  "generatedAt": "2026-07-22T13:03:26Z",
+  "generatedAt": "2026-07-23T13:04:07Z",
   "packages": {
     "brew:advai-cli": {
       "agentSummary": "advai-cli is a local-first command line tool that combines skill management, external CLI workflows, browser-bridge automation, and a terminal AI chat interface.",
@@ -577,50 +579,97 @@
       "version": null
     },
     "brew:droast": {
-      "agentSummary": "Droast is an opinionated Dockerfile linter that checks build hygiene, security, and correctness, with CLI, editor, and CI integrations for teams maintaining container build files.",
+      "agentSummary": "droast is an opinionated Dockerfile linter that inspects container build instructions, helping teams spot maintainability and style problems before images reach CI or production.",
       "assessment": {
         "alternatives": [
-          "Hadolint or manually reviewed container build policies"
+          "Hadolint or a project's existing Dockerfile review rules"
         ],
         "audiences": [
-          "Teams maintaining Dockerfiles or Containerfiles"
+          "Teams maintaining Dockerfiles"
         ],
         "caveats": [
-          "Its opinionated rules may require configuration or accepted exceptions for established build conventions"
+          "Its opinionated rules may not match every established image convention"
         ],
         "complements": [
-          "Image scanning and container build testing"
+          "Container image scanning and CI checks"
         ],
         "prerequisites": [
-          "Dockerfile or Containerfile sources to analyze"
+          "A Dockerfile and a container build workflow"
         ],
         "useCases": [
-          "Checking container build files locally and in CI"
+          "Reviewing Dockerfile conventions before image builds"
         ]
       },
-      "category": null,
+      "category": "developer-tools",
       "displayName": "droast",
-      "docs": null,
+      "docs": "https://github.com/immanuwell/dockerfile-roast#readme",
       "homepage": "https://ewry.net/droast-dockerfile-linter/",
       "id": "brew:droast",
       "installURL": "pkgmgrmgr://install?package=brew%3Adroast",
-      "lastUpdatedAt": "2026-07-21T21:31:54Z",
+      "lastUpdatedAt": "2026-07-22T18:29:28Z",
       "manager": "homebrew",
       "repository": "https://github.com/immanuwell/dockerfile-roast",
-      "researchedAt": "2026-07-22T13:03:26Z",
+      "researchedAt": "2026-07-23T13:04:07Z",
       "sources": [
         {
           "kind": "primary",
-          "title": "droast source repository and documentation",
+          "title": "dockerfile-roast repository",
           "url": "https://github.com/immanuwell/dockerfile-roast"
         },
         {
           "kind": "primary",
-          "title": "droast 1.0.0 release",
+          "title": "dockerfile-roast 1.0.0 release",
           "url": "https://github.com/immanuwell/dockerfile-roast/releases/tag/1.0.0"
         }
       ],
       "upstreamSummary": "Opinionated Dockerfile linter",
+      "version": null
+    },
+    "brew:dskditto": {
+      "agentSummary": "dskDitto is a desktop and terminal duplicate-file finder that helps users identify repeated files, preview candidates, and reclaim storage after reviewing deletion choices carefully.",
+      "assessment": {
+        "alternatives": [
+          "fdupes, rmlint, or other duplicate-file scanners"
+        ],
+        "audiences": [
+          "People cleaning duplicate files from local storage"
+        ],
+        "caveats": [
+          "Duplicate detection needs human review because matching files can still be intentionally retained"
+        ],
+        "complements": [
+          "A current backup and a deliberate deletion review"
+        ],
+        "prerequisites": [
+          "Read access to the folders being scanned"
+        ],
+        "useCases": [
+          "Finding and reviewing duplicate files before deletion"
+        ]
+      },
+      "category": null,
+      "displayName": "dskditto",
+      "docs": null,
+      "homepage": "https://github.com/jdefrancesco/dskDitto",
+      "id": "brew:dskditto",
+      "installURL": "pkgmgrmgr://install?package=brew%3Adskditto",
+      "lastUpdatedAt": "2026-07-22T12:20:29Z",
+      "manager": "homebrew",
+      "repository": "https://github.com/jdefrancesco/dskDitto",
+      "researchedAt": "2026-07-23T13:04:07Z",
+      "sources": [
+        {
+          "kind": "primary",
+          "title": "dskDitto repository",
+          "url": "https://github.com/jdefrancesco/dskDitto"
+        },
+        {
+          "kind": "primary",
+          "title": "dskDitto v0.5.6 release",
+          "url": "https://github.com/jdefrancesco/dskDitto/releases/tag/v0.5.6"
+        }
+      ],
+      "upstreamSummary": "Ultra-fast duplicate file finder TUI/GUI",
       "version": null
     },
     "brew:faker": {
@@ -914,6 +963,53 @@
         }
       ],
       "upstreamSummary": "Fast, disk space efficient package manager",
+      "version": null
+    },
+    "brew:rapid-mlx": {
+      "agentSummary": "Rapid-MLX runs local language models on Apple Silicon through an OpenAI-compatible server, emphasizing fast inference, model tooling, and optional capabilities for vision, audio, and embeddings.",
+      "assessment": {
+        "alternatives": [
+          "Ollama, llama.cpp, or another local inference server"
+        ],
+        "audiences": [
+          "Apple Silicon users building local AI workflows"
+        ],
+        "caveats": [
+          "Model downloads and optional features can require substantial disk space and memory"
+        ],
+        "complements": [
+          "An OpenAI-compatible client and downloaded model weights"
+        ],
+        "prerequisites": [
+          "An Apple Silicon Mac and enough memory for a chosen model"
+        ],
+        "useCases": [
+          "Serving local models through an OpenAI-compatible API"
+        ]
+      },
+      "category": "ai",
+      "displayName": "rapid-mlx",
+      "docs": "https://rapidmlx.com/docs",
+      "homepage": "https://github.com/raullenchai/Rapid-MLX",
+      "id": "brew:rapid-mlx",
+      "installURL": "pkgmgrmgr://install?package=brew%3Arapid-mlx",
+      "lastUpdatedAt": "2026-07-22T17:13:46Z",
+      "manager": "homebrew",
+      "repository": "https://github.com/raullenchai/Rapid-MLX",
+      "researchedAt": "2026-07-23T13:04:07Z",
+      "sources": [
+        {
+          "kind": "primary",
+          "title": "Rapid-MLX repository",
+          "url": "https://github.com/raullenchai/Rapid-MLX"
+        },
+        {
+          "kind": "primary",
+          "title": "Rapid-MLX v0.6.51 release",
+          "url": "https://github.com/raullenchai/Rapid-MLX/releases/tag/v0.6.51"
+        }
+      ],
+      "upstreamSummary": "Fast local AI engine for Apple Silicon with an OpenAI-compatible API",
       "version": null
     },
     "brew:soar": {
@@ -2013,7 +2109,7 @@
   },
   "schemaVersion": 1,
   "source": {
-    "generatedAt": "2026-07-22T02:44:06Z",
+    "generatedAt": "2026-07-23T05:01:15Z",
     "url": "https://www.automicvault.com/db.json"
   }
 }

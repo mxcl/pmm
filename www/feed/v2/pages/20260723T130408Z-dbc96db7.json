@@ -1,0 +1,134 @@
+{
+  "content": [
+    {
+      "batchID": "20260716T224902Z-c0b4136e",
+      "id": "new-packages:language-runtime:20260720T130253Z-f220bb45",
+      "packages": [
+        {
+          "agentSummary": "Interpreter for a subset of the Wolfram Language",
+          "category": "language-runtime",
+          "displayName": "woxi",
+          "homepage": "https://github.com/ad-si/Woxi",
+          "id": "brew:woxi",
+          "installURL": "pkgmgrmgr://install?package=brew%3Awoxi",
+          "manager": "homebrew"
+        }
+      ],
+      "publishedAt": "2026-07-16T22:49:02Z",
+      "title": "New Packages in Language Runtime",
+      "type": "newPackages"
+    },
+    {
+      "batchID": "20260716T224902Z-c0b4136e",
+      "id": "recently-updated:data:20260720T130253Z-f220bb45",
+      "packages": [
+        {
+          "agentSummary": "Distributed realtime computation system to process data streams",
+          "category": "data",
+          "displayName": "storm",
+          "homepage": "https://storm.apache.org",
+          "id": "brew:storm",
+          "installURL": "pkgmgrmgr://install?package=brew%3Astorm",
+          "manager": "homebrew"
+        },
+        {
+          "agentSummary": "Command-line interface for the HAPI FHIR library",
+          "category": "data",
+          "displayName": "hapi-fhir-cli",
+          "homepage": "https://hapifhir.io/",
+          "id": "brew:hapi-fhir-cli",
+          "installURL": "pkgmgrmgr://install?package=brew%3Ahapi-fhir-cli",
+          "manager": "homebrew"
+        },
+        {
+          "agentSummary": "Command-line interface for DBX database connections, schema, and safe queries",
+          "category": "data",
+          "displayName": "dbx-cli",
+          "homepage": "https://dbxio.com",
+          "id": "brew:dbx-cli",
+          "installURL": "pkgmgrmgr://install?package=brew%3Adbx-cli",
+          "manager": "homebrew"
+        },
+        {
+          "agentSummary": "Command-line interface for Sanity",
+          "category": "data",
+          "displayName": "sanity",
+          "homepage": "https://www.sanity.io/",
+          "id": "brew:sanity",
+          "installURL": "pkgmgrmgr://install?package=brew%3Asanity",
+          "manager": "homebrew"
+        },
+        {
+          "agentSummary": "Graph database",
+          "category": "data",
+          "displayName": "orientdb",
+          "homepage": "https://orientdb.dev",
+          "id": "brew:orientdb",
+          "installURL": "pkgmgrmgr://install?package=brew%3Aorientdb",
+          "manager": "homebrew"
+        }
+      ],
+      "publishedAt": "2026-07-16T22:49:02Z",
+      "title": "Recently Updated in Data",
+      "type": "recentlyUpdated"
+    },
+    {
+      "batchID": "20260716T224902Z-c0b4136e",
+      "id": "recently-updated:science:20260720T130253Z-f220bb45",
+      "packages": [
+        {
+          "agentSummary": "Interactive environments for writing and running code",
+          "category": "science",
+          "displayName": "jupyterlab",
+          "homepage": "https://jupyter.org/",
+          "id": "brew:jupyterlab",
+          "installURL": "pkgmgrmgr://install?package=brew%3Ajupyterlab",
+          "manager": "homebrew"
+        },
+        {
+          "agentSummary": "Visual browser for netCDF format files",
+          "category": "science",
+          "displayName": "ncview",
+          "homepage": "https://cirrus.ucsd.edu/ncview/",
+          "id": "brew:ncview",
+          "installURL": "pkgmgrmgr://install?package=brew%3Ancview",
+          "manager": "homebrew"
+        },
+        {
+          "agentSummary": "Programs that partition graphs and order matrices",
+          "category": "science",
+          "displayName": "metis",
+          "homepage": "https://papers.karypis.org/glaros/software/metis/overview.html",
+          "id": "brew:metis",
+          "installURL": "pkgmgrmgr://install?package=brew%3Ametis",
+          "manager": "homebrew"
+        },
+        {
+          "agentSummary": "Pythonic workflow system",
+          "category": "science",
+          "displayName": "snakemake",
+          "homepage": "https://snakemake.readthedocs.io/",
+          "id": "brew:snakemake",
+          "installURL": "pkgmgrmgr://install?package=brew%3Asnakemake",
+          "manager": "homebrew"
+        },
+        {
+          "agentSummary": "Cross platform GUI for Maxima",
+          "category": "science",
+          "displayName": "wxmaxima",
+          "homepage": "https://wxmaxima-developers.github.io/wxmaxima/",
+          "id": "brew:wxmaxima",
+          "installURL": "pkgmgrmgr://install?package=brew%3Awxmaxima",
+          "manager": "homebrew"
+        }
+      ],
+      "publishedAt": "2026-07-16T22:49:02Z",
+      "title": "Recently Updated in Science",
+      "type": "recentlyUpdated"
+    }
+  ],
+  "generatedAt": "2026-07-23T13:04:08Z",
+  "nextPageURL": null,
+  "pageID": "20260723T130408Z-dbc96db7",
+  "schemaVersion": 2
+}
