@@ -81,6 +81,19 @@ struct MacAppScannerTests {
         #expect(packages.first { $0.bundleIdentifier == "com.example.Direct" }?.bundleVersion == "120")
     }
 
+    @Test func rescanningReadsAnUpdatedAppVersion() async throws {
+        let fixture = try MacAppFixture()
+        defer { fixture.remove() }
+        _ = try fixture.app("ScreenTune.app", id: "com.example.ScreenTune", shortVersion: "1.2.3", build: "123")
+        let scanner = fixture.scanner()
+
+        #expect(try await fixture.packages(scanner: scanner, mode: .local).first?.installedVersion == "1.2.3")
+
+        _ = try fixture.app("ScreenTune.app", id: "com.example.ScreenTune", shortVersion: "2.0.2", build: "202")
+
+        #expect(try await fixture.packages(scanner: scanner, mode: .local).first?.installedVersion == "2.0.2")
+    }
+
     @Test func sparkleUsesBundleBuildForAdvisoryAndCachesTheCheck() async throws {
         let fixture = try MacAppFixture()
         defer { fixture.remove() }

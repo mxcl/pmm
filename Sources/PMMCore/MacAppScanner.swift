@@ -85,8 +85,8 @@ struct MacAppScanner: @unchecked Sendable {
                 enumerator.skipDescendants()
                 let path = url.resolvingSymlinksInPath().standardizedFileURL.path
                 guard seenPaths.insert(path).inserted, !homebrewPaths.contains(path),
-                      let bundle = Bundle(url: url),
-                      let bundleIdentifier = nonEmpty(bundle.bundleIdentifier) else { continue }
+                      let info = infoDictionary(for: url),
+                      let bundleIdentifier = nonEmpty(info["CFBundleIdentifier"] as? String) else { continue }
 
                 let catalog = database.app(for: bundleIdentifier)
                 let hasReceipt = fileManager.fileExists(atPath: url.appendingPathComponent("Contents/_MASReceipt/receipt").path)
@@ -101,7 +101,6 @@ struct MacAppScanner: @unchecked Sendable {
                     provenance = .direct
                 }
 
-                let info = bundle.infoDictionary ?? [:]
                 let displayName = nonEmpty(info["CFBundleDisplayName"] as? String)
                     ?? nonEmpty(info["CFBundleName"] as? String)
                     ?? url.deletingPathExtension().lastPathComponent
@@ -221,8 +220,8 @@ struct MacAppScanner: @unchecked Sendable {
 
     private func sparkleFeedURL(for package: ManagedPackage) -> String? {
         guard let path = package.installLocation,
-              let bundle = Bundle(url: URL(fileURLWithPath: path)) else { return nil }
-        return nonEmpty(bundle.object(forInfoDictionaryKey: "SUFeedURL") as? String)
+              let info = infoDictionary(for: URL(fileURLWithPath: path)) else { return nil }
+        return nonEmpty(info["SUFeedURL"] as? String)
     }
 
     private func appStoreVersion(id: Int) async throws -> MacAppVersionCacheRecord? {
@@ -286,6 +285,12 @@ struct MacAppScanner: @unchecked Sendable {
         }
         return data
     }
+}
+
+private func infoDictionary(for appURL: URL) -> [String: Any]? {
+    let url = appURL.appendingPathComponent("Contents/Info.plist")
+    guard let data = try? Data(contentsOf: url) else { return nil }
+    return try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any]
 }
 
 private enum MacAppScanError: Error {
