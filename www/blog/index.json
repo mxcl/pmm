@@ -1,6 +1,15 @@
 {
   "posts": [
     {
+      "slug": "remote-hosts",
+      "title": "Manage Your Other Macs",
+      "subtitle": "Inspect and maintain packages over SSH",
+      "category": "blog",
+      "systemImage": "desktopcomputer",
+      "publishedAt": "Jul 23, 2026",
+      "url": "https://mxcl.dev/package-manager-manager/blog/remote-hosts/"
+    },
+    {
       "slug": "unix-plus-plus",
       "title": "UNIX++ Pack",
       "subtitle": "22 modern shell tools",
