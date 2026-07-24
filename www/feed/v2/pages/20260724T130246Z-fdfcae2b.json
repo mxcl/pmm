@@ -1,0 +1,116 @@
+{
+  "content": [
+    {
+      "batchID": "20260716T224902Z-c0b4136e",
+      "id": "recently-updated:language-runtime:20260723T140545Z-f220bb45",
+      "packages": [
+        {
+          "agentSummary": "Friendly programming language from the future",
+          "category": "language-runtime",
+          "displayName": "unisonlang",
+          "homepage": "https://unison-lang.org/",
+          "id": "brew:unisonlang",
+          "installURL": "pkgmgrmgr://install?package=brew%3Aunisonlang",
+          "manager": "homebrew"
+        },
+        {
+          "agentSummary": "Glorious Glasgow Haskell Compilation System",
+          "category": "language-runtime",
+          "displayName": "ghc@9.10",
+          "homepage": "https://haskell.org/ghc/",
+          "id": "brew:ghc@9.10",
+          "installURL": "pkgmgrmgr://install?package=brew%3Aghc%409.10",
+          "manager": "homebrew"
+        },
+        {
+          "agentSummary": "Ruby implementation in pure Java",
+          "category": "language-runtime",
+          "displayName": "jruby",
+          "homepage": "https://www.jruby.org/",
+          "id": "brew:jruby",
+          "installURL": "pkgmgrmgr://install?package=brew%3Ajruby",
+          "manager": "homebrew"
+        },
+        {
+          "agentSummary": "Secure runtime for JavaScript and TypeScript",
+          "category": "language-runtime",
+          "displayName": "deno",
+          "homepage": "https://deno.com/",
+          "id": "brew:deno",
+          "installURL": "pkgmgrmgr://install?package=brew%3Adeno",
+          "manager": "homebrew"
+        },
+        {
+          "agentSummary": "Declarative object-oriented logic programming language",
+          "category": "language-runtime",
+          "displayName": "logtalk",
+          "homepage": "https://logtalk.org/",
+          "id": "brew:logtalk",
+          "installURL": "pkgmgrmgr://install?package=brew%3Alogtalk",
+          "manager": "homebrew"
+        }
+      ],
+      "publishedAt": "2026-07-16T22:49:02Z",
+      "title": "Recently Updated in Language Runtime",
+      "type": "recentlyUpdated"
+    },
+    {
+      "batchID": "20260716T224902Z-c0b4136e",
+      "id": "for-you:language-runtime:20260723T140545Z-f220bb45",
+      "packages": [
+        {
+          "agentSummary": "Runtime typescript and ESM support for Node.js",
+          "category": "language-runtime",
+          "displayName": "jiti",
+          "homepage": "https://github.com/unjs/jiti#readme",
+          "id": "npm:jiti",
+          "installURL": "pkgmgrmgr://install?package=npm%3Ajiti",
+          "manager": "npm"
+        },
+        {
+          "agentSummary": "Vite as Node.js runtime",
+          "category": "language-runtime",
+          "displayName": "vite-node",
+          "homepage": "https://github.com/antfu-collective/vite-node#readme",
+          "id": "npm:vite-node",
+          "installURL": "pkgmgrmgr://install?package=npm%3Avite-node",
+          "manager": "npm"
+        },
+        {
+          "agentSummary": "👷 workerd, Cloudflare's JavaScript/Wasm Runtime",
+          "category": "language-runtime",
+          "displayName": "workerd",
+          "homepage": "https://github.com/cloudflare/workerd#readme",
+          "id": "npm:workerd",
+          "installURL": "pkgmgrmgr://install?package=npm%3Aworkerd",
+          "manager": "npm"
+        },
+        {
+          "agentSummary": "Run any Edge Function from CLI or Node.js module.",
+          "category": "language-runtime",
+          "displayName": "edge-runtime",
+          "homepage": "https://edge-runtime.vercel.app/packages/runtime",
+          "id": "npm:edge-runtime",
+          "installURL": "pkgmgrmgr://install?package=npm%3Aedge-runtime",
+          "manager": "npm"
+        },
+        {
+          "agentSummary": "node",
+          "category": "language-runtime",
+          "displayName": "node",
+          "homepage": "https://github.com/aredridel/node-bin-gen#readme",
+          "id": "npm:node",
+          "installURL": "pkgmgrmgr://install?package=npm%3Anode",
+          "manager": "npm"
+        }
+      ],
+      "publishedAt": "2026-07-16T22:49:02Z",
+      "title": "For You in Language Runtime",
+      "type": "personalizedRecommendations"
+    }
+  ],
+  "generatedAt": "2026-07-24T13:02:46Z",
+  "nextPageURL": null,
+  "pageID": "20260724T130246Z-fdfcae2b",
+  "schemaVersion": 2
+}

@@ -386,7 +386,7 @@
       "type": "editorial"
     }
   ],
-  "generatedAt": "2026-07-23T14:05:45Z",
+  "generatedAt": "2026-07-24T13:02:46Z",
   "packages": {
     "brew:advai-cli": {
       "agentSummary": "advai-cli is a local-first command line tool that combines skill management, external CLI workflows, browser-bridge automation, and a terminal AI chat interface.",
@@ -2326,7 +2326,7 @@
   },
   "schemaVersion": 1,
   "source": {
-    "generatedAt": "2026-07-23T05:01:15Z",
+    "generatedAt": "2026-07-24T04:59:39Z",
     "url": "https://www.automicvault.com/db.json"
   }
 }
